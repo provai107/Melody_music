@@ -5,21 +5,35 @@
     android:background="?android:attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:padding="10dp">
+    android:paddingStart="16dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="10dp">
 
-    <ImageView
-        android:id="@+id/ivCover"
-        android:layout_width="54dp"
-        android:layout_height="54dp"
-        android:background="#2A2A2A"
-        android:contentDescription="Cover Art"
-        android:scaleType="centerCrop"
-        android:src="@android:drawable/ic_media_play" />
+    <!-- Track Album Cover -->
+    <androidx.cardview.widget.CardView
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        app:cardBackgroundColor="@color/tidal_surface_card"
+        app:cardCornerRadius="6dp"
+        app:cardElevation="0dp">
 
+        <ImageView
+            android:id="@+id/ivCover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Cover Art"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Track Info Column -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -28,78 +42,88 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:text="Song Title"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvSongArtist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Artist Name"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/tvSongAlbum"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Album Name"
-            android:textColor="#707070"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="end|center_vertical"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tvSongDuration"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="3:45"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+            android:textColor="@color/tidal_text_primary"
+            android:textSize="15sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnLikeSong"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:padding="0dp"
-                android:text="♡"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnAddToQueue"
+            <TextView
+                android:id="@+id/tvHiFiBadge"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:text="+ Queue"
-                android:textSize="10sp" />
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_pill_badge"
+                android:fontFamily="sans-serif-black"
+                android:paddingStart="4dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="1dp"
+                android:text="HI-FI"
+                android:textColor="@color/tidal_badge_text"
+                android:textSize="8sp" />
+
+            <TextView
+                android:id="@+id/tvSongArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text="Artist Name"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvSongAlbum"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text=""
+                android:textColor="@color/tidal_text_tertiary"
+                android:textSize="11sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- Duration -->
+    <TextView
+        android:id="@+id/tvSongDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:fontFamily="sans-serif"
+        android:text="3:45"
+        android:textColor="@color/tidal_text_secondary"
+        android:textSize="12sp" />
+
+    <!-- Like Action Button -->
+    <ImageView
+        android:id="@+id/btnLikeSong"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Like Song"
+        android:padding="7dp"
+        android:src="@drawable/ic_heart_outline" />
+
+    <!-- Context Menu / Add to Queue Button -->
+    <ImageView
+        android:id="@+id/btnAddToQueue"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Song Options"
+        android:padding="6dp"
+        android:src="@drawable/ic_more_vert" />
 
 </LinearLayout>

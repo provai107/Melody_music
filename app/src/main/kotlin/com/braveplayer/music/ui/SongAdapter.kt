@@ -18,11 +18,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import android.graphics.Color
-import android.widget.Button
 
 /**
- * RecyclerView adapter for displaying JioSaavn song search results.
+ * RecyclerView adapter for displaying JioSaavn song search results and playlist tracks
+ * styled with TIDAL-inspired dark visual hierarchy.
  */
 class SongAdapter(
     private val scope: CoroutineScope,
@@ -37,8 +36,8 @@ class SongAdapter(
     private val songs = mutableListOf<Song>()
 
     companion object {
-        // Simple in-memory image cache for fast UI scrolling
-        private val imageCache = LruCache<String, Bitmap>(50)
+        // In-memory image cache for smooth UI scrolling
+        private val imageCache = LruCache<String, Bitmap>(100)
     }
 
     fun submitList(newSongs: List<Song>) {
@@ -63,27 +62,24 @@ class SongAdapter(
         private val ivCover: ImageView = itemView.findViewById(R.id.ivCover)
         private val tvTitle: TextView = itemView.findViewById(R.id.tvSongTitle)
         private val tvArtist: TextView = itemView.findViewById(R.id.tvSongArtist)
-        private val tvAlbum: TextView = itemView.findViewById(R.id.tvSongAlbum)
         private val tvSongDuration: TextView = itemView.findViewById(R.id.tvSongDuration)
-        private val btnLikeSong: Button = itemView.findViewById(R.id.btnLikeSong)
-        private val btnAddToQueue: View = itemView.findViewById(R.id.btnAddToQueue)
+        private val btnLikeSong: ImageView = itemView.findViewById(R.id.btnLikeSong)
+        private val btnAddToQueue: ImageView = itemView.findViewById(R.id.btnAddToQueue)
         private var imageLoadJob: Job? = null
 
         fun bind(song: Song) {
             tvTitle.text = song.title
-            tvArtist.text = song.artists
-            tvAlbum.text = song.album
+            val artistText = if (song.album.isNotBlank()) "${song.artists} • ${song.album}" else song.artists
+            tvArtist.text = artistText
             tvSongDuration.text = song.formattedDuration
 
             val liked = isSongLiked?.invoke(song.id) == true
-            btnLikeSong.text = if (liked) "♥" else "♡"
-            btnLikeSong.setTextColor(if (liked) Color.parseColor("#E91E63") else Color.parseColor("#CCCCCC"))
+            updateLikeIcon(liked)
 
             btnLikeSong.setOnClickListener {
                 onSongLikeToggled?.invoke(song)
                 val newLiked = isSongLiked?.invoke(song.id) == true
-                btnLikeSong.text = if (newLiked) "♥" else "♡"
-                btnLikeSong.setTextColor(if (newLiked) Color.parseColor("#E91E63") else Color.parseColor("#CCCCCC"))
+                updateLikeIcon(newLiked)
             }
 
             itemView.setOnClickListener {
@@ -96,10 +92,14 @@ class SongAdapter(
             }
 
             btnAddToQueue.setOnClickListener {
-                onSongAddToQueue?.invoke(song)
+                if (onSongOptions != null) {
+                    onSongOptions.invoke(song)
+                } else {
+                    onSongAddToQueue?.invoke(song)
+                }
             }
 
-            // Cover Image Loading
+            // Cover Image Loading with cache
             imageLoadJob?.cancel()
             val imageUrl = song.imageUrl
             if (!imageUrl.isNullOrBlank()) {
@@ -107,7 +107,7 @@ class SongAdapter(
                 if (cached != null) {
                     ivCover.setImageBitmap(cached)
                 } else {
-                    ivCover.setImageResource(android.R.drawable.ic_media_play)
+                    ivCover.setImageResource(R.drawable.ic_music_note)
                     imageLoadJob = scope.launch {
                         val bitmap = fetchBitmap(imageUrl)
                         if (bitmap != null) {
@@ -117,7 +117,15 @@ class SongAdapter(
                     }
                 }
             } else {
-                ivCover.setImageResource(android.R.drawable.ic_media_play)
+                ivCover.setImageResource(R.drawable.ic_music_note)
+            }
+        }
+
+        private fun updateLikeIcon(liked: Boolean) {
+            if (liked) {
+                btnLikeSong.setImageResource(R.drawable.ic_heart_filled)
+            } else {
+                btnLikeSong.setImageResource(R.drawable.ic_heart_outline)
             }
         }
 

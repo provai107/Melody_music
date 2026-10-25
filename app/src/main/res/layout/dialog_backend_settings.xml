@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
+        android:letterSpacing="0.08"
+        android:text="SETTINGS &amp; TELEMETRY"
+        android:textColor="@color/tidal_text_primary"
+        android:textSize="16sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="sans-serif"
+        android:text="Configure your JioSaavn FastAPI backend endpoint and view real-time network filtering telemetry."
+        android:textColor="@color/tidal_text_secondary"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="BACKEND BASE URL"
+        android:textColor="@color/tidal_text_secondary"
+        android:textSize="11sp" />
+
+    <!-- Backend URL Input Box -->
+    <EditText
+        android:id="@+id/etBaseUrl"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_rounded_card"
+        android:hint="http://10.0.2.2:5000"
+        android:imeOptions="actionDone"
+        android:inputType="textUri"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:textColor="@color/tidal_text_primary"
+        android:textColorHint="@color/tidal_text_tertiary"
+        android:textSize="14sp" />
+
+    <!-- Action Buttons Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnResetBaseUrl"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Reset Default"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnSaveBaseUrl"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/tidal_accent"
+            android:text="Save Endpoint"
+            android:textColor="@color/black"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@color/tidal_divider" />
+
+    <!-- Telemetry Box -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:text="ADBLOCK &amp; CDN FILTER TELEMETRY"
+        android:textColor="@color/tidal_text_secondary"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/tvTelemetry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_rounded_card"
+        android:fontFamily="monospace"
+        android:padding="12dp"
+        android:text="Queries: 0 | Allowed: 0 | Blocked: 0 | Audio CDN Bypass: 0"
+        android:textColor="@color/tidal_accent"
+        android:textSize="11sp" />
+
+</LinearLayout>

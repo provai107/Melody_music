@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutNowPlayingSheet"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
+
+    <!-- Top Handle / Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/ivCollapseNowPlaying"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Collapse Now Playing"
+            android:padding="8dp"
+            android:src="@drawable/ic_expand_more" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.12"
+            android:text="NOW PLAYING"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="11sp" />
+
+        <ImageView
+            android:id="@+id/btnNowPlayingMore"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Track Options"
+            android:padding="8dp"
+            android:src="@drawable/ic_more_vert" />
+    </RelativeLayout>
+
+    <!-- Hero Album Cover Art -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="24dp"
+        app:cardBackgroundColor="@color/tidal_surface_card"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="8dp">
+
+        <ImageView
+            android:id="@+id/ivNowPlayingCover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Now Playing Album Art"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Track Metadata & Like Toggle Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvNowPlayingTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="Track Title"
+                android:textColor="@color/tidal_text_primary"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvNowPlayingHiFiBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_pill_badge"
+                    android:fontFamily="sans-serif-black"
+                    android:paddingStart="5dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="5dp"
+                    android:paddingBottom="2dp"
+                    android:text="LOSSLESS • HI-FI"
+                    android:textColor="@color/tidal_badge_text"
+                    android:textSize="9sp" />
+
+                <TextView
+                    android:id="@+id/tvNowPlayingArtist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
+                    android:text="Artist Name"
+                    android:textColor="@color/tidal_text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnNowPlayingLike"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Like Track"
+            android:padding="8dp"
+            android:src="@drawable/ic_heart_outline" />
+    </LinearLayout>
+
+    <!-- Scrubber Row -->
+    <SeekBar
+        android:id="@+id/sbNowPlayingProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:max="1000"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
+        android:progress="0"
+        android:progressBackgroundTint="@color/tidal_divider"
+        android:progressTint="@color/tidal_accent"
+        android:thumbTint="@color/tidal_accent" />
+
+    <!-- Elapsed & Duration Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:id="@+id/tvNowPlayingPosition"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:fontFamily="sans-serif"
+            android:text="0:00"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvNowPlayingDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:fontFamily="sans-serif"
+            android:text="0:00"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="12sp" />
+    </RelativeLayout>
+
+    <!-- Primary Playback Controls Row: Shuffle, Prev, Hero Play/Pause, Next, Repeat -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/btnNowPlayingShuffle"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Toggle Shuffle"
+            android:padding="10dp"
+            android:src="@drawable/ic_shuffle"
+            app:tint="@color/tidal_text_secondary" />
+
+        <ImageView
+            android:id="@+id/btnNowPlayingPrev"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="16dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Previous Track"
+            android:padding="8dp"
+            android:src="@drawable/ic_skip_previous" />
+
+        <!-- Circular Hero Play/Pause Action Button -->
+        <FrameLayout
+            android:id="@+id/layoutNowPlayingPlayPause"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/bg_play_button_circle"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/btnNowPlayingPlayPause"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:contentDescription="Play/Pause"
+                android:src="@drawable/ic_play_arrow"
+                app:tint="@color/black" />
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/btnNowPlayingNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="16dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Next Track"
+            android:padding="8dp"
+            android:src="@drawable/ic_skip_next" />
+
+        <ImageView
+            android:id="@+id/btnNowPlayingRepeat"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Toggle Repeat"
+            android:padding="10dp"
+            android:src="@drawable/ic_repeat"
+            app:tint="@color/tidal_text_secondary" />
+    </LinearLayout>
+
+    <!-- Quick Seek Row: -15s, Autoplay Badge, +15s -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnNowPlayingRewind15"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackground"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp"
+            android:text="-15s"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvNowPlayingAutoplayStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:background="@drawable/bg_pill_badge"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="8dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="3dp"
+            android:text="AUTOPLAY ON"
+            android:textColor="@color/tidal_badge_text"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/btnNowPlayingForward15"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackground"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp"
+            android:text="+15s"
+            android:textColor="@color/tidal_text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@color/tidal_divider" />
+
+    <!-- Bottom Secondary Actions: Queue, Radio, Add Playlist -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/btnNowPlayingQueueAction"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Queue"
+                android:src="@drawable/ic_queue_music"
+                app:tint="@color/tidal_text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif"
+                android:text="Queue"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNowPlayingRadioAction"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Track Radio"
+                android:src="@drawable/ic_radio"
+                app:tint="@color/tidal_text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif"
+                android:text="Radio"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNowPlayingAddPlaylistAction"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Add to Playlist"
+                android:src="@drawable/ic_playlist_add"
+                app:tint="@color/tidal_text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif"
+                android:text="Playlist"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

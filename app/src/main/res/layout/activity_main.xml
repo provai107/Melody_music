@@ -1,449 +1,612 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_dark"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@color/tidal_bg">
 
-    <!-- Top Settings Bar: Configurable Backend Base URL -->
+    <!-- Primary Vertical Content Layout -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <EditText
-            android:id="@+id/etBaseUrl"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Backend URL (http://10.0.2.2:5000)"
-            android:imeOptions="actionDone"
-            android:inputType="textUri"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/btnSaveBaseUrl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="Save"
-            android:textSize="11sp" />
-
-        <Button
-            android:id="@+id/btnResetBaseUrl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="Reset"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <!-- Song Search Bar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <EditText
-            android:id="@+id/etSearchQuery"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Search songs (e.g. Arijit, Tum Hi Ho)..."
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="14sp" />
-
-        <Button
-            android:id="@+id/btnSearch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Search"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <!-- Search States: Loading, Empty, Error, Results -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="1">
-
-        <!-- Loading State -->
-        <ProgressBar
-            android:id="@+id/pbSearchLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
-
-        <!-- Empty Results State -->
-        <TextView
-            android:id="@+id/tvEmptyResults"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="No songs found. Try a different search."
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <!-- Error State with Retry -->
-        <LinearLayout
-            android:id="@+id/layoutError"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tvErrorMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="Network error connecting to backend."
-                android:textColor="#FF5252"
-                android:textSize="13sp" />
-
-            <Button
-                android:id="@+id/btnRetrySearch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Retry Search"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- Search Results List -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvSearchResults"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scrollbars="vertical" />
-    </FrameLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="6dp"
-        android:background="#333333" />
-
-    <!-- Now Playing Section -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <LinearLayout
+        <!-- Top App Bar -->
+        <RelativeLayout
+            android:id="@+id/topAppBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="56dp"
+            android:background="@color/tidal_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_centerVertical="true"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvTrackTitle"
+                    android:id="@+id/tvAppBrand"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/sample_track_title"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.1"
+                    android:text="MELODY"
+                    android:textColor="@color/tidal_text_primary"
+                    android:textSize="18sp" />
 
                 <TextView
-                    android:id="@+id/tvTrackArtist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/sample_track_artist"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.06"
+                    android:text="HI-FI MUSIC STREAMING"
+                    android:textColor="@color/tidal_accent"
+                    android:textSize="9sp" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btnLikeCurrent"
+            <ImageView
+                android:id="@+id/btnOpenSettings"
                 android:layout_width="40dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:padding="0dp"
-                android:text="♡"
-                android:textSize="18sp" />
-        </LinearLayout>
+                android:layout_height="40dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Settings and Telemetry"
+                android:padding="8dp"
+                android:src="@drawable/ic_settings"
+                app:tint="@color/tidal_text_secondary" />
+        </RelativeLayout>
 
-        <TextView
-            android:id="@+id/tvPlaybackStatus"
+        <!-- Main Content Area: Tab Views Container -->
+        <FrameLayout
+            android:id="@+id/mainContentContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="@string/status_idle"
-            android:textColor="@color/teal_200"
-            android:textSize="12sp" />
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
-        <!-- Seek Bar Row -->
-        <LinearLayout
+            <!-- TAB 1: HOME & DISCOVERY -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/containerHome"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.08"
+                        android:text="DISCOVERY &amp; MIXES"
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="11sp" />
+
+                    <!-- Daily Mix Card -->
+                    <LinearLayout
+                        android:id="@+id/cardDailyMix"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_mix_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_pill_badge"
+                            android:fontFamily="sans-serif-black"
+                            android:paddingStart="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="6dp"
+                            android:paddingBottom="2dp"
+                            android:text="GENERATED FOR YOU"
+                            android:textColor="@color/tidal_badge_text"
+                            android:textSize="9sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:fontFamily="sans-serif-black"
+                            android:text="Daily Mix"
+                            android:textColor="@color/tidal_text_primary"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="sans-serif"
+                            android:text="Personalized session curated from your top listened artists and history."
+                            android:textColor="@color/tidal_text_secondary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnPlayDailyMix"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="14dp"
+                            android:backgroundTint="@color/tidal_accent"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="▶ Play Daily Mix"
+                            android:textColor="@color/black"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Discovery Mix Card -->
+                    <LinearLayout
+                        android:id="@+id/cardDiscoveryMix"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/bg_mix_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_pill_badge"
+                            android:fontFamily="sans-serif-black"
+                            android:paddingStart="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="6dp"
+                            android:paddingBottom="2dp"
+                            android:text="FRESH DISCOVERY"
+                            android:textColor="@color/tidal_badge_text"
+                            android:textSize="9sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:fontFamily="sans-serif-black"
+                            android:text="Discovery Mix"
+                            android:textColor="@color/tidal_text_primary"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="sans-serif"
+                            android:text="Expand your horizon with novel tracks and related artist recommendations."
+                            android:textColor="@color/tidal_text_secondary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnPlayDiscoveryMix"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="14dp"
+                            android:backgroundTint="@color/tidal_surface_card"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="▶ Play Discovery Mix"
+                            android:textColor="@color/tidal_text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Quick Shortcuts Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:id="@+id/btnHomeLikedShortcut"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_rounded_card"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="14dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:contentDescription="Liked Songs"
+                                android:src="@drawable/ic_heart_filled"
+                                app:tint="@color/tidal_accent" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Liked Songs"
+                                android:textColor="@color/tidal_text_primary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/btnHomeQueueShortcut"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_rounded_card"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="14dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:contentDescription="Queue"
+                                android:src="@drawable/ic_queue_music"
+                                app:tint="@color/tidal_text_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Now Playing Queue"
+                                android:textColor="@color/tidal_text_primary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Recently Played Section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="22dp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.08"
+                        android:text="RECENTLY PLAYED"
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="11sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentlyPlayedHome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
+            <!-- TAB 2: SEARCH -->
+            <LinearLayout
+                android:id="@+id/containerSearch"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone">
+
+                <!-- Polished Search Input Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_search_input"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:contentDescription="Search Icon"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/tidal_text_secondary" />
+
+                    <EditText
+                        android:id="@+id/etSearchQuery"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:fontFamily="sans-serif"
+                        android:hint="Search tracks, artists, albums..."
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:textColor="@color/tidal_text_primary"
+                        android:textColorHint="@color/tidal_text_tertiary"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/btnSearch"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="0dp"
+                        android:padding="0dp"
+                        android:text="Search"
+                        android:textColor="@color/tidal_accent"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Search State Container -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_weight="1">
+
+                    <!-- Loading State -->
+                    <ProgressBar
+                        android:id="@+id/pbSearchLoading"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:indeterminateTint="@color/tidal_accent"
+                        android:visibility="gone" />
+
+                    <!-- Empty Results State -->
+                    <TextView
+                        android:id="@+id/tvEmptyResults"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif"
+                        android:text="No tracks found. Try a different query."
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <!-- Error State with Retry -->
+                    <LinearLayout
+                        android:id="@+id/layoutError"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="20dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvErrorMessage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="Network error connecting to backend service."
+                            android:textColor="#FF5252"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnRetrySearch"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="12dp"
+                            android:backgroundTint="@color/tidal_surface_card"
+                            android:text="Retry Search"
+                            android:textColor="@color/tidal_text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Search Results List -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvSearchResults"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:paddingBottom="8dp" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- TAB 3: MY COLLECTION -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/containerCollection"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:fontFamily="sans-serif-black"
+                            android:letterSpacing="0.08"
+                            android:text="MY COLLECTION"
+                            android:textColor="@color/tidal_text_primary"
+                            android:textSize="16sp" />
+
+                        <Button
+                            android:id="@+id/btnCreatePlaylistAction"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_alignParentEnd="true"
+                            android:text="+ New Playlist"
+                            android:textColor="@color/tidal_accent"
+                            android:textSize="12sp" />
+                    </RelativeLayout>
+
+                    <!-- Liked Songs Collection Row -->
+                    <LinearLayout
+                        android:id="@+id/cardCollectionLiked"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_pill_badge"
+                            android:contentDescription="Liked Songs"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_heart_filled"
+                            app:tint="@color/tidal_accent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:text="Liked Songs"
+                                android:textColor="@color/tidal_text_primary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/tvCollectionLikedCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif"
+                                android:text="0 tracks"
+                                android:textColor="@color/tidal_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Listening History Collection Row -->
+                    <LinearLayout
+                        android:id="@+id/cardCollectionHistory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_pill_badge"
+                            android:contentDescription="History"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_queue_music"
+                            app:tint="@color/tidal_accent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:text="Listening History"
+                                android:textColor="@color/tidal_text_primary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/tvCollectionHistoryCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif"
+                                android:text="Recently played &amp; top tracks"
+                                android:textColor="@color/tidal_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- User Playlists Header -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="22dp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.08"
+                        android:text="YOUR PLAYLISTS"
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="11sp" />
+
+                    <!-- User Playlists RecyclerView -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPlaylistsCollection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
+        </FrameLayout>
+
+        <!-- Persistent Docked Mini-Player Bar -->
+        <include
+            android:id="@+id/miniPlayerLayout"
+            layout="@layout/layout_mini_player" />
+
+        <!-- Bottom Navigation Bar -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNavigation"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="56dp"
+            android:background="@color/tidal_surface"
+            app:elevation="8dp"
+            app:itemIconSize="22dp"
+            app:itemIconTint="@color/bottom_nav_color_selector"
+            app:itemTextColor="@color/bottom_nav_color_selector"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_nav_menu" />
 
-            <TextView
-                android:id="@+id/tvPlaybackPosition"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0:00"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-
-            <SeekBar
-                android:id="@+id/sbPlaybackProgress"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="1000" />
-
-            <TextView
-                android:id="@+id/tvTrackDuration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0:00"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- Primary Playback Controls -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnRewind15"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:minWidth="0dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="-15s"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnPrev"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="|&lt;"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnPlay"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/play"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnPause"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/pause"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnStop"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="Stop"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnNext"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="&gt;|"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnForward15"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="+15s"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- Secondary Controls Row 1: Repeat, Shuffle, Autoplay, Queue -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnRepeat"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Repeat: Off"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnShuffle"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Shuffle: Off"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnAutoplay"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Autoplay: On"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnQueue"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Queue"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- Secondary Controls Row 2: Liked Songs, Mixes, History, Playlists -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnLikedSongs"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="♥ Liked"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnMixes"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Mixes"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnHistory"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="History"
-                android:textSize="10sp" />
-
-            <Button
-                android:id="@+id/btnPlaylists"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Playlists"
-                android:textSize="10sp" />
-        </LinearLayout>
     </LinearLayout>
 
-    <!-- Telemetry Display -->
-    <TextView
-        android:id="@+id/tvTelemetry"
+    <!-- Expandable Full-Screen / BottomSheet Now Playing Container -->
+    <FrameLayout
+        android:id="@+id/bottomSheetNowPlaying"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="@color/card_dark"
-        android:fontFamily="monospace"
-        android:padding="8dp"
-        android:text="Filtering Telemetry: Active"
-        android:textColor="@color/text_primary"
-        android:textSize="11sp" />
+        android:layout_height="match_parent"
+        app:behavior_hideable="true"
+        app:behavior_peekHeight="0dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-</LinearLayout>
+        <include
+            android:id="@+id/nowPlayingSheetView"
+            layout="@layout/dialog_now_playing" />
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

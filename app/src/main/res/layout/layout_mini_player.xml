@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutMiniPlayer"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:background="@drawable/bg_mini_player"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <!-- Thin Top Progress Indicator Line -->
+    <ProgressBar
+        android:id="@+id/pbMiniProgress"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:max="1000"
+        android:progress="0"
+        android:progressBackgroundTint="@color/tidal_divider"
+        android:progressTint="@color/tidal_accent" />
+
+    <!-- Content Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <!-- Mini Album Thumbnail -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardBackgroundColor="@color/tidal_surface_card"
+            app:cardCornerRadius="6dp"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:id="@+id/ivMiniCover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Mini Album Cover"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_music_note" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- Title & Artist Column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvMiniTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="Track Title"
+                android:textColor="@color/tidal_text_primary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvMiniArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text="Artist"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Quick Like Toggle -->
+        <ImageView
+            android:id="@+id/btnMiniLike"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Like Track"
+            android:padding="8dp"
+            android:src="@drawable/ic_heart_outline" />
+
+        <!-- Quick Play / Pause -->
+        <ImageView
+            android:id="@+id/btnMiniPlayPause"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Play/Pause"
+            android:padding="6dp"
+            android:src="@drawable/ic_play_arrow" />
+
+        <!-- Quick Skip Next -->
+        <ImageView
+            android:id="@+id/btnMiniNext"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Next Track"
+            android:padding="7dp"
+            android:src="@drawable/ic_skip_next" />
+
+    </LinearLayout>
+
+</LinearLayout>

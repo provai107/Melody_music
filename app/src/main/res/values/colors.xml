@@ -1,13 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_500">#6200EE</color>
-    <color name="purple_700">#3700B3</color>
-    <color name="teal_200">#03DAC5</color>
-    <color name="teal_700">#018786</color>
+    <!-- TIDAL-Inspired Premium Dark Theme Tokens -->
+    <color name="tidal_bg">#0B0B0E</color>
+    <color name="tidal_surface">#16161B</color>
+    <color name="tidal_surface_elevated">#202026</color>
+    <color name="tidal_surface_card">#1A1A22</color>
+    <color name="tidal_surface_highlight">#2A2A38</color>
+    <color name="tidal_text_primary">#FFFFFF</color>
+    <color name="tidal_text_secondary">#8A8A93</color>
+    <color name="tidal_text_tertiary">#5A5A64</color>
+    <color name="tidal_accent">#00E5FF</color>
+    <color name="tidal_accent_subtle">#102B33</color>
+    <color name="tidal_favorite_active">#00E5FF</color>
+    <color name="tidal_divider">#1C1C24</color>
+    <color name="tidal_badge_bg">#183038</color>
+    <color name="tidal_badge_text">#00E5FF</color>
+
+    <!-- Legacy Mappings for Compatibility -->
+    <color name="background_dark">#0B0B0E</color>
+    <color name="card_dark">#16161B</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8A8A93</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="background_dark">#121212</color>
-    <color name="card_dark">#1E1E1E</color>
-    <color name="text_primary">#E0E0E0</color>
-    <color name="text_secondary">#A0A0A0</color>
-    <color name="accent_orange">#FF5722</color>
+    <color name="purple_500">#00E5FF</color>
+    <color name="purple_700">#00B0FF</color>
+    <color name="teal_200">#00E5FF</color>
+    <color name="teal_700">#0097A7</color>
+    <color name="accent_orange">#00E5FF</color>
 </resources>
