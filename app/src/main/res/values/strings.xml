@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Brave Music Player</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="seek_forward">Seek +15s</string>
+    <string name="status_idle">Status: Idle</string>
+    <string name="sample_track_title">SoundHelix Song 1</string>
+    <string name="sample_track_artist">Creative Commons Audio</string>
+    <string name="test_metadata_query">Simulate Clean API Call</string>
+    <string name="test_blocked_tracker">Simulate Blocked Tracker</string>
+    <string name="telemetry_header">Network Filtering Telemetry</string>
+</resources>
