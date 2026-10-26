@@ -32,7 +32,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "brave_playlists.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
 
         // Playlists Table
         private const val TABLE_PLAYLISTS = "playlists"
@@ -86,6 +86,18 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_H_SKIPPED = "skipped"
         private const val COL_H_MEANINGFUL = "meaningful_play"
 
+        // Downloaded Songs Table
+        private const val TABLE_DOWNLOADED = "downloaded_songs"
+        private const val COL_D_SONG_ID = "song_id"
+        private const val COL_D_TITLE = "title"
+        private const val COL_D_ARTISTS = "artists"
+        private const val COL_D_ALBUM = "album"
+        private const val COL_D_IMAGE_URL = "image_url"
+        private const val COL_D_DURATION = "duration_sec"
+        private const val COL_D_MEDIA_URL = "media_url"
+        private const val COL_D_LOCAL_PATH = "local_path"
+        private const val COL_D_DOWNLOADED_AT = "downloaded_at"
+
         const val MAX_HISTORY_ROWS = 500
     }
 
@@ -122,6 +134,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
         createLikedSongsTable(db)
         createHistoryTable(db)
+        createDownloadedSongsTable(db)
     }
 
     private fun createLikedSongsTable(db: SQLiteDatabase) {
@@ -138,6 +151,24 @@ class PlaylistDatabaseHelper(context: Context) :
                 $COL_L_MEDIA_URL_DEF TEXT,
                 $COL_L_PREVIEW_URL TEXT,
                 $COL_L_LIKED_AT INTEGER NOT NULL
+            );
+            """.trimIndent()
+        )
+    }
+
+    private fun createDownloadedSongsTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_DOWNLOADED (
+                $COL_D_SONG_ID TEXT PRIMARY KEY,
+                $COL_D_TITLE TEXT NOT NULL,
+                $COL_D_ARTISTS TEXT NOT NULL,
+                $COL_D_ALBUM TEXT NOT NULL,
+                $COL_D_IMAGE_URL TEXT,
+                $COL_D_DURATION INTEGER NOT NULL,
+                $COL_D_MEDIA_URL TEXT,
+                $COL_D_LOCAL_PATH TEXT NOT NULL,
+                $COL_D_DOWNLOADED_AT INTEGER NOT NULL
             );
             """.trimIndent()
         )
@@ -173,6 +204,9 @@ class PlaylistDatabaseHelper(context: Context) :
         if (oldVersion < 2) {
             createLikedSongsTable(db)
             createHistoryTable(db)
+        }
+        if (oldVersion < 3) {
+            createDownloadedSongsTable(db)
         }
     }
 
@@ -605,5 +639,87 @@ class PlaylistDatabaseHelper(context: Context) :
     fun clearHistory() {
         val db = writableDatabase
         db.delete(TABLE_HISTORY, null, null)
+    }
+
+    // ==========================================
+    // Downloaded Songs Operations
+    // ==========================================
+
+    fun saveDownloadedSong(song: Song, localPath: String): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_D_SONG_ID, song.id)
+            put(COL_D_TITLE, song.title)
+            put(COL_D_ARTISTS, song.artists)
+            put(COL_D_ALBUM, song.album)
+            put(COL_D_IMAGE_URL, song.imageUrl)
+            put(COL_D_DURATION, song.durationSec)
+            put(COL_D_MEDIA_URL, song.mediaUrl)
+            put(COL_D_LOCAL_PATH, localPath)
+            put(COL_D_DOWNLOADED_AT, System.currentTimeMillis())
+        }
+        return db.insertWithOnConflict(TABLE_DOWNLOADED, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun isSongDownloaded(songId: String): Boolean {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_DOWNLOADED,
+            arrayOf(COL_D_SONG_ID),
+            "$COL_D_SONG_ID = ?",
+            arrayOf(songId),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            return it.moveToFirst()
+        }
+    }
+
+    fun getAllDownloadedSongs(): List<Song> {
+        val list = mutableListOf<Song>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_DOWNLOADED,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COL_D_DOWNLOADED_AT DESC"
+        )
+        cursor.use {
+            val idxId = it.getColumnIndexOrThrow(COL_D_SONG_ID)
+            val idxTitle = it.getColumnIndexOrThrow(COL_D_TITLE)
+            val idxArtists = it.getColumnIndexOrThrow(COL_D_ARTISTS)
+            val idxAlbum = it.getColumnIndexOrThrow(COL_D_ALBUM)
+            val idxImage = it.getColumnIndexOrThrow(COL_D_IMAGE_URL)
+            val idxDuration = it.getColumnIndexOrThrow(COL_D_DURATION)
+            val idxPath = it.getColumnIndexOrThrow(COL_D_LOCAL_PATH)
+
+            while (it.moveToNext()) {
+                val localPath = it.getString(idxPath)
+                list.add(
+                    Song(
+                        id = it.getString(idxId),
+                        title = it.getString(idxTitle),
+                        artists = it.getString(idxArtists),
+                        album = it.getString(idxAlbum),
+                        imageUrl = it.getString(idxImage),
+                        durationSec = it.getInt(idxDuration),
+                        mediaUrl = localPath,
+                        mediaUrlDefault = localPath,
+                        previewUrl = null
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun deleteDownloadedSong(songId: String): Boolean {
+        val db = writableDatabase
+        return db.delete(TABLE_DOWNLOADED, "$COL_D_SONG_ID = ?", arrayOf(songId)) > 0
     }
 }

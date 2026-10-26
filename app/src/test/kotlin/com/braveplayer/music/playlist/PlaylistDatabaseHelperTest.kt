@@ -127,4 +127,35 @@ class PlaylistDatabaseHelperTest {
         assertThat(dbHelper.getAllPlaylists()).isEmpty()
         assertThat(dbHelper.getSongsInPlaylist(playlistId)).isEmpty()
     }
+
+    @Test
+    fun testSaveAndGetDownloadedSongs() {
+        val song = Song(
+            id = "dl_1",
+            title = "Downloaded Track",
+            artists = "Offline Artist",
+            album = "Offline Album",
+            imageUrl = "https://c.saavncdn.com/dl1.jpg",
+            durationSec = 200,
+            mediaUrl = "https://aac.saavncdn.com/dl1.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null
+        )
+
+        assertThat(dbHelper.isSongDownloaded("dl_1")).isFalse()
+        val rowId = dbHelper.saveDownloadedSong(song, "/storage/emulated/0/Music/BravePlayer/Downloaded_Track.mp3")
+        assertThat(rowId).isGreaterThan(0L)
+        assertThat(dbHelper.isSongDownloaded("dl_1")).isTrue()
+
+        val allDl = dbHelper.getAllDownloadedSongs()
+        assertThat(allDl).hasSize(1)
+        assertThat(allDl[0].id).isEqualTo("dl_1")
+        assertThat(allDl[0].title).isEqualTo("Downloaded Track")
+        assertThat(allDl[0].mediaUrl).isEqualTo("/storage/emulated/0/Music/BravePlayer/Downloaded_Track.mp3")
+
+        val deleted = dbHelper.deleteDownloadedSong("dl_1")
+        assertThat(deleted).isTrue()
+        assertThat(dbHelper.isSongDownloaded("dl_1")).isFalse()
+        assertThat(dbHelper.getAllDownloadedSongs()).isEmpty()
+    }
 }

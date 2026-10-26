@@ -431,6 +431,35 @@
                 android:textColor="@color/tidal_text_secondary"
                 android:textSize="11sp" />
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnNowPlayingDownloadAction"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Download Track"
+                android:src="@drawable/ic_download"
+                app:tint="@color/tidal_text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif"
+                android:text="Download"
+                android:textColor="@color/tidal_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>

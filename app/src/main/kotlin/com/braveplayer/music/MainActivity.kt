@@ -32,15 +32,21 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.core.widget.addTextChangedListener
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.filter.manager.FilterListManager
 import com.braveplayer.music.api.MusicMetadataService
 import com.braveplayer.music.api.SearchResult
+import com.braveplayer.music.discovery.GenreCategory
 import com.braveplayer.music.discovery.MixGenerator
+import com.braveplayer.music.discovery.MoodCategory
+import com.braveplayer.music.discovery.MusicCatalog
 import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.discovery.PersonalizedMix
+import com.braveplayer.music.download.SongDownloadHelper
 import com.braveplayer.music.lyrics.LyricsResult
 import com.braveplayer.music.lyrics.LyricsService
 import com.braveplayer.music.lyrics.SyncedLyricsAdapter
@@ -52,6 +58,8 @@ import com.braveplayer.music.playlist.PlaylistDatabaseHelper
 import com.braveplayer.music.service.PlaybackService
 import com.braveplayer.music.settings.AppSettings
 import com.braveplayer.music.settings.FilterEngineProvider
+import com.braveplayer.music.ui.GenreAdapter
+import com.braveplayer.music.ui.MoodAdapter
 import com.braveplayer.music.ui.PlaylistAdapter
 import com.braveplayer.music.ui.QueueAdapter
 import com.braveplayer.music.ui.SongAdapter
@@ -86,6 +94,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recommendationEngine: MusicRecommendationEngine
     private lateinit var mixGenerator: MixGenerator
     private lateinit var lyricsService: LyricsService
+    private lateinit var songDownloadHelper: SongDownloadHelper
 
     // Adapters
     private lateinit var searchAdapter: SongAdapter
@@ -106,6 +115,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnPlayDiscoveryMix: Button
     private lateinit var btnHomeLikedShortcut: View
     private lateinit var btnHomeQueueShortcut: View
+    private lateinit var rvMoodHome: RecyclerView
+    private lateinit var rvGenreHome: RecyclerView
     private lateinit var rvRecentlyPlayedHome: RecyclerView
 
     // Search Tab UI
@@ -116,6 +127,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutError: LinearLayout
     private lateinit var tvErrorMessage: TextView
     private lateinit var btnRetrySearch: Button
+    private lateinit var layoutSearchBrowse: View
+    private lateinit var rvSearchBrowseGenres: RecyclerView
     private lateinit var rvSearchResults: RecyclerView
 
     // My Collection Tab UI
@@ -124,6 +137,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCollectionLikedCount: TextView
     private lateinit var cardCollectionHistory: View
     private lateinit var tvCollectionHistoryCount: TextView
+    private lateinit var cardCollectionDownloads: View
+    private lateinit var tvCollectionDownloadsCount: TextView
     private lateinit var rvPlaylistsCollection: RecyclerView
 
     // Docked Mini-Player UI
@@ -160,6 +175,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNowPlayingLyricsAction: View
     private lateinit var btnNowPlayingRadioAction: View
     private lateinit var btnNowPlayingAddPlaylistAction: View
+    private lateinit var btnNowPlayingDownloadAction: View
 
     // MediaController connection
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -190,6 +206,7 @@ class MainActivity : AppCompatActivity() {
         recommendationEngine = MusicRecommendationEngine(metadataService, playlistDbHelper)
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
         lyricsService = LyricsService(metadataService.httpClient)
+        songDownloadHelper = SongDownloadHelper(this, playlistDbHelper)
 
         initViews()
         setupAdapters()
@@ -229,6 +246,8 @@ class MainActivity : AppCompatActivity() {
         btnPlayDiscoveryMix = findViewById(R.id.btnPlayDiscoveryMix)
         btnHomeLikedShortcut = findViewById(R.id.btnHomeLikedShortcut)
         btnHomeQueueShortcut = findViewById(R.id.btnHomeQueueShortcut)
+        rvMoodHome = findViewById(R.id.rvMoodHome)
+        rvGenreHome = findViewById(R.id.rvGenreHome)
         rvRecentlyPlayedHome = findViewById(R.id.rvRecentlyPlayedHome)
 
         // Search UI
@@ -239,6 +258,8 @@ class MainActivity : AppCompatActivity() {
         layoutError = findViewById(R.id.layoutError)
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetrySearch = findViewById(R.id.btnRetrySearch)
+        layoutSearchBrowse = findViewById(R.id.layoutSearchBrowse)
+        rvSearchBrowseGenres = findViewById(R.id.rvSearchBrowseGenres)
         rvSearchResults = findViewById(R.id.rvSearchResults)
 
         // My Collection UI
@@ -247,6 +268,8 @@ class MainActivity : AppCompatActivity() {
         tvCollectionLikedCount = findViewById(R.id.tvCollectionLikedCount)
         cardCollectionHistory = findViewById(R.id.cardCollectionHistory)
         tvCollectionHistoryCount = findViewById(R.id.tvCollectionHistoryCount)
+        cardCollectionDownloads = findViewById(R.id.cardCollectionDownloads)
+        tvCollectionDownloadsCount = findViewById(R.id.tvCollectionDownloadsCount)
         rvPlaylistsCollection = findViewById(R.id.rvPlaylistsCollection)
 
         // Mini-Player UI
@@ -284,9 +307,28 @@ class MainActivity : AppCompatActivity() {
         btnNowPlayingLyricsAction = findViewById(R.id.btnNowPlayingLyricsAction)
         btnNowPlayingRadioAction = findViewById(R.id.btnNowPlayingRadioAction)
         btnNowPlayingAddPlaylistAction = findViewById(R.id.btnNowPlayingAddPlaylistAction)
+        btnNowPlayingDownloadAction = findViewById(R.id.btnNowPlayingDownloadAction)
     }
 
     private fun setupAdapters() {
+        // Moods Carousel on Home
+        rvMoodHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvMoodHome.adapter = MoodAdapter(MusicCatalog.MOODS) { mood ->
+            openMoodTracks(mood)
+        }
+
+        // Genres Carousel on Home
+        rvGenreHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvGenreHome.adapter = GenreAdapter(MusicCatalog.GENRES) { genre ->
+            openGenreTracks(genre)
+        }
+
+        // Browse Genres Grid on Search Tab
+        rvSearchBrowseGenres.layoutManager = GridLayoutManager(this, 2)
+        rvSearchBrowseGenres.adapter = GenreAdapter(MusicCatalog.GENRES) { genre ->
+            openGenreTracks(genre)
+        }
+
         searchAdapter = SongAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
@@ -377,6 +419,14 @@ class MainActivity : AppCompatActivity() {
 
         // Search Actions
         btnSearch.setOnClickListener { performSearch(etSearchQuery.text.toString()) }
+        etSearchQuery.addTextChangedListener { text ->
+            if (text.isNullOrBlank()) {
+                layoutSearchBrowse.visibility = View.VISIBLE
+                rvSearchResults.visibility = View.GONE
+                tvEmptyResults.visibility = View.GONE
+                layoutError.visibility = View.GONE
+            }
+        }
         etSearchQuery.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch(etSearchQuery.text.toString())
@@ -393,6 +443,7 @@ class MainActivity : AppCompatActivity() {
         btnCreatePlaylistAction.setOnClickListener { showCreatePlaylistDialog() }
         cardCollectionLiked.setOnClickListener { showLikedSongsDialog() }
         cardCollectionHistory.setOnClickListener { showHistoryDialog() }
+        cardCollectionDownloads.setOnClickListener { showDownloadedSongsDialog() }
 
         // Mini Player Controls
         btnMiniPlayPause.setOnClickListener {
@@ -466,6 +517,13 @@ class MainActivity : AppCompatActivity() {
             val item = mediaController?.currentMediaItem ?: return@setOnClickListener
             val song = SongMediaItemMapper.fromMediaItem(item)
             showAddToPlaylistDialog(song)
+        }
+        btnNowPlayingDownloadAction.setOnClickListener {
+            val item = mediaController?.currentMediaItem ?: return@setOnClickListener
+            val song = SongMediaItemMapper.fromMediaItem(item)
+            songDownloadHelper.downloadSong(song) {
+                refreshCollectionData()
+            }
         }
 
         // Scrubber
@@ -769,7 +827,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun performSearch(query: String) {
         val trimmed = query.trim()
-        if (trimmed.isEmpty()) return
+        if (trimmed.isEmpty()) {
+            layoutSearchBrowse.visibility = View.VISIBLE
+            pbSearchLoading.visibility = View.GONE
+            tvEmptyResults.visibility = View.GONE
+            layoutError.visibility = View.GONE
+            rvSearchResults.visibility = View.GONE
+            return
+        }
 
         lastQuery = trimmed
         showSearchState(SearchState.LOADING)
@@ -798,6 +863,7 @@ class MainActivity : AppCompatActivity() {
     private enum class SearchState { LOADING, EMPTY, ERROR, RESULTS }
 
     private fun showSearchState(state: SearchState) {
+        layoutSearchBrowse.visibility = View.GONE
         pbSearchLoading.visibility = if (state == SearchState.LOADING) View.VISIBLE else View.GONE
         tvEmptyResults.visibility = if (state == SearchState.EMPTY) View.VISIBLE else View.GONE
         layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
@@ -815,6 +881,9 @@ class MainActivity : AppCompatActivity() {
 
         val historyCount = playlistDbHelper.getRecentlyPlayedSongs(100).size
         tvCollectionHistoryCount.text = "$historyCount recent plays"
+
+        val downloadedCount = playlistDbHelper.getAllDownloadedSongs().size
+        tvCollectionDownloadsCount.text = "$downloadedCount offline tracks"
 
         val playlists = playlistDbHelper.getAllPlaylists()
         collectionPlaylistAdapter.submitList(playlists)
@@ -1224,7 +1293,9 @@ class MainActivity : AppCompatActivity() {
     private fun showSongOptionDialog(song: Song) {
         val isLiked = playlistDbHelper.isSongLiked(song.id)
         val likeText = if (isLiked) "Unlike Track" else "Like Track ♥"
-        val options = arrayOf("Play Now", "Add to Queue", "Start Radio", "View Lyrics", likeText, "Add to Playlist...")
+        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+        val downloadText = if (isDownloaded) "Downloaded ✓" else "⬇ Download Track"
+        val options = arrayOf("Play Now", "Add to Queue", "Start Radio", "View Lyrics", downloadText, likeText, "Add to Playlist...")
         AlertDialog.Builder(this)
             .setTitle(song.title)
             .setItems(options) { _, which ->
@@ -1233,12 +1304,188 @@ class MainActivity : AppCompatActivity() {
                     1 -> addSongToQueue(song)
                     2 -> startRadioForSong(song)
                     3 -> showLyricsDialog(song)
-                    4 -> toggleLikeSong(song)
-                    5 -> showAddToPlaylistDialog(song)
+                    4 -> {
+                        songDownloadHelper.downloadSong(song) {
+                            refreshCollectionData()
+                        }
+                    }
+                    5 -> toggleLikeSong(song)
+                    6 -> showAddToPlaylistDialog(song)
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showDownloadedSongsDialog() {
+        val downloaded = playlistDbHelper.getAllDownloadedSongs()
+        if (downloaded.isEmpty()) {
+            Toast.makeText(this, "No downloaded music yet. Tap Download on any track to listen offline!", Toast.LENGTH_LONG).show()
+            return
+        }
+        val items = downloaded.map { "${it.title} - ${it.artists}" }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Downloaded Music (${downloaded.size} tracks)")
+            .setItems(items) { _, which ->
+                val song = downloaded[which]
+                val actions = arrayOf("▶ Play Now", "➕ Add to Queue", "🗑 Delete Download")
+                AlertDialog.Builder(this)
+                    .setTitle(song.title)
+                    .setItems(actions) { _, act ->
+                        when (act) {
+                            0 -> playSongNow(song)
+                            1 -> addSongToQueue(song)
+                            2 -> {
+                                playlistDbHelper.deleteDownloadedSong(song.id)
+                                refreshCollectionData()
+                                Toast.makeText(this, "Removed from Downloads", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            .setPositiveButton("▶ Play All Offline") { _, _ ->
+                val mediaItems = downloaded.map { SongMediaItemMapper.toMediaItem(it) }
+                mediaController?.let { c ->
+                    c.stop()
+                    c.setMediaItems(mediaItems)
+                    c.prepare()
+                    c.play()
+                }
+            }
+            .setNeutralButton("🔀 Shuffle All") { _, _ ->
+                val mediaItems = downloaded.map { SongMediaItemMapper.toMediaItem(it) }
+                mediaController?.let { c ->
+                    c.stop()
+                    c.setMediaItems(mediaItems)
+                    c.shuffleModeEnabled = true
+                    c.prepare()
+                    c.play()
+                }
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun openGenreTracks(genre: GenreCategory) {
+        openCategorySheet(
+            title = "${genre.emoji} ${genre.name}",
+            subtitle = genre.subtitle,
+            query = genre.query
+        )
+    }
+
+    private fun openMoodTracks(mood: MoodCategory) {
+        openCategorySheet(
+            title = "${mood.emoji} ${mood.name}",
+            subtitle = mood.subtitle,
+            query = mood.query
+        )
+    }
+
+    private fun openCategorySheet(title: String, subtitle: String, query: String) {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_genre_detail, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
+
+        val ivClose: ImageView = view.findViewById(R.id.ivCloseGenre)
+        val tvTitle: TextView = view.findViewById(R.id.tvGenreHeaderTitle)
+        val tvSubtitle: TextView = view.findViewById(R.id.tvGenreHeaderSubtitle)
+        val btnPlayAll: Button = view.findViewById(R.id.btnGenrePlayAll)
+        val btnShuffleAll: Button = view.findViewById(R.id.btnGenreShuffleAll)
+        val btnQueueAll: Button = view.findViewById(R.id.btnGenreQueueAll)
+        val pbLoading: ProgressBar = view.findViewById(R.id.pbGenreLoading)
+        val rvSongs: RecyclerView = view.findViewById(R.id.rvGenreSongs)
+        val tvEmpty: TextView = view.findViewById(R.id.tvGenreEmpty)
+
+        tvTitle.text = title
+        tvSubtitle.text = subtitle
+
+        ivClose.setOnClickListener { dialog.dismiss() }
+
+        var loadedSongs = emptyList<Song>()
+        val categoryAdapter = SongAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongSelected = { song -> playSongNow(song) },
+            onSongAddToQueue = { song -> addSongToQueue(song) },
+            onSongOptions = { song -> showSongOptionDialog(song) },
+            onSongLikeToggled = { song -> toggleLikeSong(song) },
+            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+        )
+        rvSongs.layoutManager = LinearLayoutManager(this)
+        rvSongs.adapter = categoryAdapter
+
+        btnPlayAll.setOnClickListener {
+            if (loadedSongs.isNotEmpty()) {
+                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
+                mediaController?.let { c ->
+                    c.stop()
+                    c.setMediaItems(mediaItems)
+                    c.prepare()
+                    c.play()
+                }
+                Toast.makeText(this, "Playing all $title (${loadedSongs.size} tracks)", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnShuffleAll.setOnClickListener {
+            if (loadedSongs.isNotEmpty()) {
+                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
+                mediaController?.let { c ->
+                    c.stop()
+                    c.setMediaItems(mediaItems)
+                    c.shuffleModeEnabled = true
+                    c.prepare()
+                    c.play()
+                }
+                Toast.makeText(this, "Shuffling $title", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnQueueAll.setOnClickListener {
+            if (loadedSongs.isNotEmpty()) {
+                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
+                mediaController?.let { c ->
+                    c.addMediaItems(mediaItems)
+                    if (c.playbackState == Player.STATE_IDLE || c.mediaItemCount == mediaItems.size) {
+                        c.prepare()
+                    }
+                }
+                Toast.makeText(this, "Added ${loadedSongs.size} tracks to queue", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        pbLoading.visibility = View.VISIBLE
+        rvSongs.visibility = View.GONE
+        tvEmpty.visibility = View.GONE
+
+        lifecycleScope.launch {
+            val result = metadataService.searchSongs(appSettings.getBaseUrl(), query)
+            pbLoading.visibility = View.GONE
+            when (result) {
+                is SearchResult.Success -> {
+                    loadedSongs = result.songs
+                    categoryAdapter.submitList(loadedSongs)
+                    tvSubtitle.text = "${loadedSongs.size} tracks • $subtitle"
+                    rvSongs.visibility = View.VISIBLE
+                }
+                is SearchResult.Empty -> {
+                    tvEmpty.visibility = View.VISIBLE
+                    tvEmpty.text = "No tracks found for $title"
+                }
+                is SearchResult.Error -> {
+                    tvEmpty.visibility = View.VISIBLE
+                    tvEmpty.text = result.message
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     private fun showLyricsDialog(song: Song) {

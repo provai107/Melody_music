@@ -200,7 +200,8 @@ class PlaybackService : MediaSessionService() {
 
         val currentIndex = exoPlayer.currentMediaItemIndex
         val totalCount = exoPlayer.mediaItemCount
-        val isNearEnd = currentIndex >= totalCount - 2 || exoPlayer.playbackState == Player.STATE_ENDED
+        val remainingTracks = (totalCount - 1 - currentIndex).coerceAtLeast(0)
+        val isNearEnd = remainingTracks < 4 || exoPlayer.playbackState == Player.STATE_ENDED
 
         if (!isNearEnd) return
 
@@ -213,7 +214,7 @@ class PlaybackService : MediaSessionService() {
                 val seedSong = SongMediaItemMapper.fromMediaItem(seedItem)
 
                 val currentQueueIds = (0 until totalCount).map { exoPlayer.getMediaItemAt(it).mediaId }.toSet()
-                val excludeIds = currentQueueIds + failedTrackIds + extendedTrackIds
+                val excludeIds = (currentQueueIds + failedTrackIds + extendedTrackIds).toMutableSet()
                 val baseUrl = appSettings.getBaseUrl()
 
                 var recommendations = try {
@@ -221,19 +222,42 @@ class PlaybackService : MediaSessionService() {
                         baseUrl = baseUrl,
                         seedSong = seedSong,
                         excludeSongIds = excludeIds,
-                        limit = 5
+                        limit = 8
                     )
                 } catch (_: Exception) {
                     emptyList()
                 }
 
-                // Resilient fallback: If online recommendations fail or empty, pull from liked tracks or listening history
+                // If seed-based recommendations are thin (< 4), enrich with dynamic trending seeds
+                if (recommendations.size < 4) {
+                    val fallbackQueries = listOf("Top Hits", "Trending Hits", "Global Pop", "Dance Hits", "Acoustic Hits")
+                    val query = fallbackQueries.random()
+                    val onlineCandidates = try {
+                        recommendationEngine.fetchCandidateSongs(baseUrl, query)
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
+                            .take(8)
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                    recommendations = (recommendations + onlineCandidates).distinctBy { it.id }
+                }
+
+                // Resilient local fallback: If online recommendations fail or offline, pull from liked tracks or history
                 if (recommendations.isEmpty()) {
-                    val localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(30))
-                        .filter { it.id !in excludeIds }
+                    var localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                        .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
                         .distinctBy { it.id }
                         .shuffled()
-                        .take(5)
+                        .take(8)
+
+                    // If all local songs were already queued, recycle them so infinite playback never halts
+                    if (localCandidates.isEmpty()) {
+                        extendedTrackIds.clear()
+                        localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                            .distinctBy { it.id }
+                            .shuffled()
+                            .take(8)
+                    }
                     recommendations = localCandidates
                 }
 
@@ -241,14 +265,17 @@ class PlaybackService : MediaSessionService() {
                     extendedTrackIds.addAll(recommendations.map { it.id })
                     val newMediaItems = recommendations.map { SongMediaItemMapper.toMediaItem(it) }
 
-                    // Append recommendations cleanly to end of player queue without interrupting playback
+                    val previousCount = exoPlayer.mediaItemCount
                     exoPlayer.addMediaItems(newMediaItems)
 
-                    // If playback was ended at queue end, resume into new recommendations
+                    // If playback was ended at queue end, resume seamlessly into new recommendations
                     if (exoPlayer.playbackState == Player.STATE_ENDED) {
-                        exoPlayer.seekToNextMediaItem()
-                        exoPlayer.prepare()
-                        exoPlayer.play()
+                        val targetIndex = previousCount.coerceAtMost(exoPlayer.mediaItemCount - 1)
+                        if (targetIndex >= 0) {
+                            exoPlayer.seekToDefaultPosition(targetIndex)
+                            exoPlayer.prepare()
+                            exoPlayer.play()
+                        }
                     }
                 }
             } catch (_: Exception) {
@@ -290,7 +317,6 @@ class PlaybackService : MediaSessionService() {
             exoPlayer.prepare()
             exoPlayer.play()
         } else {
-            exoPlayer.pause()
             checkAndExtendQueueIfNeeded(exoPlayer)
         }
     }

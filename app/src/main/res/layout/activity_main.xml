@@ -268,6 +268,44 @@
                         </LinearLayout>
                     </LinearLayout>
 
+                    <!-- Play by Mood Section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.08"
+                        android:text="PLAY BY MOOD"
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="11sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvMoodHome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal" />
+
+                    <!-- Explore by Genre Section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.08"
+                        android:text="EXPLORE BY GENRE"
+                        android:textColor="@color/tidal_text_secondary"
+                        android:textSize="11sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvGenreHome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal" />
+
                     <!-- Recently Played Section -->
                     <TextView
                         android:layout_width="wrap_content"
@@ -404,13 +442,40 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Default Browse Genres/Categories View when search query is empty -->
+                    <LinearLayout
+                        android:id="@+id/layoutSearchBrowse"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:fontFamily="sans-serif-black"
+                            android:letterSpacing="0.08"
+                            android:text="EXPLORE GENRES &amp; MOODS"
+                            android:textColor="@color/tidal_text_secondary"
+                            android:textSize="11sp" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvSearchBrowseGenres"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:paddingBottom="16dp" />
+                    </LinearLayout>
+
                     <!-- Search Results List -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvSearchResults"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:clipToPadding="false"
-                        android:paddingBottom="8dp" />
+                        android:paddingBottom="8dp"
+                        android:visibility="gone" />
                 </FrameLayout>
             </LinearLayout>
 
@@ -546,6 +611,55 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
                                 android:text="Recently played &amp; top tracks"
+                                android:textColor="@color/tidal_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Downloaded Songs Collection Row -->
+                    <LinearLayout
+                        android:id="@+id/cardCollectionDownloads"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_pill_badge"
+                            android:contentDescription="Downloads"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_download"
+                            app:tint="@color/tidal_accent" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:text="Downloaded Music"
+                                android:textColor="@color/tidal_text_primary"
+                                android:textSize="15sp" />
+
+                            <TextView
+                                android:id="@+id/tvCollectionDownloadsCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif"
+                                android:text="0 offline tracks"
                                 android:textColor="@color/tidal_text_secondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
