@@ -577,7 +577,7 @@
 
         <!-- Persistent Docked Mini-Player Bar -->
         <include
-            android:id="@+id/miniPlayerLayout"
+            android:id="@+id/layoutMiniPlayer"
             layout="@layout/layout_mini_player" />
 
         <!-- Bottom Navigation Bar -->
@@ -605,7 +605,7 @@
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <include
-            android:id="@+id/nowPlayingSheetView"
+            android:id="@+id/layoutNowPlayingSheet"
             layout="@layout/dialog_now_playing" />
     </FrameLayout>
 
