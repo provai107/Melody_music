@@ -42,6 +42,7 @@ import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.discovery.PersonalizedMix
 import com.braveplayer.music.lyrics.LyricsResult
 import com.braveplayer.music.lyrics.LyricsService
+import com.braveplayer.music.lyrics.SyncedLyricsAdapter
 import com.braveplayer.music.media.SongMediaItemMapper
 import com.braveplayer.music.model.Song
 import androidx.core.widget.NestedScrollView
@@ -1072,8 +1073,8 @@ class MainActivity : AppCompatActivity() {
         val layoutEmpty: LinearLayout = view.findViewById(R.id.layoutLyricsEmpty)
         val tvEmptyMsg: TextView = view.findViewById(R.id.tvLyricsEmptyMessage)
         val btnRetry: Button = view.findViewById(R.id.btnRetryLyrics)
-        val nsvLyrics: NestedScrollView = view.findViewById(R.id.nsvLyrics)
-        val tvBody: TextView = view.findViewById(R.id.tvLyricsBody)
+        val layoutContent: LinearLayout = view.findViewById(R.id.layoutLyricsContent)
+        val rvLyrics: RecyclerView = view.findViewById(R.id.rvLyrics)
         val tvCopyright: TextView = view.findViewById(R.id.tvLyricsCopyright)
 
         tvSongTitle.text = song.title
@@ -1081,10 +1082,69 @@ class MainActivity : AppCompatActivity() {
 
         ivClose.setOnClickListener { dialog.dismiss() }
 
+        val lyricsAdapter = SyncedLyricsAdapter(
+            onLineClicked = { timeMs ->
+                mediaController?.seekTo(timeMs)
+            }
+        )
+        val layoutManager = LinearLayoutManager(this)
+        rvLyrics.layoutManager = layoutManager
+        rvLyrics.adapter = lyricsAdapter
+
+        var isUserTouching = false
+        var lastUserInteractionTime = 0L
+
+        rvLyrics.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    isUserTouching = true
+                    lastUserInteractionTime = System.currentTimeMillis()
+                } else if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    isUserTouching = false
+                    lastUserInteractionTime = System.currentTimeMillis()
+                }
+            }
+        })
+
+        var currentActiveIndex = -1
+        val lyricsTicker = object : Runnable {
+            override fun run() {
+                val controller = mediaController
+                if (dialog.isShowing && controller != null && lyricsAdapter.isSyncedLyrics()) {
+                    val currentPos = controller.currentPosition
+                    val lines = lyricsAdapter.getLines()
+                    val newIndex = lyricsService.getActiveLineIndex(lines, currentPos)
+
+                    if (newIndex != currentActiveIndex) {
+                        currentActiveIndex = newIndex
+                        lyricsAdapter.setActiveIndex(newIndex)
+
+                        val now = System.currentTimeMillis()
+                        if (!isUserTouching && (now - lastUserInteractionTime > 2500L)) {
+                            if (newIndex in lines.indices) {
+                                val offset = (rvLyrics.height / 3).coerceAtLeast(0)
+                                layoutManager.scrollToPositionWithOffset(newIndex, offset)
+                            }
+                        }
+                    }
+                }
+                if (dialog.isShowing) {
+                    mainHandler.postDelayed(this, 200)
+                }
+            }
+        }
+
+        dialog.setOnDismissListener {
+            mainHandler.removeCallbacks(lyricsTicker)
+        }
+
         fun loadLyrics() {
             pbLoading.visibility = View.VISIBLE
             layoutEmpty.visibility = View.GONE
-            nsvLyrics.visibility = View.GONE
+            layoutContent.visibility = View.GONE
+            mainHandler.removeCallbacks(lyricsTicker)
+            currentActiveIndex = -1
 
             val baseUrl = appSettings.getBaseUrl()
             lifecycleScope.launch {
@@ -1092,25 +1152,28 @@ class MainActivity : AppCompatActivity() {
                     is LyricsResult.Success -> {
                         pbLoading.visibility = View.GONE
                         layoutEmpty.visibility = View.GONE
-                        nsvLyrics.visibility = View.VISIBLE
-                        tvBody.text = result.lyrics
+                        layoutContent.visibility = View.VISIBLE
+                        lyricsAdapter.submitLines(result.lines, result.isSynced)
                         if (!result.copyright.isNullOrBlank()) {
                             tvCopyright.visibility = View.VISIBLE
                             tvCopyright.text = result.copyright
                         } else {
                             tvCopyright.visibility = View.GONE
                         }
+                        if (result.isSynced) {
+                            mainHandler.post(lyricsTicker)
+                        }
                     }
                     is LyricsResult.Unavailable -> {
                         pbLoading.visibility = View.GONE
-                        nsvLyrics.visibility = View.GONE
+                        layoutContent.visibility = View.GONE
                         layoutEmpty.visibility = View.VISIBLE
                         tvEmptyMsg.text = result.message
                         btnRetry.visibility = View.GONE
                     }
                     is LyricsResult.Error -> {
                         pbLoading.visibility = View.GONE
-                        nsvLyrics.visibility = View.GONE
+                        layoutContent.visibility = View.GONE
                         layoutEmpty.visibility = View.VISIBLE
                         tvEmptyMsg.text = result.message
                         btnRetry.visibility = View.VISIBLE

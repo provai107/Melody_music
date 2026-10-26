@@ -9,9 +9,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 
+data class LyricLine(
+    val timeMs: Long,
+    val text: String
+)
+
 sealed class LyricsResult {
     data class Success(
-        val lyrics: String,
+        val lines: List<LyricLine>,
+        val isSynced: Boolean,
         val copyright: String?,
         val snippet: String?
     ) : LyricsResult()
@@ -21,9 +27,9 @@ sealed class LyricsResult {
 }
 
 /**
- * Service for fetching and formatting song lyrics from:
- * 1. Primary: Configured JioSaavn backend API
- * 2. Fallback: LRCLIB open public community lyrics database
+ * Service for fetching and formatting time-synchronized and plain song lyrics.
+ * Prioritizes LRCLIB for timestamp-synchronized lyrics (Karaoke / live tracking)
+ * and falls back to the configured JioSaavn backend for static lyrics.
  */
 class LyricsService(
     private val httpClient: OkHttpClient
@@ -34,20 +40,20 @@ class LyricsService(
         title: String = "",
         artist: String = ""
     ): LyricsResult = withContext(Dispatchers.IO) {
-        // 1. Try JioSaavn backend if songId is provided
+        // 1. Try LRCLIB first if title is available to obtain time-synced lyrics
+        if (title.isNotBlank()) {
+            val lrclibResult = fetchFromLrclib(title, artist)
+            if (lrclibResult is LyricsResult.Success) {
+                return@withContext lrclibResult
+            }
+        }
+
+        // 2. Fallback to configured JioSaavn backend
         val trimmedId = songId.trim()
         if (trimmedId.isNotEmpty()) {
             val jioResult = fetchFromJioSaavn(baseUrl, trimmedId)
             if (jioResult is LyricsResult.Success) {
                 return@withContext jioResult
-            }
-        }
-
-        // 2. Fallback to LRCLIB if title is present
-        if (title.isNotBlank()) {
-            val lrclibResult = fetchFromLrclib(title, artist)
-            if (lrclibResult is LyricsResult.Success) {
-                return@withContext lrclibResult
             }
         }
 
@@ -81,42 +87,30 @@ class LyricsService(
         val primaryArtist = artist.split(",").firstOrNull()?.trim().orEmpty()
 
         // Attempt 1: Exact match via /api/get
-        val exactLyrics = queryLrclibGet(cleanTitle, primaryArtist)
-        if (exactLyrics != null) {
-            return LyricsResult.Success(
-                lyrics = exactLyrics,
-                copyright = "Lyrics provided by LRCLIB",
-                snippet = null
-            )
+        val exactResult = queryLrclibGet(cleanTitle, primaryArtist)
+        if (exactResult != null) {
+            return exactResult
         }
 
         // Attempt 2: Search with title and artist
         val searchWithArtist = "$cleanTitle $primaryArtist".trim()
         val searchResult1 = queryLrclibSearch(searchWithArtist)
         if (searchResult1 != null) {
-            return LyricsResult.Success(
-                lyrics = searchResult1,
-                copyright = "Lyrics provided by LRCLIB",
-                snippet = null
-            )
+            return searchResult1
         }
 
         // Attempt 3: Search with clean title only
         if (cleanTitle.isNotBlank()) {
             val searchResult2 = queryLrclibSearch(cleanTitle)
             if (searchResult2 != null) {
-                return LyricsResult.Success(
-                    lyrics = searchResult2,
-                    copyright = "Lyrics provided by LRCLIB",
-                    snippet = null
-                )
+                return searchResult2
             }
         }
 
         return LyricsResult.Unavailable("Lyrics are not available for this track.")
     }
 
-    private fun queryLrclibGet(title: String, artist: String): String? {
+    private fun queryLrclibGet(title: String, artist: String): LyricsResult.Success? {
         return try {
             val encodedTitle = URLEncoder.encode(title, "UTF-8")
             val encodedArtist = URLEncoder.encode(artist, "UTF-8")
@@ -136,7 +130,7 @@ class LyricsService(
         }
     }
 
-    private fun queryLrclibSearch(query: String): String? {
+    private fun queryLrclibSearch(query: String): LyricsResult.Success? {
         return try {
             val encoded = URLEncoder.encode(query, "UTF-8")
             val url = "https://lrclib.net/api/search?q=$encoded"
@@ -153,13 +147,8 @@ class LyricsService(
             val array = JSONArray(body)
             for (i in 0 until array.length()) {
                 val item = array.optJSONObject(i) ?: continue
-                val plain = item.optString("plainLyrics", "")
-                if (plain.isNotBlank()) return plain.trim()
-                val synced = item.optString("syncedLyrics", "")
-                if (synced.isNotBlank()) {
-                    val stripped = stripLrcTimestamps(synced)
-                    if (stripped.isNotBlank()) return stripped
-                }
+                val res = extractLyricsFromLrclibJsonObject(item)
+                if (res != null) return res
             }
             null
         } catch (_: Exception) {
@@ -167,28 +156,88 @@ class LyricsService(
         }
     }
 
-    fun extractLyricsFromLrclibJson(jsonString: String): String? {
+    fun extractLyricsFromLrclibJson(jsonString: String): LyricsResult.Success? {
         return try {
             val json = JSONObject(jsonString)
-            val plain = json.optString("plainLyrics", "")
-            if (plain.isNotBlank()) {
-                plain.trim()
-            } else {
-                val synced = json.optString("syncedLyrics", "")
-                if (synced.isNotBlank()) {
-                    stripLrcTimestamps(synced).takeIf { it.isNotBlank() }
-                } else null
-            }
+            extractLyricsFromLrclibJsonObject(json)
         } catch (_: Exception) {
             null
         }
     }
 
-    fun stripLrcTimestamps(lrc: String): String {
-        return lrc.lines()
-            .map { it.replace(Regex("\\[\\d+:\\d+(\\.\\d+)?\\]"), "").trim() }
+    private fun extractLyricsFromLrclibJsonObject(json: JSONObject): LyricsResult.Success? {
+        val synced = json.optString("syncedLyrics", "").trim()
+        if (synced.isNotEmpty()) {
+            val parsedLines = parseLrcLines(synced)
+            if (parsedLines.isNotEmpty()) {
+                return LyricsResult.Success(
+                    lines = parsedLines,
+                    isSynced = true,
+                    copyright = "Synchronized lyrics powered by LRCLIB",
+                    snippet = null
+                )
+            }
+        }
+
+        val plain = json.optString("plainLyrics", "").trim()
+        if (plain.isNotEmpty()) {
+            val plainLines = parsePlainLines(plain)
+            if (plainLines.isNotEmpty()) {
+                return LyricsResult.Success(
+                    lines = plainLines,
+                    isSynced = false,
+                    copyright = "Lyrics powered by LRCLIB",
+                    snippet = null
+                )
+            }
+        }
+
+        return null
+    }
+
+    fun parseLrcLines(lrcText: String): List<LyricLine> {
+        val regex = Regex("""^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$""")
+        val result = mutableListOf<LyricLine>()
+        for (rawLine in lrcText.lines()) {
+            val trimmed = rawLine.trim()
+            if (trimmed.isEmpty()) continue
+            val match = regex.matchEntire(trimmed) ?: continue
+            val mins = match.groupValues[1].toLongOrNull() ?: 0L
+            val secs = match.groupValues[2].toLongOrNull() ?: 0L
+            val msStr = match.groupValues[3].ifEmpty { "0" }
+            val ms = when (msStr.length) {
+                1 -> (msStr.toLongOrNull() ?: 0L) * 100L
+                2 -> (msStr.toLongOrNull() ?: 0L) * 10L
+                else -> msStr.take(3).toLongOrNull() ?: 0L
+            }
+            val totalMs = (mins * 60L + secs) * 1000L + ms
+            val text = match.groupValues[4].trim()
+            if (text.isNotEmpty()) {
+                result.add(LyricLine(timeMs = totalMs, text = text))
+            }
+        }
+        return result
+    }
+
+    fun parsePlainLines(plainText: String): List<LyricLine> {
+        return plainText.lines()
+            .map { it.trim() }
             .filter { it.isNotEmpty() }
-            .joinToString("\n")
+            .map { LyricLine(timeMs = -1L, text = it) }
+    }
+
+    fun getActiveLineIndex(lines: List<LyricLine>, currentPositionMs: Long): Int {
+        if (lines.isEmpty()) return -1
+        var active = -1
+        for (i in lines.indices) {
+            val lineTime = lines[i].timeMs
+            if (lineTime in 0..currentPositionMs) {
+                active = i
+            } else if (lineTime > currentPositionMs) {
+                break
+            }
+        }
+        return active
     }
 
     fun parseLyricsResponse(jsonString: String): LyricsResult {
@@ -213,11 +262,13 @@ class LyricsService(
                 return LyricsResult.Unavailable("Lyrics not available for this track")
             }
 
+            val lines = parsePlainLines(formatted)
             val copyright = json.optString("lyrics_copyright", "").takeIf { it.isNotBlank() }
             val snippet = json.optString("snippet", "").takeIf { it.isNotBlank() }
 
             LyricsResult.Success(
-                lyrics = formatted,
+                lines = lines,
+                isSynced = false,
                 copyright = copyright,
                 snippet = snippet
             )

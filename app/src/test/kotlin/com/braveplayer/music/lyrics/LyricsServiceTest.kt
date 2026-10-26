@@ -2,7 +2,7 @@ package com.braveplayer.music.lyrics
 
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -20,7 +20,7 @@ class LyricsServiceTest {
     }
 
     @Test
-    fun parseLyricsResponse_withValidHtmlBreaks_formatsCorrectly() {
+    fun parseLyricsResponse_withValidHtmlBreaks_formatsLinesCorrectly() {
         val json = """
             {
                 "lyrics": "Hum Tere Bin Ab Reh Nahi Sakte<br>Tere Bina Kya Wajood Mera<br><br>Kyunki Tum Hi Ho",
@@ -34,8 +34,11 @@ class LyricsServiceTest {
         assertTrue(result is LyricsResult.Success)
 
         val success = result as LyricsResult.Success
-        val expectedLyrics = "Hum Tere Bin Ab Reh Nahi Sakte\nTere Bina Kya Wajood Mera\n\nKyunki Tum Hi Ho"
-        assertEquals(expectedLyrics, success.lyrics)
+        assertFalse(success.isSynced)
+        assertEquals(3, success.lines.size)
+        assertEquals("Hum Tere Bin Ab Reh Nahi Sakte", success.lines[0].text)
+        assertEquals("Tere Bina Kya Wajood Mera", success.lines[1].text)
+        assertEquals("Kyunki Tum Hi Ho", success.lines[2].text)
         assertEquals("Lyrics powered by JioSaavn", success.copyright)
         assertEquals("Tere Bina Kya Wajood Mera", success.snippet)
     }
@@ -53,7 +56,8 @@ class LyricsServiceTest {
         assertTrue(result is LyricsResult.Success)
 
         val success = result as LyricsResult.Success
-        assertEquals("Don't stop the music & dance", success.lyrics)
+        assertEquals(1, success.lines.size)
+        assertEquals("Don't stop the music & dance", success.lines[0].text)
     }
 
     @Test
@@ -73,61 +77,58 @@ class LyricsServiceTest {
     }
 
     @Test
-    fun parseLyricsResponse_withEmptyLyrics_returnsUnavailable() {
-        val json = """
-            {
-                "lyrics": "   "
-            }
+    fun parseLrcLines_parsesTimestampsCorrectly() {
+        val lrc = """
+            [00:09.65] First line of song
+            [00:12.10] Second line
+            [01:04.500] Third line
         """.trimIndent()
 
-        val result = lyricsService.parseLyricsResponse(json)
-        assertTrue(result is LyricsResult.Unavailable)
+        val lines = lyricsService.parseLrcLines(lrc)
+        assertEquals(3, lines.size)
+
+        assertEquals(9650L, lines[0].timeMs)
+        assertEquals("First line of song", lines[0].text)
+
+        assertEquals(12100L, lines[1].timeMs)
+        assertEquals("Second line", lines[1].text)
+
+        assertEquals(64500L, lines[2].timeMs)
+        assertEquals("Third line", lines[2].text)
     }
 
     @Test
-    fun parseLyricsResponse_withBlankJson_returnsUnavailable() {
-        val result = lyricsService.parseLyricsResponse("")
-        assertTrue(result is LyricsResult.Unavailable)
+    fun getActiveLineIndex_identifiesCurrentPlayingLine() {
+        val lines = listOf(
+            LyricLine(5000L, "Intro"),
+            LyricLine(10000L, "Verse 1"),
+            LyricLine(20000L, "Chorus")
+        )
+
+        assertEquals(-1, lyricsService.getActiveLineIndex(lines, 2000L))
+        assertEquals(0, lyricsService.getActiveLineIndex(lines, 5000L))
+        assertEquals(0, lyricsService.getActiveLineIndex(lines, 8000L))
+        assertEquals(1, lyricsService.getActiveLineIndex(lines, 10000L))
+        assertEquals(1, lyricsService.getActiveLineIndex(lines, 19999L))
+        assertEquals(2, lyricsService.getActiveLineIndex(lines, 20000L))
+        assertEquals(2, lyricsService.getActiveLineIndex(lines, 90000L))
     }
 
     @Test
-    fun stripLrcTimestamps_removesTimestampBrackets() {
-        val synced = """
-            [00:12.34] First line of song
-            [00:15.89] Second line of song
-            [01:02.00] Third line of song
-        """.trimIndent()
-
-        val plain = lyricsService.stripLrcTimestamps(synced)
-        val expected = "First line of song\nSecond line of song\nThird line of song"
-        assertEquals(expected, plain)
-    }
-
-    @Test
-    fun extractLyricsFromLrclibJson_prioritizesPlainLyrics() {
-        val json = """
-            {
-                "id": 12345,
-                "plainLyrics": "Hello it's me\nI was wondering",
-                "syncedLyrics": "[00:01.00] Hello it's me"
-            }
-        """.trimIndent()
-
-        val lyrics = lyricsService.extractLyricsFromLrclibJson(json)
-        assertEquals("Hello it's me\nI was wondering", lyrics)
-    }
-
-    @Test
-    fun extractLyricsFromLrclibJson_fallsBackToSyncedLyricsWhenPlainEmpty() {
+    fun extractLyricsFromLrclibJson_prioritizesSyncedLyrics() {
         val json = """
             {
                 "id": 12345,
-                "plainLyrics": "",
-                "syncedLyrics": "[00:01.00] Hello it's me\n[00:05.00] Another line"
+                "plainLyrics": "Plain hello",
+                "syncedLyrics": "[00:05.00] Synced hello"
             }
         """.trimIndent()
 
-        val lyrics = lyricsService.extractLyricsFromLrclibJson(json)
-        assertEquals("Hello it's me\nAnother line", lyrics)
+        val result = lyricsService.extractLyricsFromLrclibJson(json)
+        assertTrue(result != null)
+        assertTrue(result!!.isSynced)
+        assertEquals(1, result.lines.size)
+        assertEquals(5000L, result.lines[0].timeMs)
+        assertEquals("Synced hello", result.lines[0].text)
     }
 }

@@ -138,44 +138,36 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- Lyrics ScrollView -->
-        <androidx.core.widget.NestedScrollView
-            android:id="@+id/nsvLyrics"
+        <!-- Lyrics RecyclerView for Synced & Plain Lyrics -->
+        <LinearLayout
+            android:id="@+id/layoutLyricsContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fillViewport="true"
-            android:scrollbars="vertical"
+            android:orientation="vertical"
             android:visibility="gone">
 
-            <LinearLayout
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvLyrics"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingTop="24dp"
+                android:paddingBottom="140dp"
+                android:scrollbars="none" />
+
+            <TextView
+                android:id="@+id/tvLyricsCopyright"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="12dp"
-                android:paddingBottom="32dp">
-
-                <TextView
-                    android:id="@+id/tvLyricsBody"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:lineSpacingExtra="10dp"
-                    android:textColor="@color/tidal_text_primary"
-                    android:textIsSelectable="true"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:id="@+id/tvLyricsCopyright"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="32dp"
-                    android:layout_marginBottom="16dp"
-                    android:fontFamily="sans-serif"
-                    android:textColor="@color/tidal_text_tertiary"
-                    android:textSize="11sp"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:textColor="@color/tidal_text_tertiary"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
 
     </FrameLayout>
 
