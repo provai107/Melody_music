@@ -89,4 +89,45 @@ class LyricsServiceTest {
         val result = lyricsService.parseLyricsResponse("")
         assertTrue(result is LyricsResult.Unavailable)
     }
+
+    @Test
+    fun stripLrcTimestamps_removesTimestampBrackets() {
+        val synced = """
+            [00:12.34] First line of song
+            [00:15.89] Second line of song
+            [01:02.00] Third line of song
+        """.trimIndent()
+
+        val plain = lyricsService.stripLrcTimestamps(synced)
+        val expected = "First line of song\nSecond line of song\nThird line of song"
+        assertEquals(expected, plain)
+    }
+
+    @Test
+    fun extractLyricsFromLrclibJson_prioritizesPlainLyrics() {
+        val json = """
+            {
+                "id": 12345,
+                "plainLyrics": "Hello it's me\nI was wondering",
+                "syncedLyrics": "[00:01.00] Hello it's me"
+            }
+        """.trimIndent()
+
+        val lyrics = lyricsService.extractLyricsFromLrclibJson(json)
+        assertEquals("Hello it's me\nI was wondering", lyrics)
+    }
+
+    @Test
+    fun extractLyricsFromLrclibJson_fallsBackToSyncedLyricsWhenPlainEmpty() {
+        val json = """
+            {
+                "id": 12345,
+                "plainLyrics": "",
+                "syncedLyrics": "[00:01.00] Hello it's me\n[00:05.00] Another line"
+            }
+        """.trimIndent()
+
+        val lyrics = lyricsService.extractLyricsFromLrclibJson(json)
+        assertEquals("Hello it's me\nAnother line", lyrics)
+    }
 }

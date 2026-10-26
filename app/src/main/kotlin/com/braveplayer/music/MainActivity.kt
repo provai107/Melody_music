@@ -1088,7 +1088,7 @@ class MainActivity : AppCompatActivity() {
 
             val baseUrl = appSettings.getBaseUrl()
             lifecycleScope.launch {
-                when (val result = lyricsService.fetchLyrics(baseUrl, song.id)) {
+                when (val result = lyricsService.fetchLyrics(baseUrl, song.id, song.title, song.artists)) {
                     is LyricsResult.Success -> {
                         pbLoading.visibility = View.GONE
                         layoutEmpty.visibility = View.GONE
