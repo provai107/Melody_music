@@ -200,7 +200,7 @@ class PlaybackService : MediaSessionService() {
 
         val currentIndex = exoPlayer.currentMediaItemIndex
         val totalCount = exoPlayer.mediaItemCount
-        val isNearEnd = currentIndex >= totalCount - 1 || exoPlayer.playbackState == Player.STATE_ENDED
+        val isNearEnd = currentIndex >= totalCount - 2 || exoPlayer.playbackState == Player.STATE_ENDED
 
         if (!isNearEnd) return
 
@@ -208,19 +208,34 @@ class PlaybackService : MediaSessionService() {
         serviceScope.launch {
             try {
                 // Determine seed song: use last item in queue or current song
-                val seedItem = exoPlayer.getMediaItemAt(totalCount - 1)
+                val seedIndex = (totalCount - 1).coerceAtLeast(0)
+                val seedItem = exoPlayer.getMediaItemAt(seedIndex)
                 val seedSong = SongMediaItemMapper.fromMediaItem(seedItem)
 
                 val currentQueueIds = (0 until totalCount).map { exoPlayer.getMediaItemAt(it).mediaId }.toSet()
                 val excludeIds = currentQueueIds + failedTrackIds + extendedTrackIds
                 val baseUrl = appSettings.getBaseUrl()
 
-                val recommendations = recommendationEngine.getRecommendations(
-                    baseUrl = baseUrl,
-                    seedSong = seedSong,
-                    excludeSongIds = excludeIds,
-                    limit = 5
-                )
+                var recommendations = try {
+                    recommendationEngine.getRecommendations(
+                        baseUrl = baseUrl,
+                        seedSong = seedSong,
+                        excludeSongIds = excludeIds,
+                        limit = 5
+                    )
+                } catch (_: Exception) {
+                    emptyList()
+                }
+
+                // Resilient fallback: If online recommendations fail or empty, pull from liked tracks or listening history
+                if (recommendations.isEmpty()) {
+                    val localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(30))
+                        .filter { it.id !in excludeIds }
+                        .distinctBy { it.id }
+                        .shuffled()
+                        .take(5)
+                    recommendations = localCandidates
+                }
 
                 if (recommendations.isNotEmpty()) {
                     extendedTrackIds.addAll(recommendations.map { it.id })
@@ -245,6 +260,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun handlePlayerPlaybackError(exoPlayer: ExoPlayer, error: PlaybackException) {
+        android.util.Log.w("PlaybackService", "Playback error occurred: ${error.errorCodeName}", error)
         val currentItem = exoPlayer.currentMediaItem
         if (currentItem != null) {
             val songId = currentItem.mediaId

@@ -31,7 +31,6 @@ class MixGeneratorTest {
     @Test
     fun testDiscoveryMixPrioritizesUnfamiliarArtists() {
         val frequentArtist = "arijit singh"
-        val novelArtist = "prateek kuhad"
 
         val familiarSong = Song(
             id = "fam",

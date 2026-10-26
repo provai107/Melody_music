@@ -32,6 +32,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.filter.manager.FilterListManager
@@ -52,6 +53,7 @@ import com.braveplayer.music.service.PlaybackService
 import com.braveplayer.music.settings.AppSettings
 import com.braveplayer.music.settings.FilterEngineProvider
 import com.braveplayer.music.ui.PlaylistAdapter
+import com.braveplayer.music.ui.QueueAdapter
 import com.braveplayer.music.ui.SongAdapter
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -886,38 +888,218 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Player not connected", Toast.LENGTH_SHORT).show()
             return
         }
-        val count = controller.mediaItemCount
-        if (count == 0) {
-            AlertDialog.Builder(this)
-                .setTitle("Playback Queue")
-                .setMessage("Queue is currently empty.")
-                .setPositiveButton("OK", null)
-                .show()
-            return
-        }
-        val currentIndex = controller.currentMediaItemIndex
-        val items = Array(count) { i ->
-            val item = controller.getMediaItemAt(i)
-            val title = item.mediaMetadata.title ?: "Track ${i + 1}"
-            val artist = item.mediaMetadata.artist ?: ""
-            val isLiked = playlistDbHelper.isSongLiked(item.mediaId)
-            val likeIcon = if (isLiked) " ♥" else ""
-            val prefix = if (i == currentIndex) "▶ " else "${i + 1}. "
-            "$prefix$title - $artist$likeIcon"
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Queue ($count tracks)")
-            .setItems(items) { _, which ->
-                val item = controller.getMediaItemAt(which)
-                val song = SongMediaItemMapper.fromMediaItem(item)
-                showSongOptionDialog(song)
+
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_queue, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
+
+        val ivClose: ImageView = view.findViewById(R.id.ivCloseQueue)
+        val tvQueueCount: TextView = view.findViewById(R.id.tvQueueTrackCount)
+        val btnClear: Button = view.findViewById(R.id.btnClearQueue)
+        val cardNowPlaying: LinearLayout = view.findViewById(R.id.layoutQueueNowPlayingCard)
+        val ivNowPlayingThumb: ImageView = view.findViewById(R.id.ivNowPlayingQueueThumb)
+        val tvNowPlayingTitle: TextView = view.findViewById(R.id.tvNowPlayingQueueTitle)
+        val tvNowPlayingArtist: TextView = view.findViewById(R.id.tvNowPlayingQueueArtist)
+        val btnShuffle: Button = view.findViewById(R.id.btnShuffleQueue)
+        val rvQueue: RecyclerView = view.findViewById(R.id.rvQueueList)
+        val layoutEmpty: LinearLayout = view.findViewById(R.id.layoutQueueEmpty)
+
+        ivClose.setOnClickListener { dialog.dismiss() }
+
+        var isDragging = false
+        var dragFromPosition = -1
+        var dragToPosition = -1
+        var itemTouchHelper: ItemTouchHelper? = null
+
+        val queueAdapter = QueueAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onItemClicked = { index ->
+                if (index in 0 until controller.mediaItemCount) {
+                    controller.seekToDefaultPosition(index)
+                    controller.play()
+                }
+            },
+            onItemRemoved = { index ->
+                if (index in 0 until controller.mediaItemCount) {
+                    controller.removeMediaItem(index)
+                }
+            },
+            onItemMoved = { _, _ -> },
+            onStartDrag = { viewHolder ->
+                itemTouchHelper?.startDrag(viewHolder)
             }
-            .setNegativeButton("Clear Queue") { _, _ ->
+        )
+
+        itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION) {
+                    if (dragFromPosition == -1) {
+                        dragFromPosition = fromPos
+                    }
+                    dragToPosition = toPos
+                    return queueAdapter.onItemMove(fromPos, toPos)
+                }
+                return false
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    isDragging = true
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                isDragging = false
+                val from = dragFromPosition
+                val to = dragToPosition
+                dragFromPosition = -1
+                dragToPosition = -1
+                if (from != -1 && to != -1 && from != to) {
+                    if (from in 0 until controller.mediaItemCount && to in 0 until controller.mediaItemCount) {
+                        controller.moveMediaItem(from, to)
+                    }
+                }
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun isLongPressDragEnabled(): Boolean = true
+        })
+
+        rvQueue.layoutManager = LinearLayoutManager(this)
+        rvQueue.adapter = queueAdapter
+        itemTouchHelper.attachToRecyclerView(rvQueue)
+
+        fun updateQueueData() {
+            val totalCount = controller.mediaItemCount
+            val currentIndex = controller.currentMediaItemIndex
+
+            tvQueueCount.text = "$totalCount tracks"
+
+            if (totalCount == 0) {
+                layoutEmpty.visibility = View.VISIBLE
+                rvQueue.visibility = View.GONE
+                cardNowPlaying.visibility = View.GONE
+            } else {
+                layoutEmpty.visibility = View.GONE
+                rvQueue.visibility = View.VISIBLE
+                cardNowPlaying.visibility = View.VISIBLE
+
+                val currentItem = controller.currentMediaItem
+                if (currentItem != null) {
+                    tvNowPlayingTitle.text = currentItem.mediaMetadata.title?.toString() ?: "Unknown Track"
+                    tvNowPlayingArtist.text = currentItem.mediaMetadata.artist?.toString() ?: "Unknown Artist"
+                    val imageUrl = currentItem.mediaMetadata.extras?.getString(SongMediaItemMapper.EXTRA_IMAGE_URL)
+                        ?: currentItem.mediaMetadata.artworkUri?.toString()
+                    loadArtwork(imageUrl, ivNowPlayingThumb)
+                } else {
+                    cardNowPlaying.visibility = View.GONE
+                }
+
+                val allItems = List(totalCount) { i -> controller.getMediaItemAt(i) }
+                queueAdapter.submitQueue(allItems, currentIndex)
+            }
+
+            btnShuffle.text = if (controller.shuffleModeEnabled) "🔀 Shuffle ON" else "🔀 Shuffle"
+            btnShuffle.setTextColor(
+                ContextCompat.getColor(
+                    this,
+                    if (controller.shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                )
+            )
+        }
+
+        btnShuffle.setOnClickListener {
+            toggleShuffle()
+            btnShuffle.text = if (controller.shuffleModeEnabled) "🔀 Shuffle ON" else "🔀 Shuffle"
+            btnShuffle.setTextColor(
+                ContextCompat.getColor(
+                    this,
+                    if (controller.shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                )
+            )
+        }
+
+        cardNowPlaying.setOnClickListener {
+            val curr = controller.currentMediaItemIndex
+            if (curr in 0 until controller.mediaItemCount) {
+                rvQueue.smoothScrollToPosition(curr)
+            }
+        }
+
+        btnClear.setOnClickListener {
+            val total = controller.mediaItemCount
+            if (total == 0) return@setOnClickListener
+            val currentIdx = controller.currentMediaItemIndex
+
+            if (currentIdx in 0 until total - 1) {
+                AlertDialog.Builder(this)
+                    .setTitle("Clear Queue")
+                    .setMessage("Would you like to clear upcoming tracks or the entire queue?")
+                    .setPositiveButton("Clear Upcoming") { _, _ ->
+                        controller.removeMediaItems(currentIdx + 1, total)
+                        updateQueueData()
+                        Toast.makeText(this, "Upcoming queue cleared", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNeutralButton("Clear All") { _, _ ->
+                        controller.clearMediaItems()
+                        updateQueueData()
+                        Toast.makeText(this, "Queue cleared", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } else {
                 controller.clearMediaItems()
+                updateQueueData()
                 Toast.makeText(this, "Queue cleared", Toast.LENGTH_SHORT).show()
             }
-            .setPositiveButton("Close", null)
-            .show()
+        }
+
+        val queueListener = object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (!isDragging) {
+                    updateQueueData()
+                }
+            }
+
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                if (!isDragging) {
+                    updateQueueData()
+                }
+            }
+
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                btnShuffle.text = if (shuffleModeEnabled) "🔀 Shuffle ON" else "🔀 Shuffle"
+                btnShuffle.setTextColor(
+                    ContextCompat.getColor(
+                        this@MainActivity,
+                        if (shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                    )
+                )
+            }
+        }
+
+        controller.addListener(queueListener)
+        dialog.setOnDismissListener {
+            controller.removeListener(queueListener)
+        }
+
+        updateQueueData()
+        dialog.show()
     }
 
     private fun showHistoryDialog() {

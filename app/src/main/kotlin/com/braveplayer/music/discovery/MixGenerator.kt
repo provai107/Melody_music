@@ -59,6 +59,21 @@ class MixGenerator(
             }
         }
 
+        // Cold-start fallback: If resultSongs is still empty (e.g. brand new user), populate from trending tracks
+        if (resultSongs.isEmpty()) {
+            val fallbackSeeds = listOf("Top Hits", "Trending", "Popular Hits")
+            for (query in fallbackSeeds) {
+                val candidates = recommendationEngine.fetchCandidateSongs(baseUrl, query)
+                for (s in candidates) {
+                    if (seenIds.add(s.id)) {
+                        resultSongs.add(s)
+                    }
+                    if (resultSongs.size >= limit) break
+                }
+                if (resultSongs.isNotEmpty()) break
+            }
+        }
+
         PersonalizedMix(
             id = "daily_mix",
             title = "Daily Mix",
@@ -78,6 +93,8 @@ class MixGenerator(
 
         val seedTracks = dbHelper.getAllLikedSongs().take(3).ifEmpty {
             dbHelper.getRecentlyPlayedSongs(3)
+        }.ifEmpty {
+            recommendationEngine.fetchCandidateSongs(baseUrl, "Top Hits").take(3)
         }
 
         val allCandidates = mutableListOf<Song>()
@@ -93,12 +110,23 @@ class MixGenerator(
             }
         }
 
+        // If candidates still empty (cold start / network empty), pull fresh discovery search
+        if (allCandidates.isEmpty()) {
+            allCandidates.addAll(recommendationEngine.fetchCandidateSongs(baseUrl, "Discover Weekly"))
+        }
+
         val scored = rankDiscoveryCandidates(allCandidates, frequentArtists, excludeIds)
+        val finalSongs = if (scored.isNotEmpty()) {
+            scored.take(limit)
+        } else {
+            allCandidates.take(limit)
+        }
+
         PersonalizedMix(
             id = "discovery_mix",
             title = "Discovery Mix",
             description = "Fresh tracks and new artists tailored to your tastes but outside your daily rotation.",
-            songs = scored.take(limit)
+            songs = finalSongs
         )
     }
 
