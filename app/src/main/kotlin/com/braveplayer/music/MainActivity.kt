@@ -40,8 +40,11 @@ import com.braveplayer.music.api.SearchResult
 import com.braveplayer.music.discovery.MixGenerator
 import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.discovery.PersonalizedMix
+import com.braveplayer.music.lyrics.LyricsResult
+import com.braveplayer.music.lyrics.LyricsService
 import com.braveplayer.music.media.SongMediaItemMapper
 import com.braveplayer.music.model.Song
+import androidx.core.widget.NestedScrollView
 import com.braveplayer.music.playlist.Playlist
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
 import com.braveplayer.music.service.PlaybackService
@@ -79,6 +82,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var playlistDbHelper: PlaylistDatabaseHelper
     private lateinit var recommendationEngine: MusicRecommendationEngine
     private lateinit var mixGenerator: MixGenerator
+    private lateinit var lyricsService: LyricsService
 
     // Adapters
     private lateinit var searchAdapter: SongAdapter
@@ -150,6 +154,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNowPlayingForward15: TextView
     private lateinit var tvNowPlayingAutoplayStatus: TextView
     private lateinit var btnNowPlayingQueueAction: View
+    private lateinit var btnNowPlayingLyricsAction: View
     private lateinit var btnNowPlayingRadioAction: View
     private lateinit var btnNowPlayingAddPlaylistAction: View
 
@@ -181,6 +186,7 @@ class MainActivity : AppCompatActivity() {
         playlistDbHelper = PlaylistDatabaseHelper(this)
         recommendationEngine = MusicRecommendationEngine(metadataService, playlistDbHelper)
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
+        lyricsService = LyricsService(metadataService.httpClient)
 
         initViews()
         setupAdapters()
@@ -272,6 +278,7 @@ class MainActivity : AppCompatActivity() {
         btnNowPlayingForward15 = findViewById(R.id.btnNowPlayingForward15)
         tvNowPlayingAutoplayStatus = findViewById(R.id.tvNowPlayingAutoplayStatus)
         btnNowPlayingQueueAction = findViewById(R.id.btnNowPlayingQueueAction)
+        btnNowPlayingLyricsAction = findViewById(R.id.btnNowPlayingLyricsAction)
         btnNowPlayingRadioAction = findViewById(R.id.btnNowPlayingRadioAction)
         btnNowPlayingAddPlaylistAction = findViewById(R.id.btnNowPlayingAddPlaylistAction)
     }
@@ -442,6 +449,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnNowPlayingQueueAction.setOnClickListener { showQueueDialog() }
+        btnNowPlayingLyricsAction.setOnClickListener {
+            val item = mediaController?.currentMediaItem ?: return@setOnClickListener
+            val song = SongMediaItemMapper.fromMediaItem(item)
+            showLyricsDialog(song)
+        }
         btnNowPlayingRadioAction.setOnClickListener {
             val item = mediaController?.currentMediaItem ?: return@setOnClickListener
             val song = SongMediaItemMapper.fromMediaItem(item)
@@ -1029,7 +1041,7 @@ class MainActivity : AppCompatActivity() {
     private fun showSongOptionDialog(song: Song) {
         val isLiked = playlistDbHelper.isSongLiked(song.id)
         val likeText = if (isLiked) "Unlike Track" else "Like Track ♥"
-        val options = arrayOf("Play Now", "Add to Queue", "Start Radio", likeText, "Add to Playlist...")
+        val options = arrayOf("Play Now", "Add to Queue", "Start Radio", "View Lyrics", likeText, "Add to Playlist...")
         AlertDialog.Builder(this)
             .setTitle(song.title)
             .setItems(options) { _, which ->
@@ -1037,12 +1049,80 @@ class MainActivity : AppCompatActivity() {
                     0 -> playSongNow(song)
                     1 -> addSongToQueue(song)
                     2 -> startRadioForSong(song)
-                    3 -> toggleLikeSong(song)
-                    4 -> showAddToPlaylistDialog(song)
+                    3 -> showLyricsDialog(song)
+                    4 -> toggleLikeSong(song)
+                    5 -> showAddToPlaylistDialog(song)
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showLyricsDialog(song: Song) {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_lyrics, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+        val ivClose: ImageView = view.findViewById(R.id.ivCloseLyrics)
+        val tvSongTitle: TextView = view.findViewById(R.id.tvLyricsSongTitle)
+        val tvSongArtist: TextView = view.findViewById(R.id.tvLyricsSongArtist)
+        val pbLoading: ProgressBar = view.findViewById(R.id.pbLyricsLoading)
+        val layoutEmpty: LinearLayout = view.findViewById(R.id.layoutLyricsEmpty)
+        val tvEmptyMsg: TextView = view.findViewById(R.id.tvLyricsEmptyMessage)
+        val btnRetry: Button = view.findViewById(R.id.btnRetryLyrics)
+        val nsvLyrics: NestedScrollView = view.findViewById(R.id.nsvLyrics)
+        val tvBody: TextView = view.findViewById(R.id.tvLyricsBody)
+        val tvCopyright: TextView = view.findViewById(R.id.tvLyricsCopyright)
+
+        tvSongTitle.text = song.title
+        tvSongArtist.text = song.artists
+
+        ivClose.setOnClickListener { dialog.dismiss() }
+
+        fun loadLyrics() {
+            pbLoading.visibility = View.VISIBLE
+            layoutEmpty.visibility = View.GONE
+            nsvLyrics.visibility = View.GONE
+
+            val baseUrl = appSettings.getBaseUrl()
+            lifecycleScope.launch {
+                when (val result = lyricsService.fetchLyrics(baseUrl, song.id)) {
+                    is LyricsResult.Success -> {
+                        pbLoading.visibility = View.GONE
+                        layoutEmpty.visibility = View.GONE
+                        nsvLyrics.visibility = View.VISIBLE
+                        tvBody.text = result.lyrics
+                        if (!result.copyright.isNullOrBlank()) {
+                            tvCopyright.visibility = View.VISIBLE
+                            tvCopyright.text = result.copyright
+                        } else {
+                            tvCopyright.visibility = View.GONE
+                        }
+                    }
+                    is LyricsResult.Unavailable -> {
+                        pbLoading.visibility = View.GONE
+                        nsvLyrics.visibility = View.GONE
+                        layoutEmpty.visibility = View.VISIBLE
+                        tvEmptyMsg.text = result.message
+                        btnRetry.visibility = View.GONE
+                    }
+                    is LyricsResult.Error -> {
+                        pbLoading.visibility = View.GONE
+                        nsvLyrics.visibility = View.GONE
+                        layoutEmpty.visibility = View.VISIBLE
+                        tvEmptyMsg.text = result.message
+                        btnRetry.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
+        btnRetry.setOnClickListener { loadLyrics() }
+
+        loadLyrics()
+        dialog.show()
     }
 
     private fun showAddToPlaylistDialog(song: Song) {
