@@ -9,12 +9,17 @@ data class PersonalizedMix(
     val id: String,
     val title: String,
     val description: String,
-    val songs: List<Song>
+    val songs: List<Song>,
+    val subtitle: String = "",
+    val category: String = "MIX"
 )
 
 /**
- * Generates personalized mixes including Daily Mix and Discovery Mix.
- * Discovery Mix actively introduces artists outside the user's frequent listening rotation.
+ * Generates multiple personalized, continuously refreshed mixes:
+ * - Daily Mix 1: Favorite artist & top played songs
+ * - Daily Mix 2: Complementary artist & diverse genre cluster
+ * - Chill & Focus Mix: Melodic acoustic and calm downtempo tracks
+ * - Discovery Mix: Novel artists outside the user's frequent listening rotation
  */
 class MixGenerator(
     private val recommendationEngine: MusicRecommendationEngine,
@@ -22,8 +27,20 @@ class MixGenerator(
 ) {
 
     /**
-     * Generates a "Daily Mix" blending user favorites, frequently played songs,
-     * and closely related recommendations.
+     * Generates all available personalized mixes concurrently.
+     */
+    suspend fun generateAllMixes(baseUrl: String, limit: Int = 20): List<PersonalizedMix> = withContext(Dispatchers.IO) {
+        listOf(
+            generateDailyMix(baseUrl, limit),
+            generateDailyMix2(baseUrl, limit),
+            generateChillMix(baseUrl, limit),
+            generateDiscoveryMix(baseUrl, limit)
+        )
+    }
+
+    /**
+     * Generates "Daily Mix 1" blending user favorites, frequently played songs,
+     * and closely related recommendations around their top artist.
      */
     suspend fun generateDailyMix(baseUrl: String, limit: Int = 20): PersonalizedMix = withContext(Dispatchers.IO) {
         val resultSongs = mutableListOf<Song>()
@@ -59,7 +76,7 @@ class MixGenerator(
             }
         }
 
-        // Cold-start fallback: If resultSongs is still empty (e.g. brand new user), populate from trending tracks
+        // Cold-start fallback: If resultSongs is still empty, populate from trending tracks
         if (resultSongs.isEmpty()) {
             val fallbackSeeds = listOf("Top Hits", "Trending", "Popular Hits")
             for (query in fallbackSeeds) {
@@ -74,11 +91,87 @@ class MixGenerator(
             }
         }
 
+        val topArtist = dbHelper.getArtistPlayCounts().keys.firstOrNull { it.isNotBlank() }
+            ?: liked.firstOrNull()?.let { recommendationEngine.extractPrimaryArtist(it.artists) }
+            ?: "Your Top Tracks"
+
         PersonalizedMix(
-            id = "daily_mix",
-            title = "Daily Mix",
-            description = "A personalized blend of your top tracks, liked songs, and familiar sounds.",
-            songs = resultSongs.take(limit)
+            id = "daily_mix_1",
+            title = "Daily Mix 1",
+            subtitle = "Based on $topArtist",
+            description = "A personalized session blending your most played favorites and familiar sounds.",
+            songs = resultSongs.take(limit),
+            category = "FAVORITES"
+        )
+    }
+
+    /**
+     * Generates "Daily Mix 2" based on secondary artist / diverse genre cluster.
+     */
+    suspend fun generateDailyMix2(baseUrl: String, limit: Int = 20): PersonalizedMix = withContext(Dispatchers.IO) {
+        val resultSongs = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+
+        val artistCounts = dbHelper.getArtistPlayCounts()
+        // Pick secondary artist from history, or secondary liked song's artist
+        val secondaryArtist = artistCounts.keys.drop(1).firstOrNull { it.isNotBlank() }
+            ?: dbHelper.getAllLikedSongs().drop(1).firstOrNull()?.let { recommendationEngine.extractPrimaryArtist(it.artists) }
+            ?: "Global Energy"
+
+        val candidates = recommendationEngine.fetchCandidateSongs(baseUrl, secondaryArtist)
+        for (song in candidates) {
+            if (song.getBestPlaybackUrl() != null && seenIds.add(song.id)) {
+                resultSongs.add(song)
+            }
+            if (resultSongs.size >= limit) break
+        }
+
+        if (resultSongs.size < limit) {
+            val fallback = recommendationEngine.fetchCandidateSongs(baseUrl, "Dance Pop Hits")
+            for (song in fallback) {
+                if (song.getBestPlaybackUrl() != null && seenIds.add(song.id)) {
+                    resultSongs.add(song)
+                }
+                if (resultSongs.size >= limit) break
+            }
+        }
+
+        PersonalizedMix(
+            id = "daily_mix_2",
+            title = "Daily Mix 2",
+            subtitle = "Based on $secondaryArtist",
+            description = "An energetic blend exploring diverse artists and upbeat rhythms.",
+            songs = resultSongs.take(limit),
+            category = "ENERGY"
+        )
+    }
+
+    /**
+     * Generates "Chill & Focus Mix" featuring melodic acoustic, lofi, or ambient tracks.
+     */
+    suspend fun generateChillMix(baseUrl: String, limit: Int = 20): PersonalizedMix = withContext(Dispatchers.IO) {
+        val resultSongs = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+
+        val chillQueries = listOf("Acoustic Pop", "Chill Lofi", "Relaxing Acoustic", "Calm Melodies")
+        for (query in chillQueries) {
+            val candidates = recommendationEngine.fetchCandidateSongs(baseUrl, query)
+            for (song in candidates) {
+                if (song.getBestPlaybackUrl() != null && seenIds.add(song.id)) {
+                    resultSongs.add(song)
+                }
+                if (resultSongs.size >= limit) break
+            }
+            if (resultSongs.size >= limit) break
+        }
+
+        PersonalizedMix(
+            id = "chill_mix",
+            title = "Chill & Focus Mix",
+            subtitle = "Acoustic & Downtempo",
+            description = "Calm melodies and acoustic vibes curated for relaxation and focused listening.",
+            songs = resultSongs.take(limit),
+            category = "CHILL"
         )
     }
 
@@ -125,8 +218,10 @@ class MixGenerator(
         PersonalizedMix(
             id = "discovery_mix",
             title = "Discovery Mix",
-            description = "Fresh tracks and new artists tailored to your tastes but outside your daily rotation.",
-            songs = finalSongs
+            subtitle = "Fresh Horizons",
+            description = "Fresh tracks and emerging artists tailored to your tastes, outside your usual rotation.",
+            songs = finalSongs,
+            category = "DISCOVERY"
         )
     }
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <!-- Solid Red Background Circle -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M14,0 C6.268,0 0,6.268 0,14 C0,21.732 6.268,28 14,28 C21.732,28 28,21.732 28,14 C28,6.268 21.732,0 14,0 Z" />
+    <!-- Concentric Ring -->
+    <path
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M14,4 C8.477,4 4,8.477 4,14 C4,19.523 8.477,24 14,24 C19.523,24 24,19.523 24,14 C24,8.477 19.523,4 14,4 Z" />
+    <!-- White Play Triangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11.5,9.5 L19,14 L11.5,18.5 Z" />
+</vector>

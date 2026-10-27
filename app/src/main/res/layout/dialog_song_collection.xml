@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical"
+    android:paddingTop="10dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/single_bar_drag_handle" />
+
+    <!-- Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="18dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/ivCloseCollectionSheet"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/white_primary" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvCollectionSheetTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/youtube_sans_bold_font"
+                android:maxLines="1"
+                android:text="Collection Title"
+                android:textColor="@color/white_primary"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tvCollectionSheetSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif"
+                android:text="0 tracks"
+                android:textColor="@color/muted_grey"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivCollectionSheetAction"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Action"
+            android:padding="7dp"
+            android:src="@drawable/ic_delete"
+            android:visibility="gone"
+            app:tint="@color/youtube_red" />
+    </RelativeLayout>
+
+    <!-- Action Buttons Row -->
+    <LinearLayout
+        android:id="@+id/layoutCollectionActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCollectionPlayAll"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/youtube_red"
+            android:fontFamily="sans-serif-bold"
+            android:text="▶  Play All"
+            android:textColor="@color/white_primary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnCollectionShuffle"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/card_red_tint_surface"
+            android:fontFamily="sans-serif-bold"
+            android:text="🔀  Shuffle"
+            android:textColor="@color/white_primary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@color/border_grey" />
+
+    <!-- Content Frame -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Songs RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCollectionSongs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="120dp" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/layoutCollectionEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivCollectionEmptyIcon"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_library_music"
+                app:tint="@color/muted_grey" />
+
+            <TextView
+                android:id="@+id/tvCollectionEmptyTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:fontFamily="@font/youtube_sans_bold_font"
+                android:text="No tracks found"
+                android:textColor="@color/white_primary"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tvCollectionEmptyMsg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:fontFamily="sans-serif"
+                android:text="Add songs to enjoy them here."
+                android:textColor="@color/muted_grey"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+    </FrameLayout>
+</LinearLayout>

@@ -1,31 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- TIDAL-Inspired Premium Dark Theme Tokens -->
-    <color name="tidal_bg">#0B0B0E</color>
-    <color name="tidal_surface">#16161B</color>
-    <color name="tidal_surface_elevated">#202026</color>
-    <color name="tidal_surface_card">#1A1A22</color>
-    <color name="tidal_surface_highlight">#2A2A38</color>
-    <color name="tidal_text_primary">#FFFFFF</color>
-    <color name="tidal_text_secondary">#8A8A93</color>
-    <color name="tidal_text_tertiary">#5A5A64</color>
-    <color name="tidal_accent">#00E5FF</color>
-    <color name="tidal_accent_subtle">#102B33</color>
-    <color name="tidal_favorite_active">#00E5FF</color>
-    <color name="tidal_divider">#1C1C24</color>
-    <color name="tidal_badge_bg">#183038</color>
-    <color name="tidal_badge_text">#00E5FF</color>
+    <!-- YouTube Music Complete Color Palette Specification -->
 
-    <!-- Legacy Mappings for Compatibility -->
-    <color name="background_dark">#0B0B0E</color>
-    <color name="card_dark">#16161B</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#8A8A93</color>
-    <color name="black">#FF000000</color>
+    <!-- Deep Black (Background): #030303 -->
+    <color name="deep_black">#030303</color>
+    <color name="ytm_black">#030303</color>
+    <color name="ytm_pure_black">#000000</color>
+    <color name="background_dark">#030303</color>
+    <color name="tidal_bg">#030303</color>
+
+    <!-- Surface Black (Cards & Panels): #121212 -->
+    <color name="surface_black">#121212</color>
+    <color name="ytm_surface_dark">#121212</color>
+    <color name="ytm_surface_card">#121212</color>
+    <color name="ytm_mini_player_bg">#121212</color>
+    <color name="ytm_bottom_nav_bg">#121212</color>
+    <color name="card_dark">#121212</color>
+    <color name="tidal_surface">#121212</color>
+    <color name="tidal_surface_card">#121212</color>
+
+    <!-- Dark Grey (Elevated Surfaces): #282828 -->
+    <color name="dark_grey_elevated">#282828</color>
+    <color name="ytm_chip_bg">#282828</color>
+    <color name="tidal_surface_elevated">#282828</color>
+    <color name="tidal_surface_highlight">#282828</color>
+    <color name="tidal_badge_bg">#282828</color>
+    <color name="ytm_chip_bg_selected">#FFFFFF</color>
+    <color name="ytm_chip_text_selected">#030303</color>
+
+    <!-- White (Primary Text & Icons): #FFFFFF -->
+    <color name="white_primary">#FFFFFF</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="purple_500">#00E5FF</color>
-    <color name="purple_700">#00B0FF</color>
-    <color name="teal_200">#00E5FF</color>
-    <color name="teal_700">#0097A7</color>
-    <color name="accent_orange">#00E5FF</color>
+    <color name="ytm_text_primary">#FFFFFF</color>
+    <color name="ytm_icon_active">#FFFFFF</color>
+    <color name="tidal_text_primary">#FFFFFF</color>
+    <color name="tidal_badge_text">#FFFFFF</color>
+    <color name="text_primary">#FFFFFF</color>
+
+    <!-- Muted Grey (Secondary Text): #9F9F9F -->
+    <color name="muted_grey">#9F9F9F</color>
+    <color name="ytm_text_secondary">#9F9F9F</color>
+    <color name="ytm_text_secondary_translucent">#9F9F9F</color>
+    <color name="ytm_text_tertiary">#9F9F9F</color>
+    <color name="tidal_text_secondary">#9F9F9F</color>
+    <color name="tidal_text_tertiary">#9F9F9F</color>
+    <color name="text_secondary">#9F9F9F</color>
+
+    <!-- YouTube Red (Accent Colour): #FF0000 -->
+    <color name="youtube_red">#FF0000</color>
+    <color name="ytm_red">#FF0000</color>
+    <color name="ytm_red_brand">#FF0000</color>
+    <color name="tidal_accent">#FF0000</color>
+    <color name="tidal_accent_subtle">#33FF0000</color>
+    <color name="tidal_favorite_active">#FF0000</color>
+    <color name="purple_500">#FF0000</color>
+    <color name="purple_700">#FF0000</color>
+    <color name="teal_200">#FF0000</color>
+    <color name="teal_700">#FF0000</color>
+    <color name="accent_orange">#FF0000</color>
+
+    <!-- Border Grey: #3F3F3F -->
+    <color name="border_grey">#3F3F3F</color>
+    <color name="ytm_divider">#3F3F3F</color>
+    <color name="tidal_divider">#3F3F3F</color>
+
+    <!-- Progress Track Grey: #535353 -->
+    <color name="progress_track_grey">#535353</color>
+    <color name="ytm_progress_track">#535353</color>
+
+    <!-- Light Grey (Inactive Icons): #AAAAAA -->
+    <color name="light_grey_inactive">#AAAAAA</color>
+    <color name="ytm_icon_inactive">#AAAAAA</color>
+
+    <!-- Background Palette Glow Stops -->
+    <color name="ytm_bg_top_glow">#3B0808</color>
+    <color name="ytm_bg_upper">#200505</color>
+    <color name="ytm_bg_middle">#0D0202</color>
+    <color name="ytm_bg_main">#030303</color>
+
+    <!-- Vibrant Light-Red Shaded Card Tokens for Home & Library -->
+    <color name="card_red_tint_surface">#1C0707</color>
+    <color name="card_red_tint_start">#260808</color>
+    <color name="card_red_tint_end">#140303</color>
+    <color name="card_red_tint_border">#4E1414</color>
+    <color name="card_red_tint_border_focused">#7A1C1C</color>
+
+    <!-- Framework Aliases -->
+    <color name="black">#FF000000</color>
+    <color name="transparent">#00000000</color>
 </resources>

@@ -14,10 +14,10 @@
         android:id="@+id/tvLyricLine"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="@font/youtube_sans_bold_font"
         android:lineSpacingExtra="6dp"
         android:text="Lyric Line"
         android:textColor="#55FFFFFF"
-        android:textSize="20sp" />
+        android:textSize="22sp" />
 
 </FrameLayout>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- Square Artwork (80dp) -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:cardBackgroundColor="@color/surface_black"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/ivTrendingThumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Trending Artwork"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+
+        <!-- Rank Badge overlay (Top-Left) -->
+        <TextView
+            android:id="@+id/tvTrendingRankBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_pill_badge"
+            android:fontFamily="sans-serif-black"
+            android:paddingStart="5dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="2dp"
+            android:text="#1"
+            android:textColor="@color/white_primary"
+            android:textSize="9sp" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Info Column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTrendingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:maxLines="1"
+            android:text="Trending Title"
+            android:textColor="@color/white_primary"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/tvTrendingSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:text="Song • Artist Name"
+            android:textColor="@color/muted_grey"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Play Action Button -->
+    <ImageView
+        android:id="@+id/btnTrendingPlay"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Play Trending Item"
+        android:padding="8dp"
+        android:src="@drawable/ic_ytm_play"
+        app:tint="@color/white_primary" />
+
+    <!-- 3-Dot Options Button -->
+    <ImageView
+        android:id="@+id/btnTrendingOptions"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Trending Item Options"
+        android:padding="6dp"
+        android:src="@drawable/ic_ytm_overflow"
+        app:tint="@color/light_grey_inactive" />
+
+    <!-- Chevron Right (for Albums / Playlists) -->
+    <ImageView
+        android:id="@+id/ivTrendingChevron"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:contentDescription="Open Details"
+        android:src="@drawable/ic_ytm_chevron_right"
+        android:visibility="gone"
+        app:tint="@color/muted_grey" />
+
+</LinearLayout>

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/tidal_bg">
+    android:background="@drawable/bg_ytm_gradient">
 
     <!-- Primary Vertical Content Layout -->
     <LinearLayout
@@ -11,52 +11,71 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Top App Bar -->
+        <!-- Top App Bar (YouTube Music 9.42 Brand Header) -->
         <RelativeLayout
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="@color/tidal_bg"
+            android:background="@android:color/transparent"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:paddingEnd="12dp">
 
+            <!-- Brand Logo & Name (Concentric Red Play Circle + "Melody" in YouTube Sans Bold) -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:contentDescription="Melody Logo"
+                    android:src="@drawable/ic_melody_logo" />
 
                 <TextView
                     android:id="@+id/tvAppBrand"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-black"
-                    android:letterSpacing="0.1"
-                    android:text="MELODY"
-                    android:textColor="@color/tidal_text_primary"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.06"
-                    android:text="HI-FI MUSIC STREAMING"
-                    android:textColor="@color/tidal_accent"
-                    android:textSize="9sp" />
+                    android:layout_marginStart="8dp"
+                    android:fontFamily="@font/youtube_sans_bold_font"
+                    android:letterSpacing="0.02"
+                    android:text="Melody"
+                    android:textColor="@color/ytm_text_primary"
+                    android:textSize="22sp" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/btnOpenSettings"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+            <!-- Action Icons (Cast, Settings) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Settings and Telemetry"
-                android:padding="8dp"
-                android:src="@drawable/ic_settings"
-                app:tint="@color/tidal_text_secondary" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btnTopCast"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Cast"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_ytm_cast"
+                    app:tint="@color/ytm_icon_active" />
+
+                <ImageView
+                    android:id="@+id/btnTopSearch"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="4dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Search"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_ytm_search"
+                    app:tint="@color/ytm_icon_active" />
+            </LinearLayout>
         </RelativeLayout>
 
         <!-- Main Content Area: Tab Views Container -->
@@ -71,415 +90,1105 @@
                 android:id="@+id/containerHome"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:clipToPadding="false"
                 android:fillViewport="true"
+                android:paddingBottom="140dp"
                 android:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp">
 
+                    <!-- SECTION 2: PERSONALIZED GREETING & MOOD CHIPS -->
                     <TextView
+                        android:id="@+id/tvHomeGreeting"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.08"
-                        android:text="DISCOVERY &amp; MIXES"
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="11sp" />
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:text="Good evening"
+                        android:textColor="@color/white_primary"
+                        android:textSize="24sp" />
 
-                    <!-- Daily Mix Card -->
-                    <LinearLayout
-                        android:id="@+id/cardDailyMix"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tvHomeGreetingSub"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Discover and stream tailored to your day"
+                        android:textColor="@color/muted_grey"
+                        android:textSize="12sp" />
+
+                    <!-- Small Quick Search Option in Home -->
+                    <LinearLayout
+                        android:id="@+id/btnHomeQuickSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_mix_card"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:orientation="vertical"
-                        android:padding="18dp">
+                        android:background="@drawable/bg_search_input_explore"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="Search Icon"
+                            android:src="@drawable/ic_ytm_search"
+                            app:tint="@color/light_grey_inactive" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/bg_pill_badge"
-                            android:fontFamily="sans-serif-black"
-                            android:paddingStart="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingEnd="6dp"
-                            android:paddingBottom="2dp"
-                            android:text="GENERATED FOR YOU"
-                            android:textColor="@color/tidal_badge_text"
-                            android:textSize="9sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:fontFamily="sans-serif-black"
-                            android:text="Daily Mix"
-                            android:textColor="@color/tidal_text_primary"
-                            android:textSize="20sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginStart="10dp"
                             android:fontFamily="sans-serif"
-                            android:text="Personalized session curated from your top listened artists and history."
-                            android:textColor="@color/tidal_text_secondary"
+                            android:text="Search songs, albums, artists..."
+                            android:textColor="@color/light_grey_inactive"
                             android:textSize="13sp" />
-
-                        <Button
-                            android:id="@+id/btnPlayDailyMix"
-                            style="@style/Widget.MaterialComponents.Button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="14dp"
-                            android:backgroundTint="@color/tidal_accent"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="▶ Play Daily Mix"
-                            android:textColor="@color/black"
-                            android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Discovery Mix Card -->
-                    <LinearLayout
-                        android:id="@+id/cardDiscoveryMix"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:background="@drawable/bg_mix_card"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:orientation="vertical"
-                        android:padding="18dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_pill_badge"
-                            android:fontFamily="sans-serif-black"
-                            android:paddingStart="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingEnd="6dp"
-                            android:paddingBottom="2dp"
-                            android:text="FRESH DISCOVERY"
-                            android:textColor="@color/tidal_badge_text"
-                            android:textSize="9sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:fontFamily="sans-serif-black"
-                            android:text="Discovery Mix"
-                            android:textColor="@color/tidal_text_primary"
-                            android:textSize="20sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="Expand your horizon with novel tracks and related artist recommendations."
-                            android:textColor="@color/tidal_text_secondary"
-                            android:textSize="13sp" />
-
-                        <Button
-                            android:id="@+id/btnPlayDiscoveryMix"
-                            style="@style/Widget.MaterialComponents.Button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="14dp"
-                            android:backgroundTint="@color/tidal_surface_card"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="▶ Play Discovery Mix"
-                            android:textColor="@color/tidal_text_primary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-
-                    <!-- Quick Shortcuts Row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:id="@+id/btnHomeLikedShortcut"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_rounded_card"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="14dp">
-
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:contentDescription="Liked Songs"
-                                android:src="@drawable/ic_heart_filled"
-                                app:tint="@color/tidal_accent" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="10dp"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="Liked Songs"
-                                android:textColor="@color/tidal_text_primary"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/btnHomeQueueShortcut"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_rounded_card"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="14dp">
-
-                            <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
-                                android:contentDescription="Queue"
-                                android:src="@drawable/ic_queue_music"
-                                app:tint="@color/tidal_text_primary" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="10dp"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="Now Playing Queue"
-                                android:textColor="@color/tidal_text_primary"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- Play by Mood Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.08"
-                        android:text="PLAY BY MOOD"
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="11sp" />
-
+                    <!-- Compact Mood / Genre Filter Chips Carousel -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvMoodHome"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="14dp"
                         android:clipToPadding="false"
                         android:orientation="horizontal" />
 
-                    <!-- Explore by Genre Section -->
+                    <!-- SECTION 3: QUICK ACCESS GRID (Compact 2x3 cards) -->
+                    <LinearLayout
+                        android:id="@+id/layoutQuickAccessGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:orientation="vertical">
+
+                        <!-- Row 1: Daily Mix 1 & Daily Mix 2 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/cardDailyMix"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Daily Mix 1"
+                                    android:src="@drawable/ic_equalizer"
+                                    app:tint="@color/youtube_red" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Daily Mix 1"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/btnQuickDailyMix2"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Daily Mix 2"
+                                    android:src="@drawable/ic_radio"
+                                    app:tint="@color/youtube_red" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Daily Mix 2"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Row 2: Liked Songs & Chill & Focus Mix -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/btnHomeLikedShortcut"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Liked Songs"
+                                    android:src="@drawable/ic_ytm_thumb_up_fill"
+                                    app:tint="@color/youtube_red" />
+
+                                <TextView
+                                    android:id="@+id/tvQuickLikedTitle"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Liked Songs"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/btnQuickChillMix"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Chill &amp; Focus"
+                                    android:src="@drawable/ic_music_note"
+                                    app:tint="@color/youtube_red" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Chill &amp; Focus"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Row 3: Discovery Mix & Queue / Most Played -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/cardDiscoveryMix"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Discovery Mix"
+                                    android:src="@drawable/ic_ytm_explore_filled"
+                                    app:tint="@color/youtube_red" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Discovery Mix"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/btnHomeQueueShortcut"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_rounded_card"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:contentDescription="Playing Queue"
+                                    android:src="@drawable/ic_queue_music"
+                                    app:tint="@color/white_primary" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:maxLines="1"
+                                    android:text="Playing Queue"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- SECTION 4: RECENTLY PLAYED SONGS (Horizontal Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="PICK UP WHERE YOU LEFT OFF"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Recently Played"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/btnSeeAllRecent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:fontFamily="sans-serif-medium"
+                            android:padding="6dp"
+                            android:text="See all"
+                            android:textColor="@color/muted_grey"
+                            android:textSize="12sp" />
+                    </RelativeLayout>
+
+                    <!-- Recently Played Horizontal Carousel -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentlyPlayedHome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- Recently Played Empty State -->
                     <TextView
+                        android:id="@+id/layoutRecentEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:fontFamily="sans-serif"
+                        android:padding="16dp"
+                        android:text="No recently played tracks yet. Tap any mix or search above to start listening!"
+                        android:textColor="@color/muted_grey"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <!-- SECTION 5: TRENDING SONGS (Horizontal Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="STREAMING CHARTS"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Trending Right Now"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <ProgressBar
+                        android:id="@+id/pbTrendingLoading"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.08"
-                        android:text="EXPLORE BY GENRE"
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="11sp" />
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="16dp"
+                        android:indeterminateTint="@color/youtube_red"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvTrendingCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- SECTION 6: MADE FOR YOU (Personalized Recommendations Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="BASED ON YOUR TASTE"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Made for You"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <ProgressBar
+                        android:id="@+id/pbMadeForYouLoading"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="16dp"
+                        android:indeterminateTint="@color/youtube_red"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvMadeForYouCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- SECTION 7: DAILY MIXES (Horizontal Carousel with Large Cards) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="DYNAMIC SESSIONS"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Daily Mixes"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvDailyMixesCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- SECTION 8: MOST PLAYED SONGS (Horizontal Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="YOUR HEAVY ROTATION"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Most Played"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvMostPlayedCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <TextView
+                        android:id="@+id/layoutMostPlayedEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:fontFamily="sans-serif"
+                        android:padding="16dp"
+                        android:text="Play songs to build your personalized Most Played leaderboard!"
+                        android:textColor="@color/muted_grey"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <!-- SECTION 9: YOUR FAVOURITE GENRES (Horizontal Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="STYLES TAILORED FOR YOU"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Your Favourite Genres"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvGenreHome"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
                         android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
                         android:orientation="horizontal" />
 
-                    <!-- Recently Played Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="22dp"
-                        android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.08"
-                        android:text="RECENTLY PLAYED"
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="11sp" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvRecentlyPlayedHome"
+                    <!-- SECTION 10: EXPLORE OTHER GENRES (Horizontal Carousel) -->
+                    <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:nestedScrollingEnabled="false" />
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="EXPAND YOUR HORIZONS"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Explore Other Genres"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvOtherGenresCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- SECTION 11: RECOMMENDED ALBUMS AND PLAYLISTS (Horizontal Carousel) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="FEATURED SOUNDSCAPES"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Recommended Albums &amp; Playlists"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecommendedPlaylistsCarousel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:orientation="horizontal" />
+
+                    <!-- SECTION 12: CONTINUE LISTENING (Session Resume Card) -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="26dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:letterSpacing="0.08"
+                                android:text="RESUME PLAYBACK"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Continue Listening"
+                                android:textColor="@color/white_primary"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <!-- Continue Listening Interactive Card -->
+                    <LinearLayout
+                        android:id="@+id/cardContinueListening"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="54dp"
+                            android:layout_height="54dp"
+                            app:cardBackgroundColor="@color/surface_black"
+                            app:cardCornerRadius="6dp"
+                            app:cardElevation="0dp">
+
+                            <ImageView
+                                android:id="@+id/ivContinueCover"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="Continue Listening Cover"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_music_note" />
+                        </androidx.cardview.widget.CardView>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvContinueTitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:maxLines="1"
+                                android:text="Ready to listen"
+                                android:textColor="@color/white_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvContinueArtist"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif"
+                                android:maxLines="1"
+                                android:text="Resume your last session in Melody"
+                                android:textColor="@color/muted_grey"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <FrameLayout
+                            android:id="@+id/btnContinuePlay"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_play_circle_red"
+                            android:clickable="true"
+                            android:contentDescription="Resume"
+                            android:elevation="2dp"
+                            android:focusable="true">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_play_arrow"
+                                app:tint="@color/white_primary" />
+                        </FrameLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
 
-            <!-- TAB 2: SEARCH -->
+            <!-- TAB 2: SEARCH / EXPLORE -->
             <LinearLayout
                 android:id="@+id/containerSearch"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:paddingStart="16dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="16dp"
                 android:visibility="gone">
 
-                <!-- Polished Search Input Bar -->
+                <!-- A. TOP SEARCH AREA (Prominent 56dp Bar) -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="@drawable/bg_search_input"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp">
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="10dp">
 
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:contentDescription="Search Icon"
-                        android:src="@drawable/ic_search"
-                        app:tint="@color/tidal_text_secondary" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/bg_search_input_explore"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="14dp">
 
-                    <EditText
-                        android:id="@+id/etSearchQuery"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:background="@null"
-                        android:fontFamily="sans-serif"
-                        android:hint="Search tracks, artists, albums..."
-                        android:imeOptions="actionSearch"
-                        android:inputType="text"
-                        android:textColor="@color/tidal_text_primary"
-                        android:textColorHint="@color/tidal_text_tertiary"
-                        android:textSize="14sp" />
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="Search Icon"
+                            android:src="@drawable/ic_ytm_search"
+                            app:tint="@color/light_grey_inactive" />
 
-                    <Button
-                        android:id="@+id/btnSearch"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:padding="0dp"
-                        android:text="Search"
-                        android:textColor="@color/tidal_accent"
-                        android:textSize="13sp" />
+                        <EditText
+                            android:id="@+id/etSearchQuery"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:background="@null"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:hint="Music, Artists, and Podcasts"
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:textColor="@color/white_primary"
+                            android:textColorHint="@color/muted_grey"
+                            android:textSize="15sp" />
+
+                        <ImageView
+                            android:id="@+id/btnSearchClear"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Clear search"
+                            android:padding="7dp"
+                            android:src="@drawable/ic_close"
+                            android:visibility="gone"
+                            app:tint="@color/white_primary" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <!-- Search State Container -->
+                <!-- Search Content Container -->
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_marginTop="8dp"
                     android:layout_weight="1">
 
-                    <!-- Loading State -->
-                    <ProgressBar
-                        android:id="@+id/pbSearchLoading"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:indeterminateTint="@color/tidal_accent"
-                        android:visibility="gone" />
-
-                    <!-- Empty Results State -->
-                    <TextView
-                        android:id="@+id/tvEmptyResults"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:fontFamily="sans-serif"
-                        android:text="No tracks found. Try a different query."
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="14sp"
-                        android:visibility="gone" />
-
-                    <!-- Error State with Retry -->
-                    <LinearLayout
-                        android:id="@+id/layoutError"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:visibility="gone">
-
-                        <TextView
-                            android:id="@+id/tvErrorMessage"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:text="Network error connecting to backend service."
-                            android:textColor="#FF5252"
-                            android:textSize="13sp" />
-
-                        <Button
-                            android:id="@+id/btnRetrySearch"
-                            style="@style/Widget.MaterialComponents.Button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginTop="12dp"
-                            android:backgroundTint="@color/tidal_surface_card"
-                            android:text="Retry Search"
-                            android:textColor="@color/tidal_text_primary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-
-                    <!-- Default Browse Genres/Categories View when search query is empty -->
-                    <LinearLayout
-                        android:id="@+id/layoutSearchBrowse"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:layout_marginBottom="8dp"
-                            android:fontFamily="sans-serif-black"
-                            android:letterSpacing="0.08"
-                            android:text="EXPLORE GENRES &amp; MOODS"
-                            android:textColor="@color/tidal_text_secondary"
-                            android:textSize="11sp" />
-
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvSearchBrowseGenres"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:paddingBottom="16dp" />
-                    </LinearLayout>
-
-                    <!-- Search Results List -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvSearchResults"
+                    <!-- IDLE / DISCOVERY STATE (Scrollable) -->
+                    <androidx.core.widget.NestedScrollView
+                        android:id="@+id/layoutExploreDiscovery"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:clipToPadding="false"
-                        android:paddingBottom="8dp"
-                        android:visibility="gone" />
+                        android:fillViewport="true"
+                        android:paddingBottom="140dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp">
+
+                            <!-- B. RECENT SEARCHES SECTION -->
+                            <LinearLayout
+                                android:id="@+id/layoutRecentSearchesSection"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+
+                                <RelativeLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="8dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/youtube_sans_bold_font"
+                                        android:text="Recent Searches"
+                                        android:textColor="@color/white_primary"
+                                        android:textSize="22sp" />
+
+                                    <TextView
+                                        android:id="@+id/btnClearRecentSearches"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
+                                        android:fontFamily="sans-serif-medium"
+                                        android:text="Clear All"
+                                        android:textColor="@color/youtube_red"
+                                        android:textSize="13sp" />
+                                </RelativeLayout>
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:id="@+id/rvRecentSearches"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:nestedScrollingEnabled="false" />
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="1dp"
+                                    android:layout_marginTop="16dp"
+                                    android:layout_marginBottom="16dp"
+                                    android:background="@color/border_grey" />
+                            </LinearLayout>
+
+                            <!-- C. TRENDING SECTION -->
+                            <LinearLayout
+                                android:id="@+id/layoutTrendingSection"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:orientation="vertical">
+
+                                <RelativeLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="8dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/youtube_sans_bold_font"
+                                        android:text="Trending"
+                                        android:textColor="@color/white_primary"
+                                        android:textSize="22sp" />
+
+                                    <TextView
+                                        android:id="@+id/btnSeeAllTrendingExplore"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
+                                        android:fontFamily="sans-serif-bold"
+                                        android:text="See All"
+                                        android:textColor="@color/youtube_red"
+                                        android:textSize="14sp" />
+                                </RelativeLayout>
+
+                                <ProgressBar
+                                    android:id="@+id/pbTrendingExploreLoading"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_horizontal"
+                                    android:layout_marginTop="12dp"
+                                    android:layout_marginBottom="12dp"
+                                    android:indeterminateTint="@color/youtube_red"
+                                    android:visibility="gone" />
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:id="@+id/rvTrendingExplore"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:nestedScrollingEnabled="false" />
+                            </LinearLayout>
+
+                            <!-- D. MOOD AND GENRE CHANNEL GRID -->
+                            <LinearLayout
+                                android:id="@+id/layoutCategoryChannelsSection"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="24dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="10dp"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:text="Explore by Mood &amp; Genre"
+                                    android:textColor="@color/white_primary"
+                                    android:textSize="22sp" />
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:id="@+id/rvCategoryChannels"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:nestedScrollingEnabled="false" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+                    </androidx.core.widget.NestedScrollView>
+
+                    <!-- SEARCH RESULTS & FEEDBACK STATE -->
+                    <FrameLayout
+                        android:id="@+id/layoutSearchResultsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone">
+
+                        <!-- Loading Indicator -->
+                        <ProgressBar
+                            android:id="@+id/pbSearchLoading"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:indeterminateTint="@color/youtube_red"
+                            android:visibility="gone" />
+
+                        <!-- Empty Results State -->
+                        <TextView
+                            android:id="@+id/tvEmptyResults"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:fontFamily="sans-serif"
+                            android:gravity="center"
+                            android:padding="24dp"
+                            android:text="No results found."
+                            android:textColor="@color/muted_grey"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <!-- Error State with Retry -->
+                        <LinearLayout
+                            android:id="@+id/layoutError"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="24dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/tvErrorMessage"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="Network error connecting to backend service."
+                                android:textColor="#FF5252"
+                                android:textSize="14sp" />
+
+                            <Button
+                                android:id="@+id/btnRetrySearch"
+                                style="@style/Widget.MaterialComponents.Button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginTop="14dp"
+                                android:backgroundTint="@color/dark_grey_elevated"
+                                android:text="Retry Search"
+                                android:textColor="@color/white_primary"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+
+                        <!-- Search Results List -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvSearchResults"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:paddingBottom="140dp"
+                            android:visibility="gone" />
+                    </FrameLayout>
+
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- TAB 3: MY COLLECTION -->
+            <!-- TAB 3: LIBRARY -->
             <androidx.core.widget.NestedScrollView
                 android:id="@+id/containerCollection"
                 android:layout_width="match_parent"
@@ -501,11 +1210,10 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
-                            android:fontFamily="sans-serif-black"
-                            android:letterSpacing="0.08"
-                            android:text="MY COLLECTION"
-                            android:textColor="@color/tidal_text_primary"
-                            android:textSize="16sp" />
+                            android:fontFamily="@font/youtube_sans_bold_font"
+                            android:text="Library"
+                            android:textColor="@color/ytm_text_primary"
+                            android:textSize="24sp" />
 
                         <Button
                             android:id="@+id/btnCreatePlaylistAction"
@@ -513,8 +1221,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="36dp"
                             android:layout_alignParentEnd="true"
+                            android:fontFamily="sans-serif-bold"
                             android:text="+ New Playlist"
-                            android:textColor="@color/tidal_accent"
+                            android:textColor="@color/ytm_text_primary"
                             android:textSize="12sp" />
                     </RelativeLayout>
 
@@ -524,7 +1233,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:background="@drawable/bg_rounded_card"
+                        android:background="@drawable/bg_mix_card"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
@@ -537,8 +1246,8 @@
                             android:background="@drawable/bg_pill_badge"
                             android:contentDescription="Liked Songs"
                             android:padding="8dp"
-                            android:src="@drawable/ic_heart_filled"
-                            app:tint="@color/tidal_accent" />
+                            android:src="@drawable/ic_ytm_thumb_up_fill"
+                            app:tint="@color/ytm_red" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -550,10 +1259,10 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-bold"
-                                android:text="Liked Songs"
-                                android:textColor="@color/tidal_text_primary"
-                                android:textSize="15sp" />
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Liked Music"
+                                android:textColor="@color/ytm_text_primary"
+                                android:textSize="16sp" />
 
                             <TextView
                                 android:id="@+id/tvCollectionLikedCount"
@@ -561,57 +1270,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
-                                android:text="0 tracks"
-                                android:textColor="@color/tidal_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- Listening History Collection Row -->
-                    <LinearLayout
-                        android:id="@+id/cardCollectionHistory"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_rounded_card"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_pill_badge"
-                            android:contentDescription="History"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_queue_music"
-                            app:tint="@color/tidal_accent" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-bold"
-                                android:text="Listening History"
-                                android:textColor="@color/tidal_text_primary"
-                                android:textSize="15sp" />
-
-                            <TextView
-                                android:id="@+id/tvCollectionHistoryCount"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:fontFamily="sans-serif"
-                                android:text="Recently played &amp; top tracks"
-                                android:textColor="@color/tidal_text_secondary"
+                                android:text="Auto playlist • 0 tracks"
+                                android:textColor="@color/ytm_text_secondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -636,7 +1296,7 @@
                             android:contentDescription="Downloads"
                             android:padding="8dp"
                             android:src="@drawable/ic_download"
-                            app:tint="@color/tidal_accent" />
+                            app:tint="@color/ytm_icon_active" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -648,10 +1308,10 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-bold"
+                                android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Downloaded Music"
-                                android:textColor="@color/tidal_text_primary"
-                                android:textSize="15sp" />
+                                android:textColor="@color/ytm_text_primary"
+                                android:textSize="16sp" />
 
                             <TextView
                                 android:id="@+id/tvCollectionDownloadsCount"
@@ -660,7 +1320,56 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
                                 android:text="0 offline tracks"
-                                android:textColor="@color/tidal_text_secondary"
+                                android:textColor="@color/ytm_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Listening History Collection Row -->
+                    <LinearLayout
+                        android:id="@+id/cardCollectionHistory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_pill_badge"
+                            android:contentDescription="History"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_queue_music"
+                            app:tint="@color/ytm_icon_active" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Listening History"
+                                android:textColor="@color/ytm_text_primary"
+                                android:textSize="16sp" />
+
+                            <TextView
+                                android:id="@+id/tvCollectionHistoryCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif"
+                                android:text="Recently played &amp; top tracks"
+                                android:textColor="@color/ytm_text_secondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -670,11 +1379,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="22dp"
-                        android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.08"
-                        android:text="YOUR PLAYLISTS"
-                        android:textColor="@color/tidal_text_secondary"
-                        android:textSize="11sp" />
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:text="Your Playlists"
+                        android:textColor="@color/ytm_text_primary"
+                        android:textSize="18sp" />
 
                     <!-- User Playlists RecyclerView -->
                     <androidx.recyclerview.widget.RecyclerView
@@ -689,17 +1397,17 @@
 
         </FrameLayout>
 
-        <!-- Persistent Docked Mini-Player Bar -->
+        <!-- Persistent Docked / Floating Mini-Player Bar -->
         <include
             android:id="@+id/layoutMiniPlayer"
             layout="@layout/layout_mini_player" />
 
-        <!-- Bottom Navigation Bar -->
+        <!-- Bottom Navigation Bar (Pivot Bar) -->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNavigation"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="@color/tidal_surface"
+            android:background="@color/ytm_bottom_nav_bg"
             app:elevation="8dp"
             app:itemIconSize="22dp"
             app:itemIconTint="@color/bottom_nav_color_selector"

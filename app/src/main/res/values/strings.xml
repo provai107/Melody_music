@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Brave Music Player</string>
+    <string name="app_name">Melody</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="seek_forward">Seek +15s</string>

@@ -9,9 +9,9 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="16dp"
-    android:paddingTop="10dp"
+    android:paddingTop="8dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="10dp">
+    android:paddingBottom="8dp">
 
     <!-- Drag Reorder Handle -->
     <ImageView
@@ -22,15 +22,15 @@
         android:contentDescription="Drag to reorder"
         android:padding="4dp"
         android:src="@drawable/ic_drag_handle"
-        app:tint="@color/tidal_text_tertiary" />
+        app:tint="@color/ytm_icon_inactive" />
 
     <!-- Album Art Thumbnail -->
     <androidx.cardview.widget.CardView
-        android:layout_width="42dp"
-        android:layout_height="42dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:layout_marginStart="10dp"
-        app:cardBackgroundColor="@color/tidal_surface_card"
-        app:cardCornerRadius="6dp"
+        app:cardBackgroundColor="@color/ytm_surface_dark"
+        app:cardCornerRadius="4dp"
         app:cardElevation="0dp">
 
         <ImageView
@@ -56,23 +56,46 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="@font/youtube_sans_bold_font"
             android:maxLines="1"
             android:text="Track Title"
-            android:textColor="@color/tidal_text_primary"
+            android:textColor="@color/ytm_text_primary"
             android:textSize="14sp" />
 
-        <TextView
-            android:id="@+id/tvQueueArtist"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:fontFamily="sans-serif"
-            android:maxLines="1"
-            android:text="Artist Name"
-            android:textColor="@color/tidal_text_secondary"
-            android:textSize="12sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvQueueOriginBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_pill_badge"
+                android:fontFamily="sans-serif-bold"
+                android:paddingStart="4dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="1dp"
+                android:text="QUEUED"
+                android:textColor="@color/ytm_text_secondary"
+                android:textSize="9sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvQueueArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text="Artist Name"
+                android:textColor="@color/ytm_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Currently Playing Equalizer Badge -->
@@ -84,7 +107,7 @@
         android:contentDescription="Currently Playing"
         android:src="@drawable/ic_equalizer"
         android:visibility="gone"
-        app:tint="@color/tidal_accent" />
+        app:tint="@color/ytm_red" />
 
     <!-- Remove from Queue Button -->
     <ImageView
@@ -95,6 +118,6 @@
         android:contentDescription="Remove from Queue"
         android:padding="6dp"
         android:src="@drawable/ic_close"
-        app:tint="@color/tidal_text_tertiary" />
+        app:tint="@color/ytm_icon_inactive" />
 
 </LinearLayout>

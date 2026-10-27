@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/tvQueueHeaderTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-bold"
+        android:letterSpacing="0.08"
+        android:text="NEXT IN QUEUE"
+        android:textColor="@color/ytm_text_secondary"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/tvQueueHeaderSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="sans-serif"
+        android:text="Queued by you"
+        android:textColor="@color/ytm_text_tertiary"
+        android:textSize="10sp"
+        android:visibility="gone" />
+
+</LinearLayout>

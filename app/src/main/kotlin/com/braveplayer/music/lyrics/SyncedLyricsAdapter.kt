@@ -70,11 +70,11 @@ class SyncedLyricsAdapter(
                     tvLyricLine.setTypeface(null, Typeface.BOLD)
                     tvLyricLine.alpha = 1.0f
                 } else {
-                    // Inactive lines: subtly dimmed translucent
-                    tvLyricLine.setTextColor(Color.parseColor("#88FFFFFF"))
+                    // Inactive lines: muted grey
+                    tvLyricLine.setTextColor(Color.parseColor("#9F9F9F"))
                     tvLyricLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
                     tvLyricLine.setTypeface(null, Typeface.NORMAL)
-                    tvLyricLine.alpha = 0.45f
+                    tvLyricLine.alpha = 0.55f
                 }
 
                 itemView.setOnClickListener {
@@ -83,8 +83,8 @@ class SyncedLyricsAdapter(
                     }
                 }
             } else {
-                // Plain static lyrics: normal clean white presentation
-                tvLyricLine.setTextColor(Color.parseColor("#EEEEEE"))
+                // Plain static lyrics: clean white presentation
+                tvLyricLine.setTextColor(Color.parseColor("#FFFFFF"))
                 tvLyricLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
                 tvLyricLine.setTypeface(null, Typeface.NORMAL)
                 tvLyricLine.alpha = 1.0f

@@ -14,15 +14,16 @@ class AppSettings(context: Context) {
         private const val KEY_BASE_URL = "backend_base_url"
         private const val KEY_AUTOPLAY = "autoplay_enabled"
 
-        // Default Android Emulator alias for host machine localhost
-        const val DEFAULT_EMULATOR_BASE_URL = "http://10.0.2.2:5000"
+        // Default free cloud API URL hosted on Vercel
+        const val DEFAULT_BASE_URL = "https://melody-api-psi.vercel.app"
+        const val DEFAULT_EMULATOR_BASE_URL = "https://melody-api-psi.vercel.app"
     }
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun getBaseUrl(): String {
-        return prefs.getString(KEY_BASE_URL, DEFAULT_EMULATOR_BASE_URL) ?: DEFAULT_EMULATOR_BASE_URL
+        return prefs.getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
     }
 
     fun setBaseUrl(rawUrl: String): String {
@@ -40,8 +41,8 @@ class AppSettings(context: Context) {
     }
 
     fun resetToDefault(): String {
-        prefs.edit().putString(KEY_BASE_URL, DEFAULT_EMULATOR_BASE_URL).apply()
-        return DEFAULT_EMULATOR_BASE_URL
+        prefs.edit().putString(KEY_BASE_URL, DEFAULT_BASE_URL).apply()
+        return DEFAULT_BASE_URL
     }
 
     fun sanitizeUrl(input: String): String {

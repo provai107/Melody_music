@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- YouTube Music 9.42 Measurement Tokens -->
+    <dimen name="yt_sys_measurement_size_min">4dp</dimen>
+    <dimen name="yt_sys_measurement_size_mini">8dp</dimen>
+    <dimen name="yt_sys_measurement_size_condensed">12dp</dimen>
+    <dimen name="yt_sys_measurement_size_compact">16dp</dimen>
+    <dimen name="yt_sys_measurement_size_cozy">18dp</dimen>
+    <dimen name="yt_sys_measurement_size_comfortable">24dp</dimen>
+    <dimen name="yt_sys_measurement_size_expanded">32dp</dimen>
+    <dimen name="yt_sys_measurement_size_prominent">36dp</dimen>
+    <dimen name="yt_sys_measurement_size_hero">40dp</dimen>
+    <dimen name="yt_sys_measurement_size_legend">48dp</dimen>
+    <dimen name="yt_sys_measurement_size_huge">56dp</dimen>
+
+    <!-- Radii -->
+    <dimen name="yt_sys_measurement_radius_min">2dp</dimen>
+    <dimen name="yt_sys_measurement_radius_condensed">4dp</dimen>
+    <dimen name="yt_sys_measurement_radius_compact">8dp</dimen>
+    <dimen name="yt_sys_measurement_radius_cozy">12dp</dimen>
+    <dimen name="yt_sys_measurement_radius_comfortable">16dp</dimen>
+    <dimen name="yt_sys_measurement_radius_prominent">20dp</dimen>
+    <dimen name="yt_sys_measurement_radius_hero">24dp</dimen>
+    <dimen name="yt_sys_measurement_radius_huge">32dp</dimen>
+
+    <!-- Specific Component Dimensions -->
+    <dimen name="mini_player_height">64dp</dimen>
+    <dimen name="bottom_sheet_peek_height">24dp</dimen>
+    <dimen name="player_page_padding_horizontal">24dp</dimen>
+    <dimen name="item_extra_small_spacing">4dp</dimen>
+    <dimen name="item_small_spacing">8dp</dimen>
+    <dimen name="item_medium_spacing">12dp</dimen>
+    <dimen name="item_large_spacing">16dp</dimen>
+    <dimen name="item_extra_large_spacing">20dp</dimen>
+    <dimen name="item_extra_extra_large_spacing">24dp</dimen>
+</resources>

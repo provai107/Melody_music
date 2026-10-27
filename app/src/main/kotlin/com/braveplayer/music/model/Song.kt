@@ -49,7 +49,8 @@ data class Song(
         fun isValidAudioUrl(url: String): Boolean {
             if (url.isBlank()) return false
             val lower = url.lowercase()
-            val hasValidScheme = lower.startsWith("http://") || lower.startsWith("https://")
+            val hasValidScheme = lower.startsWith("http://") || lower.startsWith("https://") ||
+                    lower.startsWith("file://") || lower.startsWith("content://") || lower.startsWith("/")
             val hasValidAudioIndicator = lower.contains(".mp4") || lower.contains(".mp3") ||
                     lower.contains(".m4a") || lower.contains(".aac") || lower.contains(".opus") ||
                     lower.contains("videoplayback")

@@ -53,6 +53,15 @@ class BraveMedia3HttpDataSource(
             headers["Range"] = "bytes=${dataSpec.position}-"
         }
 
+        // Prevent network stack and Android HTTP engine from saving streaming audio to local storage
+        headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        headers["Pragma"] = "no-cache"
+        headers["Expires"] = "0"
+
+        upstreamDataSource.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+        upstreamDataSource.setRequestProperty("Pragma", "no-cache")
+        upstreamDataSource.setRequestProperty("Expires", "0")
+
         val request = FilterRequest(
             url = uriString,
             requestType = RequestType.AUDIO_PLAYBACK,

@@ -123,9 +123,11 @@ class SongAdapter(
 
         private fun updateLikeIcon(liked: Boolean) {
             if (liked) {
-                btnLikeSong.setImageResource(R.drawable.ic_heart_filled)
+                btnLikeSong.setImageResource(R.drawable.ic_ytm_thumb_up_fill)
+                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.ytm_icon_active))
             } else {
-                btnLikeSong.setImageResource(R.drawable.ic_heart_outline)
+                btnLikeSong.setImageResource(R.drawable.ic_ytm_thumb_up_outline)
+                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.ytm_icon_inactive))
             }
         }
 

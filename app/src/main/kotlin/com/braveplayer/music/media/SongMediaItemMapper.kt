@@ -23,10 +23,21 @@ object SongMediaItemMapper {
     const val EXTRA_PREVIEW_URL = "preview_url"
     const val EXTRA_CANDIDATE_URLS = "candidate_urls"
     const val EXTRA_CURRENT_URL_INDEX = "current_url_index"
+    const val EXTRA_QUEUE_ORIGIN = "queue_origin"
+    const val EXTRA_CONTEXT_NAME = "context_name"
 
-    fun toMediaItem(song: Song): MediaItem {
+    const val ORIGIN_MANUAL = "MANUAL"
+    const val ORIGIN_CONTEXT = "CONTEXT"
+    const val ORIGIN_AUTOPLAY = "AUTOPLAY"
+
+    fun toMediaItem(
+        song: Song,
+        origin: String = ORIGIN_CONTEXT,
+        contextName: String? = null
+    ): MediaItem {
         val candidateUrls = song.getCandidatePlaybackUrls()
-        val primaryUri = song.getBestPlaybackUrl() ?: ""
+        val rawUri = song.getBestPlaybackUrl() ?: ""
+        val primaryUri = if (rawUri.startsWith("/")) Uri.fromFile(java.io.File(rawUri)).toString() else rawUri
 
         val extras = Bundle().apply {
             putString(EXTRA_SONG_ID, song.id)
@@ -40,6 +51,10 @@ object SongMediaItemMapper {
             putString(EXTRA_PREVIEW_URL, song.previewUrl)
             putStringArrayList(EXTRA_CANDIDATE_URLS, ArrayList(candidateUrls))
             putInt(EXTRA_CURRENT_URL_INDEX, 0)
+            putString(EXTRA_QUEUE_ORIGIN, origin)
+            if (!contextName.isNullOrBlank()) {
+                putString(EXTRA_CONTEXT_NAME, contextName)
+            }
         }
 
         val metadata = MediaMetadata.Builder()
@@ -55,6 +70,14 @@ object SongMediaItemMapper {
             .setUri(primaryUri)
             .setMediaMetadata(metadata)
             .build()
+    }
+
+    fun getQueueOrigin(mediaItem: MediaItem): String {
+        return mediaItem.mediaMetadata.extras?.getString(EXTRA_QUEUE_ORIGIN) ?: ORIGIN_CONTEXT
+    }
+
+    fun getContextName(mediaItem: MediaItem): String? {
+        return mediaItem.mediaMetadata.extras?.getString(EXTRA_CONTEXT_NAME)
     }
 
     fun fromMediaItem(mediaItem: MediaItem): Song {

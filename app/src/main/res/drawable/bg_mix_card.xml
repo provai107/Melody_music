@@ -3,8 +3,12 @@
     android:shape="rectangle">
     <gradient
         android:angle="135"
-        android:startColor="#1E2A38"
-        android:endColor="#121218"
+        android:startColor="@color/ytm_bg_top_glow"
+        android:centerColor="@color/card_red_tint_start"
+        android:endColor="@color/card_red_tint_end"
         android:type="linear" />
-    <corners android:radius="12dp" />
+    <corners android:radius="10dp" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/card_red_tint_border" />
 </shape>

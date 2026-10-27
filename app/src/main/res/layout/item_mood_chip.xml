@@ -1,42 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="140dp"
-    android:layout_height="80dp"
-    android:layout_marginEnd="10dp"
-    android:background="@drawable/bg_mix_card"
+    android:layout_width="wrap_content"
+    android:layout_height="36dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_ytm_chip"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp">
 
     <TextView
         android:id="@+id/tvMoodEmoji"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp" />
+        android:layout_marginEnd="6dp"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/tvMoodName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
         android:ellipsize="end"
-        android:fontFamily="sans-serif-bold"
+        android:fontFamily="sans-serif-medium"
         android:maxLines="1"
-        android:text="Chill &amp; Relax"
-        android:textColor="@color/tidal_text_primary"
-        android:textSize="13sp" />
+        android:text="Relax"
+        android:textColor="@color/ytm_text_primary"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/tvMoodSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:fontFamily="sans-serif"
-        android:maxLines="1"
-        android:text="Instant Radio"
-        android:textColor="@color/tidal_accent"
-        android:textSize="10sp" />
+        android:visibility="gone" />
 </LinearLayout>

@@ -4,27 +4,37 @@
     android:id="@+id/layoutQueueSheet"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_now_playing_sheet"
+    android:background="@color/ytm_surface_dark"
     android:orientation="vertical"
-    android:paddingTop="12dp">
+    android:paddingTop="8dp">
 
-    <!-- Header Row -->
+    <!-- Top Drag Handle -->
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="Drag Handle"
+        android:src="@drawable/single_bar_drag_handle" />
+
+    <!-- Header Row (YouTube Music Queue Page Header) -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:paddingStart="20dp"
         android:paddingEnd="16dp">
 
         <ImageView
             android:id="@+id/ivCloseQueue"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close Queue"
-            android:padding="8dp"
-            android:src="@drawable/ic_expand_more" />
+            android:padding="6dp"
+            android:src="@drawable/ic_ytm_chevron_down"
+            app:tint="@color/ytm_icon_active" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -36,21 +46,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-black"
-                android:letterSpacing="0.12"
-                android:text="PLAYBACK QUEUE"
-                android:textColor="@color/tidal_text_secondary"
-                android:textSize="11sp" />
+                android:fontFamily="@font/youtube_sans_bold_font"
+                android:letterSpacing="0.08"
+                android:text="UP NEXT"
+                android:textColor="@color/ytm_text_primary"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvQueueTrackCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:fontFamily="sans-serif-medium"
-                android:text="0 tracks"
-                android:textColor="@color/tidal_accent"
-                android:textSize="12sp" />
+                android:layout_marginTop="1dp"
+                android:fontFamily="sans-serif"
+                android:text="0 tracks • Autoplay On"
+                android:textColor="@color/ytm_text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <Button
@@ -62,16 +72,16 @@
             android:layout_centerVertical="true"
             android:fontFamily="sans-serif-medium"
             android:text="Clear"
-            android:textColor="@color/tidal_text_secondary"
+            android:textColor="@color/ytm_text_secondary"
             android:textSize="12sp" />
     </RelativeLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="12dp"
-        android:background="@color/tidal_divider" />
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@color/ytm_divider" />
 
     <!-- Now Playing Card -->
     <LinearLayout
@@ -80,17 +90,17 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_mix_card"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="10dp">
 
         <androidx.cardview.widget.CardView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            app:cardBackgroundColor="@color/tidal_surface_card"
-            app:cardCornerRadius="6dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardBackgroundColor="@color/ytm_surface_card"
+            app:cardCornerRadius="4dp"
             app:cardElevation="0dp">
 
             <ImageView
@@ -113,11 +123,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-black"
+                android:fontFamily="sans-serif-bold"
                 android:letterSpacing="0.06"
-                android:text="NOW PLAYING"
-                android:textColor="@color/tidal_accent"
-                android:textSize="10sp" />
+                android:text="PLAYING NOW"
+                android:textColor="@color/ytm_red"
+                android:textSize="9sp" />
 
             <TextView
                 android:id="@+id/tvNowPlayingQueueTitle"
@@ -125,10 +135,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
-                android:fontFamily="sans-serif-bold"
+                android:fontFamily="@font/youtube_sans_bold_font"
                 android:maxLines="1"
                 android:text="No Track Playing"
-                android:textColor="@color/tidal_text_primary"
+                android:textColor="@color/ytm_text_primary"
                 android:textSize="14sp" />
 
             <TextView
@@ -139,36 +149,36 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text="Select a song to start"
-                android:textColor="@color/tidal_text_secondary"
+                android:textColor="@color/ytm_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:contentDescription="Equalizer"
             android:src="@drawable/ic_equalizer"
-            app:tint="@color/tidal_accent" />
+            app:tint="@color/ytm_red" />
     </LinearLayout>
 
-    <!-- Up Next Header Row -->
+    <!-- Up Next Subheader -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="20dp"
         android:paddingEnd="16dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:fontFamily="sans-serif-black"
+            android:fontFamily="sans-serif-bold"
             android:letterSpacing="0.08"
-            android:text="UP NEXT IN QUEUE"
-            android:textColor="@color/tidal_text_secondary"
+            android:text="NEXT IN QUEUE"
+            android:textColor="@color/ytm_text_secondary"
             android:textSize="11sp" />
 
         <Button
@@ -180,7 +190,7 @@
             android:layout_centerVertical="true"
             android:fontFamily="sans-serif-medium"
             android:text="🔀 Shuffle"
-            android:textColor="@color/tidal_accent"
+            android:textColor="@color/ytm_text_primary"
             android:textSize="11sp" />
     </RelativeLayout>
 
@@ -213,15 +223,15 @@
                 android:layout_height="56dp"
                 android:contentDescription="Empty Queue"
                 android:src="@drawable/ic_queue_music"
-                app:tint="@color/tidal_text_tertiary" />
+                app:tint="@color/ytm_icon_inactive" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/youtube_sans_bold_font"
                 android:text="Your queue is empty"
-                android:textColor="@color/tidal_text_primary"
+                android:textColor="@color/ytm_text_primary"
                 android:textSize="16sp" />
 
             <TextView
@@ -230,8 +240,8 @@
                 android:layout_marginTop="4dp"
                 android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:text="Search for music or enable Autoplay to keep the tracks flowing uninterrupted."
-                android:textColor="@color/tidal_text_secondary"
+                android:text="Search for music or enable Autoplay to keep the music playing infinitely."
+                android:textColor="@color/ytm_text_secondary"
                 android:textSize="13sp" />
         </LinearLayout>
 

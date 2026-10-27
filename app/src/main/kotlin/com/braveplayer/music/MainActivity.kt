@@ -2,6 +2,7 @@ package com.braveplayer.music
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -22,6 +23,7 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import android.app.Dialog
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -57,16 +59,31 @@ import com.braveplayer.music.playlist.Playlist
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
 import com.braveplayer.music.service.PlaybackService
 import com.braveplayer.music.settings.AppSettings
+import com.braveplayer.music.ui.SearchChipAdapter
 import com.braveplayer.music.settings.FilterEngineProvider
 import com.braveplayer.music.ui.GenreAdapter
 import com.braveplayer.music.ui.MoodAdapter
 import com.braveplayer.music.ui.PlaylistAdapter
 import com.braveplayer.music.ui.QueueAdapter
 import com.braveplayer.music.ui.SongAdapter
+import com.braveplayer.music.ui.HorizontalSongCardAdapter
+import com.braveplayer.music.ui.DailyMixCardAdapter
+import com.braveplayer.music.ui.CuratedPlaylistCardAdapter
+import com.braveplayer.music.ui.HomeCollectionItem
+import java.util.Calendar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.common.util.concurrent.ListenableFuture
+import android.content.Context
+import com.braveplayer.music.ui.RecentSearchAdapter
+import com.braveplayer.music.ui.TrendingRowAdapter
+import com.braveplayer.music.ui.CategoryChannelAdapter
+import com.braveplayer.music.playlist.SearchHistoryItem
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.inputmethod.InputMethodManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -98,7 +115,6 @@ class MainActivity : AppCompatActivity() {
 
     // Adapters
     private lateinit var searchAdapter: SongAdapter
-    private lateinit var homeRecentAdapter: SongAdapter
     private lateinit var collectionPlaylistAdapter: PlaylistAdapter
 
     // Bottom Navigation & Tabs
@@ -106,30 +122,76 @@ class MainActivity : AppCompatActivity() {
     private lateinit var containerHome: View
     private lateinit var containerSearch: View
     private lateinit var containerCollection: View
-    private lateinit var btnOpenSettings: ImageView
+    private lateinit var btnTopSearch: ImageView
+    private lateinit var btnHomeQuickSearch: View
 
-    // Home Tab UI
+    // Home Tab UI & Modern Carousels
     private lateinit var cardDailyMix: View
-    private lateinit var btnPlayDailyMix: Button
     private lateinit var cardDiscoveryMix: View
-    private lateinit var btnPlayDiscoveryMix: Button
     private lateinit var btnHomeLikedShortcut: View
     private lateinit var btnHomeQueueShortcut: View
     private lateinit var rvMoodHome: RecyclerView
     private lateinit var rvGenreHome: RecyclerView
     private lateinit var rvRecentlyPlayedHome: RecyclerView
+    private lateinit var tvHomeGreeting: TextView
+    private lateinit var tvHomeGreetingSub: TextView
+    private lateinit var btnQuickDailyMix2: View
+    private lateinit var btnQuickChillMix: View
+    private lateinit var layoutRecentEmpty: View
+    private lateinit var btnSeeAllRecent: View
+    private lateinit var rvTrendingCarousel: RecyclerView
+    private lateinit var pbTrendingLoading: ProgressBar
+    private lateinit var rvMadeForYouCarousel: RecyclerView
+    private lateinit var pbMadeForYouLoading: ProgressBar
+    private lateinit var rvDailyMixesCarousel: RecyclerView
+    private lateinit var rvMostPlayedCarousel: RecyclerView
+    private lateinit var layoutMostPlayedEmpty: View
+    private lateinit var rvOtherGenresCarousel: RecyclerView
+    private lateinit var rvRecommendedPlaylistsCarousel: RecyclerView
+    private lateinit var cardContinueListening: View
+    private lateinit var ivContinueCover: ImageView
+    private lateinit var tvContinueTitle: TextView
+    private lateinit var tvContinueArtist: TextView
+    private lateinit var btnContinuePlay: View
 
-    // Search Tab UI
+    // Reusable Home Carousel Adapters
+    private lateinit var homeRecentCardAdapter: HorizontalSongCardAdapter
+    private lateinit var trendingCardAdapter: HorizontalSongCardAdapter
+    private lateinit var madeForYouCardAdapter: HorizontalSongCardAdapter
+    private lateinit var dailyMixCardAdapter: DailyMixCardAdapter
+    private lateinit var mostPlayedCardAdapter: HorizontalSongCardAdapter
+    private lateinit var curatedPlaylistCardAdapter: CuratedPlaylistCardAdapter
+    private var lastPlayedSong: Song? = null
+
+    // Explore / Search Tab UI
     private lateinit var etSearchQuery: EditText
-    private lateinit var btnSearch: Button
+    private lateinit var btnSearchClear: ImageView
+    private lateinit var layoutExploreDiscovery: View
+    private lateinit var layoutSearchResultsContainer: View
     private lateinit var pbSearchLoading: ProgressBar
     private lateinit var tvEmptyResults: TextView
     private lateinit var layoutError: LinearLayout
     private lateinit var tvErrorMessage: TextView
     private lateinit var btnRetrySearch: Button
-    private lateinit var layoutSearchBrowse: View
-    private lateinit var rvSearchBrowseGenres: RecyclerView
     private lateinit var rvSearchResults: RecyclerView
+
+    // Explore: Recent Searches
+    private lateinit var layoutRecentSearchesSection: View
+    private lateinit var btnClearRecentSearches: TextView
+    private lateinit var rvRecentSearches: RecyclerView
+    private lateinit var recentSearchAdapter: RecentSearchAdapter
+
+    // Explore: Trending Section
+    private lateinit var layoutTrendingSection: View
+    private lateinit var btnSeeAllTrendingExplore: TextView
+    private lateinit var pbTrendingExploreLoading: ProgressBar
+    private lateinit var rvTrendingExplore: RecyclerView
+    private lateinit var trendingExploreAdapter: TrendingRowAdapter
+
+    // Explore: Channel Grid
+    private lateinit var layoutCategoryChannelsSection: View
+    private lateinit var rvCategoryChannels: RecyclerView
+    private lateinit var categoryChannelAdapter: CategoryChannelAdapter
 
     // My Collection Tab UI
     private lateinit var btnCreatePlaylistAction: Button
@@ -176,6 +238,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNowPlayingRadioAction: View
     private lateinit var btnNowPlayingAddPlaylistAction: View
     private lateinit var btnNowPlayingDownloadAction: View
+    private lateinit var btnTopCast: ImageView
+    private lateinit var btnNowPlayingCast: ImageView
+    private lateinit var btnNowPlayingDislike: ImageView
+    private lateinit var btnNowPlayingShareAction: View
+    private lateinit var btnNowPlayingLyricsActionBottom: View
 
     // MediaController connection
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -207,6 +274,7 @@ class MainActivity : AppCompatActivity() {
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
         lyricsService = LyricsService(metadataService.httpClient)
         songDownloadHelper = SongDownloadHelper(this, playlistDbHelper)
+        com.braveplayer.music.util.NetworkUtils.clearAudioStreamingCache(this)
 
         initViews()
         setupAdapters()
@@ -218,6 +286,7 @@ class MainActivity : AppCompatActivity() {
 
         refreshHomeData()
         refreshCollectionData()
+        refreshSearchRecommendations()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -237,30 +306,64 @@ class MainActivity : AppCompatActivity() {
         containerHome = findViewById(R.id.containerHome)
         containerSearch = findViewById(R.id.containerSearch)
         containerCollection = findViewById(R.id.containerCollection)
-        btnOpenSettings = findViewById(R.id.btnOpenSettings)
+        btnTopSearch = findViewById(R.id.btnTopSearch)
+        btnHomeQuickSearch = findViewById(R.id.btnHomeQuickSearch)
 
-        // Home UI
+        // Home UI & Modern Carousels
         cardDailyMix = findViewById(R.id.cardDailyMix)
-        btnPlayDailyMix = findViewById(R.id.btnPlayDailyMix)
         cardDiscoveryMix = findViewById(R.id.cardDiscoveryMix)
-        btnPlayDiscoveryMix = findViewById(R.id.btnPlayDiscoveryMix)
         btnHomeLikedShortcut = findViewById(R.id.btnHomeLikedShortcut)
         btnHomeQueueShortcut = findViewById(R.id.btnHomeQueueShortcut)
         rvMoodHome = findViewById(R.id.rvMoodHome)
         rvGenreHome = findViewById(R.id.rvGenreHome)
         rvRecentlyPlayedHome = findViewById(R.id.rvRecentlyPlayedHome)
+        tvHomeGreeting = findViewById(R.id.tvHomeGreeting)
+        tvHomeGreetingSub = findViewById(R.id.tvHomeGreetingSub)
+        btnQuickDailyMix2 = findViewById(R.id.btnQuickDailyMix2)
+        btnQuickChillMix = findViewById(R.id.btnQuickChillMix)
+        layoutRecentEmpty = findViewById(R.id.layoutRecentEmpty)
+        btnSeeAllRecent = findViewById(R.id.btnSeeAllRecent)
+        rvTrendingCarousel = findViewById(R.id.rvTrendingCarousel)
+        pbTrendingLoading = findViewById(R.id.pbTrendingLoading)
+        rvMadeForYouCarousel = findViewById(R.id.rvMadeForYouCarousel)
+        pbMadeForYouLoading = findViewById(R.id.pbMadeForYouLoading)
+        rvDailyMixesCarousel = findViewById(R.id.rvDailyMixesCarousel)
+        rvMostPlayedCarousel = findViewById(R.id.rvMostPlayedCarousel)
+        layoutMostPlayedEmpty = findViewById(R.id.layoutMostPlayedEmpty)
+        rvOtherGenresCarousel = findViewById(R.id.rvOtherGenresCarousel)
+        rvRecommendedPlaylistsCarousel = findViewById(R.id.rvRecommendedPlaylistsCarousel)
+        cardContinueListening = findViewById(R.id.cardContinueListening)
+        ivContinueCover = findViewById(R.id.ivContinueCover)
+        tvContinueTitle = findViewById(R.id.tvContinueTitle)
+        tvContinueArtist = findViewById(R.id.tvContinueArtist)
+        btnContinuePlay = findViewById(R.id.btnContinuePlay)
 
-        // Search UI
+        // Explore / Search UI
         etSearchQuery = findViewById(R.id.etSearchQuery)
-        btnSearch = findViewById(R.id.btnSearch)
+        btnSearchClear = findViewById(R.id.btnSearchClear)
+        layoutExploreDiscovery = findViewById(R.id.layoutExploreDiscovery)
+        layoutSearchResultsContainer = findViewById(R.id.layoutSearchResultsContainer)
         pbSearchLoading = findViewById(R.id.pbSearchLoading)
         tvEmptyResults = findViewById(R.id.tvEmptyResults)
         layoutError = findViewById(R.id.layoutError)
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetrySearch = findViewById(R.id.btnRetrySearch)
-        layoutSearchBrowse = findViewById(R.id.layoutSearchBrowse)
-        rvSearchBrowseGenres = findViewById(R.id.rvSearchBrowseGenres)
         rvSearchResults = findViewById(R.id.rvSearchResults)
+
+        // Explore: Recent Searches
+        layoutRecentSearchesSection = findViewById(R.id.layoutRecentSearchesSection)
+        btnClearRecentSearches = findViewById(R.id.btnClearRecentSearches)
+        rvRecentSearches = findViewById(R.id.rvRecentSearches)
+
+        // Explore: Trending Section
+        layoutTrendingSection = findViewById(R.id.layoutTrendingSection)
+        btnSeeAllTrendingExplore = findViewById(R.id.btnSeeAllTrendingExplore)
+        pbTrendingExploreLoading = findViewById(R.id.pbTrendingExploreLoading)
+        rvTrendingExplore = findViewById(R.id.rvTrendingExplore)
+
+        // Explore: Channel Grid
+        layoutCategoryChannelsSection = findViewById(R.id.layoutCategoryChannelsSection)
+        rvCategoryChannels = findViewById(R.id.rvCategoryChannels)
 
         // My Collection UI
         btnCreatePlaylistAction = findViewById(R.id.btnCreatePlaylistAction)
@@ -308,6 +411,11 @@ class MainActivity : AppCompatActivity() {
         btnNowPlayingRadioAction = findViewById(R.id.btnNowPlayingRadioAction)
         btnNowPlayingAddPlaylistAction = findViewById(R.id.btnNowPlayingAddPlaylistAction)
         btnNowPlayingDownloadAction = findViewById(R.id.btnNowPlayingDownloadAction)
+        btnTopCast = findViewById(R.id.btnTopCast)
+        btnNowPlayingCast = findViewById(R.id.btnNowPlayingCast)
+        btnNowPlayingDislike = findViewById(R.id.btnNowPlayingDislike)
+        btnNowPlayingShareAction = findViewById(R.id.btnNowPlayingShareAction)
+        btnNowPlayingLyricsActionBottom = findViewById(R.id.btnNowPlayingLyricsActionBottom)
     }
 
     private fun setupAdapters() {
@@ -323,16 +431,69 @@ class MainActivity : AppCompatActivity() {
             openGenreTracks(genre)
         }
 
-        // Browse Genres Grid on Search Tab
-        rvSearchBrowseGenres.layoutManager = GridLayoutManager(this, 2)
-        rvSearchBrowseGenres.adapter = GenreAdapter(MusicCatalog.GENRES) { genre ->
-            openGenreTracks(genre)
-        }
+        // Explore: Recent Searches
+        recentSearchAdapter = RecentSearchAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onItemClick = { item ->
+                if (!item.songId.isNullOrBlank()) {
+                    val fallbackSong = Song(
+                        id = item.songId,
+                        title = item.title,
+                        artists = item.subtitle.removePrefix("Song • "),
+                        album = "",
+                        imageUrl = item.imageUrl,
+                        durationSec = 0,
+                        mediaUrl = null,
+                        mediaUrlDefault = null,
+                        previewUrl = null
+                    )
+                    playSongNow(fallbackSong)
+                } else {
+                    etSearchQuery.setText(item.queryText)
+                    etSearchQuery.setSelection(item.queryText.length)
+                }
+            },
+            onRemoveClick = { item ->
+                playlistDbHelper.removeSearchHistoryItem(item.id)
+                refreshRecentSearchesSection()
+            }
+        )
+        rvRecentSearches.layoutManager = LinearLayoutManager(this)
+        rvRecentSearches.adapter = recentSearchAdapter
 
+        // Explore: Trending Rows
+        trendingExploreAdapter = TrendingRowAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song ->
+                playlistDbHelper.recordSongSearch(song)
+                playSongNow(song)
+            },
+            onPlayClicked = { song ->
+                playlistDbHelper.recordSongSearch(song)
+                playSongNow(song)
+            },
+            onOptionClicked = { song -> showSongOptionDialog(song) }
+        )
+        rvTrendingExplore.layoutManager = LinearLayoutManager(this)
+        rvTrendingExplore.adapter = trendingExploreAdapter
+
+        // Explore: 2-Column Category Channel Grid
+        categoryChannelAdapter = CategoryChannelAdapter(MusicCatalog.CHANNELS) { category ->
+            openCategoryChannel(category)
+        }
+        rvCategoryChannels.layoutManager = GridLayoutManager(this, 2)
+        rvCategoryChannels.adapter = categoryChannelAdapter
+
+        // Live Search Results List
         searchAdapter = SongAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
-            onSongSelected = { song -> playSongNow(song) },
+            onSongSelected = { song ->
+                playlistDbHelper.recordSongSearch(song)
+                playSongNow(song)
+            },
             onSongAddToQueue = { song -> addSongToQueue(song) },
             onSongOptions = { song -> showSongOptionDialog(song) },
             onSongLikeToggled = { song -> toggleLikeSong(song) },
@@ -341,17 +502,76 @@ class MainActivity : AppCompatActivity() {
         rvSearchResults.layoutManager = LinearLayoutManager(this)
         rvSearchResults.adapter = searchAdapter
 
-        homeRecentAdapter = SongAdapter(
+        // SECTION 4: Recently Played Horizontal Carousel
+        homeRecentCardAdapter = HorizontalSongCardAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
-            onSongSelected = { song -> playSongNow(song) },
-            onSongAddToQueue = { song -> addSongToQueue(song) },
-            onSongOptions = { song -> showSongOptionDialog(song) },
-            onSongLikeToggled = { song -> toggleLikeSong(song) },
-            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+            onSongClicked = { song -> playSongNow(song) },
+            onPlayClicked = { song -> playSongNow(song) },
+            onOptionClicked = { song -> showSongOptionDialog(song) }
         )
-        rvRecentlyPlayedHome.layoutManager = LinearLayoutManager(this)
-        rvRecentlyPlayedHome.adapter = homeRecentAdapter
+        rvRecentlyPlayedHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvRecentlyPlayedHome.adapter = homeRecentCardAdapter
+
+        // SECTION 5: Trending Songs Horizontal Carousel
+        trendingCardAdapter = HorizontalSongCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song -> playSongNow(song) },
+            onPlayClicked = { song -> playSongNow(song) },
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            showRankBadge = true
+        )
+        rvTrendingCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvTrendingCarousel.adapter = trendingCardAdapter
+
+        // SECTION 6: Made for You Recommendations Carousel
+        madeForYouCardAdapter = HorizontalSongCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song -> playSongNow(song) },
+            onPlayClicked = { song -> playSongNow(song) },
+            onOptionClicked = { song -> showSongOptionDialog(song) }
+        )
+        rvMadeForYouCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvMadeForYouCarousel.adapter = madeForYouCardAdapter
+
+        // SECTION 7: Daily Mixes Horizontal Carousel
+        dailyMixCardAdapter = DailyMixCardAdapter(
+            onMixClicked = { mix -> showMixDetailDialog(mix) },
+            onPlayClicked = { mix -> playMixDirectly(mix, shuffle = false) },
+            onShuffleClicked = { mix -> playMixDirectly(mix, shuffle = true) }
+        )
+        rvDailyMixesCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvDailyMixesCarousel.adapter = dailyMixCardAdapter
+
+        // SECTION 8: Most Played Songs Carousel
+        mostPlayedCardAdapter = HorizontalSongCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song -> playSongNow(song) },
+            onPlayClicked = { song -> playSongNow(song) },
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            showRankBadge = true
+        )
+        rvMostPlayedCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvMostPlayedCarousel.adapter = mostPlayedCardAdapter
+
+        // SECTION 9 & 10: Genres Carousels
+        rvOtherGenresCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvOtherGenresCarousel.adapter = GenreAdapter(MusicCatalog.GENRES.drop(6)) { genre ->
+            openGenreTracks(genre)
+        }
+
+        // SECTION 11: Recommended Albums & Playlists Carousel
+        curatedPlaylistCardAdapter = CuratedPlaylistCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onCollectionClicked = { col -> openCuratedCollection(col) },
+            onPlayClicked = { col -> playCuratedCollection(col) }
+        )
+        rvRecommendedPlaylistsCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvRecommendedPlaylistsCarousel.adapter = curatedPlaylistCardAdapter
 
         collectionPlaylistAdapter = PlaylistAdapter(
             onPlaylistSelected = { playlist -> showPlaylistDetailDialog(playlist) },
@@ -371,6 +591,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_search -> {
                     switchTab(Tab.SEARCH)
+                    refreshSearchRecommendations()
                     true
                 }
                 R.id.nav_collection -> {
@@ -407,36 +628,93 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        btnOpenSettings.setOnClickListener { showSettingsDialog() }
+        btnTopSearch.setOnClickListener { openExploreSearch() }
+        btnHomeQuickSearch.setOnClickListener { openExploreSearch() }
 
         // Home Actions
-        cardDailyMix.setOnClickListener { generateAndPlayMix("Daily Mix") }
-        btnPlayDailyMix.setOnClickListener { generateAndPlayMix("Daily Mix") }
-        cardDiscoveryMix.setOnClickListener { generateAndPlayMix("Discovery Mix") }
-        btnPlayDiscoveryMix.setOnClickListener { generateAndPlayMix("Discovery Mix") }
+        cardDailyMix.setOnClickListener { openMixDetail("Daily Mix 1") }
+        btnQuickDailyMix2.setOnClickListener { openMixDetail("Daily Mix 2") }
         btnHomeLikedShortcut.setOnClickListener { showLikedSongsDialog() }
+        btnQuickChillMix.setOnClickListener { openMixDetail("Chill & Focus Mix") }
+        cardDiscoveryMix.setOnClickListener { openMixDetail("Discovery Mix") }
         btnHomeQueueShortcut.setOnClickListener { showQueueDialog() }
+        btnSeeAllRecent.setOnClickListener { showHistoryDialog() }
+        cardContinueListening.setOnClickListener { resumeLastPlayback() }
+        btnContinuePlay.setOnClickListener { resumeLastPlayback() }
 
-        // Search Actions
-        btnSearch.setOnClickListener { performSearch(etSearchQuery.text.toString()) }
-        etSearchQuery.addTextChangedListener { text ->
-            if (text.isNullOrBlank()) {
-                layoutSearchBrowse.visibility = View.VISIBLE
-                rvSearchResults.visibility = View.GONE
-                tvEmptyResults.visibility = View.GONE
-                layoutError.visibility = View.GONE
+        // Explore & Live Search Actions
+        btnSearchClear.setOnClickListener {
+            etSearchQuery.text?.clear()
+        }
+
+        btnClearRecentSearches.setOnClickListener {
+            playlistDbHelper.clearSearchHistory()
+            refreshRecentSearchesSection()
+        }
+
+        btnSeeAllTrendingExplore.setOnClickListener {
+            showFullTrendingDialog()
+        }
+
+        btnRetrySearch.setOnClickListener {
+            if (lastQuery.isNotBlank()) {
+                val genId = ++searchGenerationId
+                performLiveSearch(lastQuery, genId)
             }
         }
+
+        etSearchQuery.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                btnSearchClear.visibility = if (query.isNotEmpty()) View.VISIBLE else View.GONE
+
+                // Cancel pending debounce and network requests
+                liveSearchJob?.cancel()
+
+                val trimmed = query.trim()
+                if (trimmed.isEmpty()) {
+                    searchGenerationId++
+                    showSearchState(SearchState.IDLE)
+                    refreshRecentSearchesSection()
+                    return
+                }
+
+                // Show loading state immediately while preparing debounced request
+                showSearchState(SearchState.LOADING)
+                val currentGenId = ++searchGenerationId
+
+                // Debounce network request by 300 ms
+                liveSearchJob = lifecycleScope.launch {
+                    delay(300L)
+                    performLiveSearch(trimmed, currentGenId)
+                }
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
         etSearchQuery.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                performSearch(etSearchQuery.text.toString())
+                val trimmed = etSearchQuery.text.toString().trim()
+                if (trimmed.isNotEmpty()) {
+                    liveSearchJob?.cancel()
+                    val currentGenId = ++searchGenerationId
+                    performLiveSearch(trimmed, currentGenId)
+                    playlistDbHelper.recordSearchHistory(
+                        SearchHistoryItem(
+                            queryText = trimmed,
+                            title = trimmed,
+                            subtitle = "Search query",
+                            contentType = "Search"
+                        )
+                    )
+                }
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
                 true
             } else {
                 false
             }
-        }
-        btnRetrySearch.setOnClickListener {
-            if (lastQuery.isNotBlank()) performSearch(lastQuery)
         }
 
         // Collection Actions
@@ -448,7 +726,21 @@ class MainActivity : AppCompatActivity() {
         // Mini Player Controls
         btnMiniPlayPause.setOnClickListener {
             mediaController?.let { c ->
-                if (c.isPlaying) c.pause() else c.play()
+                if (c.isPlaying) {
+                    c.pause()
+                } else {
+                    val currentItem = c.currentMediaItem
+                    if (currentItem != null) {
+                        val songId = currentItem.mediaId
+                        val isDownloaded = playlistDbHelper.isSongDownloaded(songId)
+                        val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+                        if (!isOnline && !isDownloaded) {
+                            Toast.makeText(this, "You're offline. Streamed tracks cannot play offline.", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                    }
+                    c.play()
+                }
             }
         }
         btnMiniNext.setOnClickListener { mediaController?.seekToNextMediaItem() }
@@ -461,7 +753,21 @@ class MainActivity : AppCompatActivity() {
         // Now Playing Controls
         layoutNowPlayingPlayPause.setOnClickListener {
             mediaController?.let { c ->
-                if (c.isPlaying) c.pause() else c.play()
+                if (c.isPlaying) {
+                    c.pause()
+                } else {
+                    val currentItem = c.currentMediaItem
+                    if (currentItem != null) {
+                        val songId = currentItem.mediaId
+                        val isDownloaded = playlistDbHelper.isSongDownloaded(songId)
+                        val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+                        if (!isOnline && !isDownloaded) {
+                            Toast.makeText(this, "You're offline. Streamed tracks cannot play offline.", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                    }
+                    c.play()
+                }
             }
         }
         btnNowPlayingPrev.setOnClickListener { mediaController?.seekToPreviousMediaItem() }
@@ -524,6 +830,35 @@ class MainActivity : AppCompatActivity() {
             songDownloadHelper.downloadSong(song) {
                 refreshCollectionData()
             }
+        }
+
+        btnTopCast.setOnClickListener {
+            Toast.makeText(this, "Connect to a device (Cast)", Toast.LENGTH_SHORT).show()
+        }
+        btnNowPlayingCast.setOnClickListener {
+            Toast.makeText(this, "Connect to a device (Cast)", Toast.LENGTH_SHORT).show()
+        }
+        btnNowPlayingDislike.setOnClickListener {
+            val item = mediaController?.currentMediaItem
+            if (item != null) {
+                Toast.makeText(this, "Marked as Disliked", Toast.LENGTH_SHORT).show()
+                mediaController?.seekToNextMediaItem()
+            }
+        }
+        btnNowPlayingShareAction.setOnClickListener {
+            val item = mediaController?.currentMediaItem ?: return@setOnClickListener
+            val song = SongMediaItemMapper.fromMediaItem(item)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, song.title)
+                putExtra(Intent.EXTRA_TEXT, "Listening to \"${song.title}\" by ${song.artists} on Melody")
+            }
+            startActivity(Intent.createChooser(shareIntent, "Share Track"))
+        }
+        btnNowPlayingLyricsActionBottom.setOnClickListener {
+            val item = mediaController?.currentMediaItem ?: return@setOnClickListener
+            val song = SongMediaItemMapper.fromMediaItem(item)
+            showLyricsDialog(song)
         }
 
         // Scrubber
@@ -617,15 +952,15 @@ class MainActivity : AppCompatActivity() {
             loadArtwork(song.imageUrl, ivMiniCover)
 
             val isLiked = playlistDbHelper.isSongLiked(song.id)
-            btnMiniLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
-            btnMiniPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+            btnMiniLike.setImageResource(if (isLiked) R.drawable.ic_ytm_thumb_up_fill else R.drawable.ic_ytm_thumb_up_outline)
+            btnMiniPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_ytm_pause else R.drawable.ic_ytm_play)
 
             // Update Now Playing Sheet
             tvNowPlayingTitle.text = title
             tvNowPlayingArtist.text = if (album.isNotBlank()) "$artist • $album" else artist
             loadArtwork(song.imageUrl, ivNowPlayingCover)
-            btnNowPlayingLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
-            btnNowPlayingPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+            btnNowPlayingLike.setImageResource(if (isLiked) R.drawable.ic_ytm_thumb_up_fill else R.drawable.ic_ytm_thumb_up_outline)
+            btnNowPlayingPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_ytm_pause else R.drawable.ic_ytm_play)
         } else {
             layoutMiniPlayer.visibility = View.GONE
         }
@@ -699,16 +1034,16 @@ class MainActivity : AppCompatActivity() {
     private fun updateRepeatControls(repeatMode: Int) {
         when (repeatMode) {
             Player.REPEAT_MODE_ALL -> {
-                btnNowPlayingRepeat.setImageResource(R.drawable.ic_repeat)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.tidal_accent))
+                btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat)
+                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
             }
             Player.REPEAT_MODE_ONE -> {
-                btnNowPlayingRepeat.setImageResource(R.drawable.ic_repeat_one)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.tidal_accent))
+                btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat_one)
+                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
             }
             else -> {
-                btnNowPlayingRepeat.setImageResource(R.drawable.ic_repeat)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.tidal_text_secondary))
+                btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat)
+                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_secondary))
             }
         }
     }
@@ -726,10 +1061,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateShuffleControls(enabled: Boolean) {
+        btnNowPlayingShuffle.setImageResource(R.drawable.ic_ytm_shuffle)
         if (enabled) {
-            btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.tidal_accent))
+            btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
         } else {
-            btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.tidal_text_secondary))
+            btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_secondary))
         }
     }
 
@@ -744,18 +1080,40 @@ class MainActivity : AppCompatActivity() {
         val enabled = appSettings.isAutoplayEnabled()
         tvNowPlayingAutoplayStatus.text = if (enabled) "AUTOPLAY ON" else "AUTOPLAY OFF"
         tvNowPlayingAutoplayStatus.setTextColor(
-            ContextCompat.getColor(this, if (enabled) R.color.tidal_badge_text else R.color.tidal_text_secondary)
+            ContextCompat.getColor(this, if (enabled) R.color.ytm_text_primary else R.color.ytm_text_secondary)
         )
     }
 
     private fun playSongNow(song: Song) {
-        val playbackUrl = song.getBestPlaybackUrl()
-        if (playbackUrl == null) {
-            Toast.makeText(this, "Playback stream unavailable for '${song.title}'", Toast.LENGTH_LONG).show()
+        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+        val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+
+        if (!isOnline && !isDownloaded) {
+            Toast.makeText(
+                this,
+                "You're offline. Only downloaded tracks can be played without internet.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
-        val mediaItem = SongMediaItemMapper.toMediaItem(song)
+        val effectiveSong = if (isDownloaded) {
+            playlistDbHelper.getDownloadedSong(song.id) ?: song
+        } else {
+            song
+        }
+
+        val playbackUrl = effectiveSong.getBestPlaybackUrl()
+        if (playbackUrl == null) {
+            Toast.makeText(this, "Playback stream unavailable for '${effectiveSong.title}'", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val mediaItem = SongMediaItemMapper.toMediaItem(
+            song = effectiveSong,
+            origin = SongMediaItemMapper.ORIGIN_CONTEXT,
+            contextName = effectiveSong.album.ifEmpty { "Single" }
+        )
         mediaController?.let { controller ->
             controller.stop()
             controller.setMediaItem(mediaItem)
@@ -764,20 +1122,88 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun addSongToQueue(song: Song) {
-        val playbackUrl = song.getBestPlaybackUrl()
-        if (playbackUrl == null) {
-            Toast.makeText(this, "Cannot queue '${song.title}': No stream URL", Toast.LENGTH_SHORT).show()
+    private fun playNext(song: Song) {
+        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+        val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+
+        if (!isOnline && !isDownloaded) {
+            Toast.makeText(this, "You're offline. Only downloaded tracks can be queued offline.", Toast.LENGTH_SHORT).show()
             return
         }
-        val mediaItem = SongMediaItemMapper.toMediaItem(song)
+
+        val effectiveSong = if (isDownloaded) {
+            playlistDbHelper.getDownloadedSong(song.id) ?: song
+        } else {
+            song
+        }
+
+        val playbackUrl = effectiveSong.getBestPlaybackUrl()
+        if (playbackUrl == null) {
+            Toast.makeText(this, "Cannot queue '${effectiveSong.title}': No stream URL", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val mediaItem = SongMediaItemMapper.toMediaItem(
+            song = effectiveSong,
+            origin = SongMediaItemMapper.ORIGIN_MANUAL,
+            contextName = "Queued"
+        )
         mediaController?.let { controller ->
-            controller.addMediaItem(mediaItem)
+            val curr = controller.currentMediaItemIndex
+            val insertPos = if (curr >= 0) curr + 1 else 0
+            controller.addMediaItem(insertPos, mediaItem)
             if (controller.playbackState == Player.STATE_IDLE || controller.mediaItemCount == 1) {
                 controller.prepare()
             }
-            Toast.makeText(this, "Added to queue: ${song.title}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Playing next: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun addSongToQueue(song: Song) {
+        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+        val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+
+        if (!isOnline && !isDownloaded) {
+            Toast.makeText(this, "You're offline. Only downloaded tracks can be queued offline.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val effectiveSong = if (isDownloaded) {
+            playlistDbHelper.getDownloadedSong(song.id) ?: song
+        } else {
+            song
+        }
+
+        val playbackUrl = effectiveSong.getBestPlaybackUrl()
+        if (playbackUrl == null) {
+            Toast.makeText(this, "Cannot queue '${effectiveSong.title}': No stream URL", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val mediaItem = SongMediaItemMapper.toMediaItem(
+            song = effectiveSong,
+            origin = SongMediaItemMapper.ORIGIN_MANUAL,
+            contextName = "Queued"
+        )
+        mediaController?.let { controller ->
+            val insertPos = findInsertPositionForQueue(controller)
+            controller.addMediaItem(insertPos, mediaItem)
+            if (controller.playbackState == Player.STATE_IDLE || controller.mediaItemCount == 1) {
+                controller.prepare()
+            }
+            Toast.makeText(this, "Added to queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun findInsertPositionForQueue(controller: MediaController): Int {
+        val total = controller.mediaItemCount
+        val curr = controller.currentMediaItemIndex
+        if (total == 0 || curr < 0) return total
+        for (i in (curr + 1) until total) {
+            val item = controller.getMediaItemAt(i)
+            if (SongMediaItemMapper.getQueueOrigin(item) == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
+                return i
+            }
+        }
+        return total
     }
 
     private fun startRadioForSong(song: Song) {
@@ -799,7 +1225,13 @@ class MainActivity : AppCompatActivity() {
                 emptyList()
             }
             val queue = listOf(song) + recs
-            val mediaItems = queue.map { SongMediaItemMapper.toMediaItem(it) }
+            val mediaItems = queue.mapIndexed { idx, s ->
+                SongMediaItemMapper.toMediaItem(
+                    song = s,
+                    origin = if (idx == 0) SongMediaItemMapper.ORIGIN_CONTEXT else SongMediaItemMapper.ORIGIN_AUTOPLAY,
+                    contextName = "${song.title} Radio"
+                )
+            }
             mediaController?.let { controller ->
                 controller.stop()
                 controller.setMediaItems(mediaItems)
@@ -821,37 +1253,39 @@ class MainActivity : AppCompatActivity() {
         }
         syncUiWithPlayer()
         searchAdapter.notifyDataSetChanged()
-        homeRecentAdapter.notifyDataSetChanged()
+        homeRecentCardAdapter.notifyDataSetChanged()
+        trendingCardAdapter.notifyDataSetChanged()
+        madeForYouCardAdapter.notifyDataSetChanged()
+        mostPlayedCardAdapter.notifyDataSetChanged()
         refreshCollectionData()
     }
 
-    private fun performSearch(query: String) {
+    private var liveSearchJob: Job? = null
+
+    private fun performLiveSearch(query: String, genId: Long) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
-            layoutSearchBrowse.visibility = View.VISIBLE
-            pbSearchLoading.visibility = View.GONE
-            tvEmptyResults.visibility = View.GONE
-            layoutError.visibility = View.GONE
-            rvSearchResults.visibility = View.GONE
+            showSearchState(SearchState.IDLE)
             return
         }
 
         lastQuery = trimmed
         showSearchState(SearchState.LOADING)
-        searchJob?.cancel()
-        val localGenId = ++searchGenerationId
         val baseUrl = appSettings.getBaseUrl()
 
-        searchJob = lifecycleScope.launch {
+        liveSearchJob = lifecycleScope.launch {
             val result = metadataService.searchSongs(baseUrl, trimmed)
-            if (localGenId != searchGenerationId) return@launch
+            if (genId != searchGenerationId) return@launch
 
             when (result) {
                 is SearchResult.Success -> {
                     searchAdapter.submitList(result.songs)
                     showSearchState(SearchState.RESULTS)
                 }
-                is SearchResult.Empty -> showSearchState(SearchState.EMPTY)
+                is SearchResult.Empty -> {
+                    tvEmptyResults.text = "No results found for \"$trimmed\""
+                    showSearchState(SearchState.EMPTY)
+                }
                 is SearchResult.Error -> {
                     tvErrorMessage.text = result.message
                     showSearchState(SearchState.ERROR)
@@ -860,19 +1294,243 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private enum class SearchState { LOADING, EMPTY, ERROR, RESULTS }
+    private fun performSearch(query: String) {
+        liveSearchJob?.cancel()
+        val genId = ++searchGenerationId
+        performLiveSearch(query, genId)
+    }
+
+    private enum class SearchState { IDLE, LOADING, EMPTY, ERROR, RESULTS }
 
     private fun showSearchState(state: SearchState) {
-        layoutSearchBrowse.visibility = View.GONE
-        pbSearchLoading.visibility = if (state == SearchState.LOADING) View.VISIBLE else View.GONE
-        tvEmptyResults.visibility = if (state == SearchState.EMPTY) View.VISIBLE else View.GONE
-        layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
-        rvSearchResults.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
+        if (state == SearchState.IDLE) {
+            layoutExploreDiscovery.visibility = View.VISIBLE
+            layoutSearchResultsContainer.visibility = View.GONE
+            pbSearchLoading.visibility = View.GONE
+            tvEmptyResults.visibility = View.GONE
+            layoutError.visibility = View.GONE
+            rvSearchResults.visibility = View.GONE
+        } else {
+            layoutExploreDiscovery.visibility = View.GONE
+            layoutSearchResultsContainer.visibility = View.VISIBLE
+            pbSearchLoading.visibility = if (state == SearchState.LOADING) View.VISIBLE else View.GONE
+            tvEmptyResults.visibility = if (state == SearchState.EMPTY) View.VISIBLE else View.GONE
+            layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
+            rvSearchResults.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
+        }
     }
 
     private fun refreshHomeData() {
-        val recent = playlistDbHelper.getRecentlyPlayedSongs(10)
-        homeRecentAdapter.submitList(recent)
+        // 1. Personalized Greeting
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        tvHomeGreeting.text = when (hour) {
+            in 5..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            in 17..21 -> "Good evening"
+            else -> "Good night"
+        }
+        tvHomeGreetingSub.text = "Discover and stream tailored to your day"
+
+        // 2. Section 4: Recently Played Carousel
+        val recent = playlistDbHelper.getRecentlyPlayedSongs(15)
+        if (recent.isNotEmpty()) {
+            layoutRecentEmpty.visibility = View.GONE
+            rvRecentlyPlayedHome.visibility = View.VISIBLE
+            homeRecentCardAdapter.submitData(recent)
+            lastPlayedSong = recent.first()
+            updateContinueListeningCard(lastPlayedSong)
+        } else {
+            layoutRecentEmpty.visibility = View.VISIBLE
+            rvRecentlyPlayedHome.visibility = View.GONE
+            updateContinueListeningCard(null)
+        }
+
+        // 3. Section 8: Most Played Carousel
+        val mostPlayedPairs = playlistDbHelper.getMostPlayedSongs(15)
+        if (mostPlayedPairs.isNotEmpty()) {
+            layoutMostPlayedEmpty.visibility = View.GONE
+            rvMostPlayedCarousel.visibility = View.VISIBLE
+            val mostPlayedSongs = mostPlayedPairs.map { it.first }
+            val counts = mostPlayedPairs.associate { it.first.id to it.second }
+            mostPlayedCardAdapter.submitData(mostPlayedSongs, counts)
+        } else {
+            layoutMostPlayedEmpty.visibility = View.VISIBLE
+            rvMostPlayedCarousel.visibility = View.GONE
+        }
+
+        // 4. Section 7: Daily Mixes Carousel
+        val mixPreviews = listOf(
+            PersonalizedMix("daily_mix_1", "Daily Mix 1", "Curated from your top listened tracks and favorite artists.", emptyList(), category = "DAILY MIX 1"),
+            PersonalizedMix("daily_mix_2", "Daily Mix 2", "High-energy rhythm cluster with complementary artist selections.", emptyList(), category = "DAILY MIX 2"),
+            PersonalizedMix("chill_mix", "Chill & Focus Mix", "Calm acoustic, downtempo, and flow state soundscapes.", emptyList(), category = "CHILL & FOCUS"),
+            PersonalizedMix("discovery_mix", "Discovery Mix", "Novel artists and underground discoveries outside your rotation.", emptyList(), category = "DISCOVERY")
+        )
+        dailyMixCardAdapter.submitMixes(mixPreviews)
+
+        // 5. Section 11: Recommended Albums & Playlists
+        val userPlaylists = playlistDbHelper.getAllPlaylists()
+        val playlistItems = mutableListOf<HomeCollectionItem>()
+        for (p in userPlaylists) {
+            playlistItems.add(
+                HomeCollectionItem(
+                    id = "user_${p.id}",
+                    title = p.name,
+                    subtitle = "Playlist • ${p.songCount} tracks"
+                )
+            )
+        }
+        playlistItems.add(HomeCollectionItem("curated_1", "Today's Top Hits", "The hottest global streaming tracks", "https://c.saavncdn.com/editorial/Today_sTopHits_English_20240101.jpg"))
+        playlistItems.add(HomeCollectionItem("curated_2", "Acoustic Morning", "Unplugged sessions and gentle mornings", "https://c.saavncdn.com/editorial/AcousticMorning_20230501.jpg"))
+        playlistItems.add(HomeCollectionItem("curated_3", "Deep Focus & Study", "Ambient lo-fi and electronic flow", "https://c.saavncdn.com/editorial/DeepFocus_20230501.jpg"))
+        playlistItems.add(HomeCollectionItem("curated_4", "Party Dance Hits", "Uplifting festival and club bangers", "https://c.saavncdn.com/editorial/PartyDance_20230501.jpg"))
+        curatedPlaylistCardAdapter.submitItems(playlistItems)
+
+        // 6. Section 5: Trending Songs (Real Backend Data)
+        val baseUrl = appSettings.getBaseUrl()
+        pbTrendingLoading.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val trendingSongs = try {
+                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
+                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
+            } catch (_: Exception) {
+                emptyList()
+            }
+            pbTrendingLoading.visibility = View.GONE
+            if (trendingSongs.isNotEmpty()) {
+                trendingCardAdapter.submitData(trendingSongs)
+            }
+        }
+
+        // 7. Section 6: Made for You (Personalized Recommendations)
+        pbMadeForYouLoading.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val seed = recent.firstOrNull() ?: playlistDbHelper.getAllLikedSongs().firstOrNull()
+            val recommendations = if (seed != null) {
+                try {
+                    recommendationEngine.getRecommendations(baseUrl, seed, limit = 15)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            } else {
+                try {
+                    recommendationEngine.fetchCandidateSongs(baseUrl, "Popular Hits")
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            pbMadeForYouLoading.visibility = View.GONE
+            if (recommendations.isNotEmpty()) {
+                madeForYouCardAdapter.submitData(recommendations)
+            }
+        }
+    }
+
+    private fun updateContinueListeningCard(song: Song?) {
+        if (song != null) {
+            tvContinueTitle.text = song.title
+            tvContinueArtist.text = if (song.artists.isNotBlank()) song.artists else song.album
+            loadArtwork(song.imageUrl, ivContinueCover)
+        } else {
+            tvContinueTitle.text = "Ready to listen"
+            tvContinueArtist.text = "Discover mixes, trending hits, and genres in Melody"
+            ivContinueCover.setImageResource(R.drawable.ic_music_note)
+        }
+    }
+
+    private fun resumeLastPlayback() {
+        val song = lastPlayedSong ?: playlistDbHelper.getRecentlyPlayedSongs(1).firstOrNull()
+        if (song != null) {
+            playSongNow(song)
+        } else {
+            generateAndPlayMix("Daily Mix 1")
+        }
+    }
+
+    private fun playMixDirectly(mix: PersonalizedMix, shuffle: Boolean = false) {
+        val baseUrl = appSettings.getBaseUrl()
+        Toast.makeText(this, "Loading ${mix.title}...", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val fullMix = try {
+                when (mix.title) {
+                    "Daily Mix 2" -> mixGenerator.generateDailyMix2(baseUrl)
+                    "Chill & Focus Mix" -> mixGenerator.generateChillMix(baseUrl)
+                    "Discovery Mix" -> mixGenerator.generateDiscoveryMix(baseUrl)
+                    else -> mixGenerator.generateDailyMix(baseUrl)
+                }
+            } catch (e: Exception) {
+                mix
+            }
+
+            if (fullMix.songs.isEmpty()) {
+                Toast.makeText(this@MainActivity, "Could not load ${mix.title}. Check network.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val songsToPlay = if (shuffle) fullMix.songs.shuffled() else fullMix.songs
+            val mediaItems = songsToPlay.map {
+                SongMediaItemMapper.toMediaItem(
+                    song = it,
+                    origin = SongMediaItemMapper.ORIGIN_CONTEXT,
+                    contextName = fullMix.title
+                )
+            }
+            mediaController?.let { c ->
+                c.stop()
+                c.setMediaItems(mediaItems)
+                c.prepare()
+                c.play()
+                Toast.makeText(this@MainActivity, "Playing ${fullMix.title} (${fullMix.songs.size} tracks)", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun openCuratedCollection(item: HomeCollectionItem) {
+        if (item.id.startsWith("user_")) {
+            val playlistId = item.id.removePrefix("user_").toLongOrNull()
+            val playlist = playlistDbHelper.getAllPlaylists().firstOrNull { it.id == playlistId }
+            if (playlist != null) {
+                showPlaylistDetailDialog(playlist)
+                return
+            }
+        }
+        openCategorySheet(
+            title = item.title,
+            subtitle = item.subtitle,
+            query = item.title
+        )
+    }
+
+    private fun playCuratedCollection(item: HomeCollectionItem) {
+        val baseUrl = appSettings.getBaseUrl()
+        Toast.makeText(this, "Loading ${item.title}...", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val songs = if (item.id.startsWith("user_")) {
+                val playlistId = item.id.removePrefix("user_").toLongOrNull() ?: 0L
+                playlistDbHelper.getSongsInPlaylist(playlistId)
+            } else {
+                recommendationEngine.fetchCandidateSongs(baseUrl, item.title)
+            }
+
+            if (songs.isEmpty()) {
+                Toast.makeText(this@MainActivity, "No tracks available in ${item.title}", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val mediaItems = songs.map {
+                SongMediaItemMapper.toMediaItem(
+                    song = it,
+                    origin = SongMediaItemMapper.ORIGIN_CONTEXT,
+                    contextName = item.title
+                )
+            }
+            mediaController?.let { c ->
+                c.stop()
+                c.setMediaItems(mediaItems)
+                c.prepare()
+                c.play()
+                Toast.makeText(this@MainActivity, "Playing ${item.title}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun refreshCollectionData() {
@@ -889,12 +1547,126 @@ class MainActivity : AppCompatActivity() {
         collectionPlaylistAdapter.submitList(playlists)
     }
 
+    private fun openMixDetail(mixType: String) {
+        val baseUrl = appSettings.getBaseUrl()
+        Toast.makeText(this, "Loading $mixType...", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val mix = try {
+                when (mixType) {
+                    "Daily Mix 2" -> mixGenerator.generateDailyMix2(baseUrl)
+                    "Chill & Focus Mix" -> mixGenerator.generateChillMix(baseUrl)
+                    "Discovery Mix" -> mixGenerator.generateDiscoveryMix(baseUrl)
+                    else -> mixGenerator.generateDailyMix(baseUrl)
+                }
+            } catch (e: Exception) {
+                PersonalizedMix(mixType.lowercase(), mixType, "Error loading mix: ${e.message}", emptyList())
+            }
+
+            if (mix.songs.isEmpty()) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(mix.title)
+                    .setMessage("Could not generate ${mix.title} right now. Listen to more music or perform a search first!")
+                    .setPositiveButton("OK", null)
+                    .show()
+                return@launch
+            }
+            showMixDetailDialog(mix)
+        }
+    }
+
+    private fun showMixDetailDialog(mix: PersonalizedMix) {
+        val dialog = BottomSheetDialog(this)
+        val sheetView = layoutInflater.inflate(R.layout.dialog_mix_details, null)
+        dialog.setContentView(sheetView)
+
+        val ivClose: ImageView = sheetView.findViewById(R.id.ivCloseMixDetails)
+        val tvBadge: TextView = sheetView.findViewById(R.id.tvMixBadgeHeader)
+        val tvTitle: TextView = sheetView.findViewById(R.id.tvMixDetailTitle)
+        val tvSubtitle: TextView = sheetView.findViewById(R.id.tvMixDetailSubtitle)
+        val tvDesc: TextView = sheetView.findViewById(R.id.tvMixDetailDescription)
+        val tvCount: TextView = sheetView.findViewById(R.id.tvMixDetailTrackCount)
+        val btnPlay: Button = sheetView.findViewById(R.id.btnPlayMixAction)
+        val btnShuffle: Button = sheetView.findViewById(R.id.btnShuffleMixAction)
+        val btnSave: Button = sheetView.findViewById(R.id.btnSaveMixAction)
+        val rvTracks: RecyclerView = sheetView.findViewById(R.id.rvMixTracksList)
+
+        tvBadge.text = mix.category.ifEmpty { "PERSONALIZED MIX" }
+        tvTitle.text = mix.title
+        tvSubtitle.text = mix.subtitle.ifEmpty { "Curated for you" }
+        tvDesc.text = mix.description
+        tvCount.text = "${mix.songs.size} tracks"
+
+        ivClose.setOnClickListener { dialog.dismiss() }
+
+        fun startPlayback(songs: List<Song>, startIndex: Int = 0) {
+            val mediaItems = songs.map {
+                SongMediaItemMapper.toMediaItem(
+                    song = it,
+                    origin = SongMediaItemMapper.ORIGIN_CONTEXT,
+                    contextName = mix.title
+                )
+            }
+            mediaController?.let { c ->
+                c.stop()
+                c.setMediaItems(mediaItems, startIndex, 0L)
+                c.prepare()
+                c.play()
+                Toast.makeText(this@MainActivity, "Playing ${mix.title}", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+
+        btnPlay.setOnClickListener {
+            startPlayback(mix.songs, 0)
+        }
+
+        btnShuffle.setOnClickListener {
+            val shuffled = mix.songs.shuffled()
+            startPlayback(shuffled, 0)
+        }
+
+        btnSave.setOnClickListener {
+            val id = mixGenerator.saveMixAsPlaylist(mix)
+            if (id != -1L) {
+                refreshCollectionData()
+                Toast.makeText(this@MainActivity, "Saved '${mix.title}' to your playlists!", Toast.LENGTH_SHORT).show()
+                btnSave.text = "✓ Saved"
+                btnSave.isEnabled = false
+            } else {
+                Toast.makeText(this@MainActivity, "Could not save playlist", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val mixSongAdapter = SongAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongSelected = { song ->
+                val idx = mix.songs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                startPlayback(mix.songs, idx)
+            },
+            onSongAddToQueue = { song -> addSongToQueue(song) },
+            onSongOptions = { song -> showSongOptionDialog(song) },
+            onSongLikeToggled = { song -> toggleLikeSong(song) },
+            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+        )
+        rvTracks.layoutManager = LinearLayoutManager(this)
+        rvTracks.adapter = mixSongAdapter
+        mixSongAdapter.submitList(mix.songs)
+
+        dialog.show()
+    }
+
     private fun generateAndPlayMix(mixType: String) {
         val baseUrl = appSettings.getBaseUrl()
         Toast.makeText(this, "Generating $mixType...", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val mix: PersonalizedMix = try {
-                if (mixType == "Daily Mix") mixGenerator.generateDailyMix(baseUrl) else mixGenerator.generateDiscoveryMix(baseUrl)
+                when (mixType) {
+                    "Daily Mix 2" -> mixGenerator.generateDailyMix2(baseUrl)
+                    "Chill & Focus Mix" -> mixGenerator.generateChillMix(baseUrl)
+                    "Discovery Mix" -> mixGenerator.generateDiscoveryMix(baseUrl)
+                    else -> mixGenerator.generateDailyMix(baseUrl)
+                }
             } catch (e: Exception) {
                 PersonalizedMix(mixType.lowercase(), mixType, "Error generating mix: ${e.message}", emptyList())
             }
@@ -908,7 +1680,13 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
-            val mediaItems = mix.songs.map { SongMediaItemMapper.toMediaItem(it) }
+            val mediaItems = mix.songs.map {
+                SongMediaItemMapper.toMediaItem(
+                    song = it,
+                    origin = SongMediaItemMapper.ORIGIN_CONTEXT,
+                    contextName = mix.title
+                )
+            }
             mediaController?.let { c ->
                 c.stop()
                 c.setMediaItems(mediaItems)
@@ -919,27 +1697,189 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showLikedSongsDialog() {
-        val liked = playlistDbHelper.getAllLikedSongs()
-        if (liked.isEmpty()) {
-            Toast.makeText(this, "No liked songs yet. Tap the heart icon on any track to save it here.", Toast.LENGTH_LONG).show()
+    private fun refreshSearchRecommendations() {
+        refreshExploreData()
+    }
+
+    private fun refreshExploreData() {
+        refreshRecentSearchesSection()
+        loadTrendingExplore()
+    }
+
+    private fun refreshRecentSearchesSection() {
+        val recentSearches = playlistDbHelper.getRecentSearches(10)
+        if (recentSearches.isNotEmpty()) {
+            layoutRecentSearchesSection.visibility = View.VISIBLE
+            recentSearchAdapter.submitList(recentSearches)
+        } else {
+            layoutRecentSearchesSection.visibility = View.GONE
+        }
+    }
+
+    private var cachedTrendingSongs: List<Song> = emptyList()
+
+    private fun loadTrendingExplore() {
+        if (cachedTrendingSongs.isNotEmpty()) {
+            trendingExploreAdapter.submitData(cachedTrendingSongs.take(8))
+            pbTrendingExploreLoading.visibility = View.GONE
             return
         }
-        val items = liked.map { "${it.title} - ${it.artists}" }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Liked Songs (${liked.size})")
-            .setItems(items) { _, which -> showSongOptionDialog(liked[which]) }
-            .setPositiveButton("▶ Play All") { _, _ ->
-                val mediaItems = liked.map { SongMediaItemMapper.toMediaItem(it) }
+
+        pbTrendingExploreLoading.visibility = View.VISIBLE
+        val baseUrl = appSettings.getBaseUrl()
+        lifecycleScope.launch {
+            val songs = try {
+                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
+                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
+            } catch (_: Exception) {
+                emptyList()
+            }
+            pbTrendingExploreLoading.visibility = View.GONE
+            if (songs.isNotEmpty()) {
+                cachedTrendingSongs = songs
+                trendingExploreAdapter.submitData(songs.take(8))
+            }
+        }
+    }
+
+    private fun showFullTrendingDialog() {
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_queue, null)
+        dialog.setContentView(view)
+
+        val tvTrackCount = view.findViewById<TextView>(R.id.tvQueueTrackCount)
+        val btnClear = view.findViewById<Button>(R.id.btnClearQueue)
+        val rv = view.findViewById<RecyclerView>(R.id.rvQueueList)
+        val ivClose = view.findViewById<ImageView>(R.id.ivCloseQueue)
+        val layoutNowPlaying = view.findViewById<View>(R.id.layoutQueueNowPlayingCard)
+
+        layoutNowPlaying?.visibility = View.GONE
+        tvTrackCount?.text = "${cachedTrendingSongs.size} tracks • Trending Charts"
+        btnClear?.visibility = View.GONE
+        ivClose?.setOnClickListener { dialog.dismiss() }
+
+        val adapter = TrendingRowAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song ->
+                playlistDbHelper.recordSongSearch(song)
+                playSongNow(song)
+                dialog.dismiss()
+            },
+            onPlayClicked = { song ->
+                playlistDbHelper.recordSongSearch(song)
+                playSongNow(song)
+                dialog.dismiss()
+            },
+            onOptionClicked = { song -> showSongOptionDialog(song) }
+        )
+        rv.layoutManager = LinearLayoutManager(this)
+        rv.adapter = adapter
+        adapter.submitData(cachedTrendingSongs)
+
+        dialog.show()
+    }
+
+    private fun openCategoryChannel(category: GenreCategory) {
+        etSearchQuery.setText(category.query)
+        etSearchQuery.setSelection(category.query.length)
+        Toast.makeText(this, "Opening ${category.name} channel", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showSongCollectionSheet(
+        title: String,
+        subtitle: String,
+        songs: List<Song>,
+        isDownloaded: Boolean = false,
+        isHistory: Boolean = false,
+        playlist: Playlist? = null,
+        onClearAction: (() -> Unit)? = null
+    ) {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_song_collection, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
+
+        val ivClose: ImageView = view.findViewById(R.id.ivCloseCollectionSheet)
+        val tvTitle: TextView = view.findViewById(R.id.tvCollectionSheetTitle)
+        val tvSub: TextView = view.findViewById(R.id.tvCollectionSheetSubtitle)
+        val ivAction: ImageView = view.findViewById(R.id.ivCollectionSheetAction)
+        val btnPlayAll: Button = view.findViewById(R.id.btnCollectionPlayAll)
+        val btnShuffle: Button = view.findViewById(R.id.btnCollectionShuffle)
+        val rvSongs: RecyclerView = view.findViewById(R.id.rvCollectionSongs)
+        val layoutEmpty: View = view.findViewById(R.id.layoutCollectionEmpty)
+        val tvEmptyTitle: TextView = view.findViewById(R.id.tvCollectionEmptyTitle)
+        val tvEmptyMsg: TextView = view.findViewById(R.id.tvCollectionEmptyMsg)
+
+        ivClose.setOnClickListener { dialog.dismiss() }
+        tvTitle.text = title
+        tvSub.text = if (songs.isNotEmpty()) "${songs.size} tracks • $subtitle" else subtitle
+
+        if (onClearAction != null) {
+            ivAction.visibility = View.VISIBLE
+            ivAction.setImageResource(R.drawable.ic_delete)
+            ivAction.contentDescription = "Clear History"
+            ivAction.setOnClickListener {
+                onClearAction.invoke()
+                dialog.dismiss()
+            }
+        } else if (playlist != null) {
+            ivAction.visibility = View.VISIBLE
+            ivAction.setImageResource(R.drawable.ic_delete)
+            ivAction.contentDescription = "Delete Playlist"
+            ivAction.setOnClickListener {
+                playlistDbHelper.deletePlaylist(playlist.id)
+                refreshCollectionData()
+                dialog.dismiss()
+                Toast.makeText(this, "Playlist '${playlist.name}' deleted", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            ivAction.visibility = View.GONE
+        }
+
+        btnPlayAll.setOnClickListener {
+            if (songs.isNotEmpty()) {
+                val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+                val playableSongs = if (!isOnline && !isDownloaded) {
+                    songs.mapNotNull { playlistDbHelper.getDownloadedSong(it.id) }
+                } else {
+                    songs.map { s -> if (playlistDbHelper.isSongDownloaded(s.id)) playlistDbHelper.getDownloadedSong(s.id) ?: s else s }
+                }
+
+                if (playableSongs.isEmpty()) {
+                    Toast.makeText(this, "You're offline. Only downloaded tracks can play offline.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
                 mediaController?.let { c ->
                     c.stop()
                     c.setMediaItems(mediaItems)
+                    c.shuffleModeEnabled = false
                     c.prepare()
                     c.play()
                 }
+                dialog.dismiss()
             }
-            .setNeutralButton("🔀 Shuffle All") { _, _ ->
-                val mediaItems = liked.map { SongMediaItemMapper.toMediaItem(it) }
+        }
+
+        btnShuffle.setOnClickListener {
+            if (songs.isNotEmpty()) {
+                val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+                val playableSongs = if (!isOnline && !isDownloaded) {
+                    songs.mapNotNull { playlistDbHelper.getDownloadedSong(it.id) }
+                } else {
+                    songs.map { s -> if (playlistDbHelper.isSongDownloaded(s.id)) playlistDbHelper.getDownloadedSong(s.id) ?: s else s }
+                }
+
+                if (playableSongs.isEmpty()) {
+                    Toast.makeText(this, "You're offline. Only downloaded tracks can play offline.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
                 mediaController?.let { c ->
                     c.stop()
                     c.setMediaItems(mediaItems)
@@ -947,9 +1887,73 @@ class MainActivity : AppCompatActivity() {
                     c.prepare()
                     c.play()
                 }
+                dialog.dismiss()
             }
-            .setNegativeButton("Close", null)
-            .show()
+        }
+
+        if (songs.isEmpty()) {
+            layoutEmpty.visibility = View.VISIBLE
+            rvSongs.visibility = View.GONE
+            btnPlayAll.alpha = 0.5f
+            btnPlayAll.isEnabled = false
+            btnShuffle.alpha = 0.5f
+            btnShuffle.isEnabled = false
+            when {
+                isHistory -> {
+                    tvEmptyTitle.text = "No history yet"
+                    tvEmptyMsg.text = "Songs you stream will appear here."
+                }
+                isDownloaded -> {
+                    tvEmptyTitle.text = "No downloaded tracks"
+                    tvEmptyMsg.text = "Tap the download button on any track to listen offline."
+                }
+                playlist != null -> {
+                    tvEmptyTitle.text = "Playlist is empty"
+                    tvEmptyMsg.text = "Add tracks to '${playlist.name}' from any song's options menu."
+                }
+                else -> {
+                    tvEmptyTitle.text = "No liked tracks"
+                    tvEmptyMsg.text = "Tap the heart icon on any song to save it here."
+                }
+            }
+        } else {
+            layoutEmpty.visibility = View.GONE
+            rvSongs.visibility = View.VISIBLE
+            rvSongs.layoutManager = LinearLayoutManager(this)
+
+            val adapter = SongAdapter(
+                scope = lifecycleScope,
+                httpClient = metadataService.httpClient,
+                onSongSelected = { song ->
+                    playSongNow(song)
+                },
+                onSongAddToQueue = { song ->
+                    addSongToQueue(song)
+                },
+                onSongOptions = { song ->
+                    showSongOptionDialog(song, fromPlaylist = playlist)
+                },
+                onSongLikeToggled = { song ->
+                    toggleLikeSong(song)
+                },
+                isSongLiked = { id ->
+                    playlistDbHelper.isSongLiked(id)
+                }
+            )
+            rvSongs.adapter = adapter
+            adapter.submitList(songs)
+        }
+
+        dialog.show()
+    }
+
+    private fun showLikedSongsDialog() {
+        val liked = playlistDbHelper.getAllLikedSongs()
+        showSongCollectionSheet(
+            title = "Liked Music",
+            subtitle = "Saved to your library",
+            songs = liked
+        )
     }
 
     private fun showQueueDialog() {
@@ -1006,6 +2010,14 @@ class MainActivity : AppCompatActivity() {
         itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
+            override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                val pos = viewHolder.bindingAdapterPosition
+                if (!queueAdapter.isTrackPosition(pos)) {
+                    return makeMovementFlags(0, 0)
+                }
+                return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+            }
+
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
@@ -1013,7 +2025,8 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
-                if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION) {
+                if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION &&
+                    queueAdapter.isTrackPosition(fromPos) && queueAdapter.isTrackPosition(toPos)) {
                     if (dragFromPosition == -1) {
                         dragFromPosition = fromPos
                     }
@@ -1087,7 +2100,7 @@ class MainActivity : AppCompatActivity() {
             btnShuffle.setTextColor(
                 ContextCompat.getColor(
                     this,
-                    if (controller.shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                    if (controller.shuffleModeEnabled) R.color.ytm_red else R.color.ytm_text_secondary
                 )
             )
         }
@@ -1098,7 +2111,7 @@ class MainActivity : AppCompatActivity() {
             btnShuffle.setTextColor(
                 ContextCompat.getColor(
                     this,
-                    if (controller.shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                    if (controller.shuffleModeEnabled) R.color.ytm_red else R.color.ytm_text_secondary
                 )
             )
         }
@@ -1156,7 +2169,7 @@ class MainActivity : AppCompatActivity() {
                 btnShuffle.setTextColor(
                     ContextCompat.getColor(
                         this@MainActivity,
-                        if (shuffleModeEnabled) R.color.tidal_accent else R.color.tidal_text_secondary
+                        if (shuffleModeEnabled) R.color.ytm_red else R.color.ytm_text_secondary
                     )
                 )
             }
@@ -1173,144 +2186,107 @@ class MainActivity : AppCompatActivity() {
 
     private fun showHistoryDialog() {
         val recent = playlistDbHelper.getRecentlyPlayedSongs(50)
-        if (recent.isEmpty()) {
-            Toast.makeText(this, "No listening history recorded yet.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val items = recent.map { "${it.title} - ${it.artists}" }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Listening History (${recent.size})")
-            .setItems(items) { _, which -> showSongOptionDialog(recent[which]) }
-            .setPositiveButton("▶ Play All") { _, _ ->
-                val mediaItems = recent.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.prepare()
-                    c.play()
-                }
-            }
-            .setNeutralButton("Clear History") { _, _ ->
+        showSongCollectionSheet(
+            title = "Listening History",
+            subtitle = "Recently played",
+            songs = recent,
+            isHistory = true,
+            onClearAction = {
                 playlistDbHelper.clearHistory()
                 refreshCollectionData()
-                Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Listening history cleared", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Close", null)
-            .show()
+        )
     }
 
-    private fun showCreatePlaylistDialog() {
-        val input = EditText(this).apply {
-            hint = "Playlist Name"
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.tidal_text_primary))
-        }
-        AlertDialog.Builder(this)
-            .setTitle("New Playlist")
-            .setView(input)
-            .setPositiveButton("Create") { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    val id = playlistDbHelper.createPlaylist(name)
-                    if (id != -1L) {
-                        refreshCollectionData()
-                        Toast.makeText(this, "Playlist '$name' created", Toast.LENGTH_SHORT).show()
+    private fun showCreatePlaylistDialog(songToAdd: Song? = null) {
+        val dialog = Dialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_playlist, null)
+        dialog.setContentView(view)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val etName = view.findViewById<EditText>(R.id.etPlaylistNameInput)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancelCreatePlaylist)
+        val btnConfirm = view.findViewById<Button>(R.id.btnConfirmCreatePlaylist)
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnConfirm.setOnClickListener {
+            val name = etName.text.toString().trim()
+            if (name.isNotEmpty()) {
+                val id = playlistDbHelper.createPlaylist(name)
+                if (id != -1L) {
+                    if (songToAdd != null) {
+                        playlistDbHelper.addSongToPlaylist(id, songToAdd)
+                        Toast.makeText(this, "Created '$name' and added track", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(this, "Playlist name may already exist", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Playlist '$name' created", Toast.LENGTH_SHORT).show()
                     }
+                    refreshCollectionData()
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "Playlist name may already exist", Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                Toast.makeText(this, "Please enter a playlist title", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun showPlaylistDetailDialog(playlist: Playlist) {
         val songs = playlistDbHelper.getSongsInPlaylist(playlist.id)
-        val actions = arrayOf(
-            "▶ Play All into Queue (${songs.size} tracks)",
-            "📋 View / Manage Tracks",
-            "🗑 Delete Playlist"
+        showSongCollectionSheet(
+            title = playlist.name,
+            subtitle = "Your Playlist",
+            songs = songs,
+            playlist = playlist
         )
-        AlertDialog.Builder(this)
-            .setTitle(playlist.name)
-            .setItems(actions) { _, which ->
-                when (which) {
-                    0 -> {
-                        if (songs.isEmpty()) {
-                            Toast.makeText(this, "Playlist is empty", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val mediaItems = songs.map { SongMediaItemMapper.toMediaItem(it) }
-                            mediaController?.let { c ->
-                                c.stop()
-                                c.setMediaItems(mediaItems)
-                                c.prepare()
-                                c.play()
-                            }
-                        }
-                    }
-                    1 -> showPlaylistSongsDialog(playlist, songs)
-                    2 -> {
-                        playlistDbHelper.deletePlaylist(playlist.id)
-                        refreshCollectionData()
-                        Toast.makeText(this, "Playlist deleted", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            .setPositiveButton("Close", null)
-            .show()
     }
 
-    private fun showPlaylistSongsDialog(playlist: Playlist, songs: List<Song>) {
-        if (songs.isEmpty()) {
-            Toast.makeText(this, "No tracks in playlist", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val songTitles = songs.map { "${it.title} - ${it.artists}" }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("${playlist.name} Tracks")
-            .setItems(songTitles) { _, which ->
-                val song = songs[which]
-                AlertDialog.Builder(this)
-                    .setTitle(song.title)
-                    .setItems(arrayOf("Play Now", "Add to Queue", "Start Radio", "Remove from Playlist")) { _, action ->
-                        when (action) {
-                            0 -> playSongNow(song)
-                            1 -> addSongToQueue(song)
-                            2 -> startRadioForSong(song)
-                            3 -> {
-                                playlistDbHelper.removeSongFromPlaylist(playlist.id, song.id)
-                                refreshCollectionData()
-                                Toast.makeText(this, "Removed from playlist", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
-            .setPositiveButton("Close", null)
-            .show()
-    }
-
-    private fun showSongOptionDialog(song: Song) {
+    private fun showSongOptionDialog(song: Song, fromPlaylist: Playlist? = null) {
         val isLiked = playlistDbHelper.isSongLiked(song.id)
         val likeText = if (isLiked) "Unlike Track" else "Like Track ♥"
         val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
         val downloadText = if (isDownloaded) "Downloaded ✓" else "⬇ Download Track"
-        val options = arrayOf("Play Now", "Add to Queue", "Start Radio", "View Lyrics", downloadText, likeText, "Add to Playlist...")
+        val optionsList = mutableListOf(
+            "▶ Play Now",
+            "⏭ Play Next",
+            "➕ Add to Queue",
+            "📻 Start Radio",
+            "📜 View Lyrics",
+            downloadText,
+            likeText,
+            "📁 Add to Playlist..."
+        )
+        if (fromPlaylist != null) {
+            optionsList.add("❌ Remove from '${fromPlaylist.name}'")
+        }
+
+        val options = optionsList.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(song.title)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> playSongNow(song)
-                    1 -> addSongToQueue(song)
-                    2 -> startRadioForSong(song)
-                    3 -> showLyricsDialog(song)
-                    4 -> {
+                    1 -> playNext(song)
+                    2 -> addSongToQueue(song)
+                    3 -> startRadioForSong(song)
+                    4 -> showLyricsDialog(song)
+                    5 -> {
                         songDownloadHelper.downloadSong(song) {
                             refreshCollectionData()
                         }
                     }
-                    5 -> toggleLikeSong(song)
-                    6 -> showAddToPlaylistDialog(song)
+                    6 -> toggleLikeSong(song)
+                    7 -> showAddToPlaylistDialog(song)
+                    8 -> {
+                        if (fromPlaylist != null) {
+                            playlistDbHelper.removeSongFromPlaylist(fromPlaylist.id, song.id)
+                            refreshCollectionData()
+                            Toast.makeText(this, "Removed from '${fromPlaylist.name}'", Toast.LENGTH_SHORT).show()
+                            showPlaylistDetailDialog(fromPlaylist)
+                        }
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -1319,53 +2295,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showDownloadedSongsDialog() {
         val downloaded = playlistDbHelper.getAllDownloadedSongs()
-        if (downloaded.isEmpty()) {
-            Toast.makeText(this, "No downloaded music yet. Tap Download on any track to listen offline!", Toast.LENGTH_LONG).show()
-            return
-        }
-        val items = downloaded.map { "${it.title} - ${it.artists}" }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Downloaded Music (${downloaded.size} tracks)")
-            .setItems(items) { _, which ->
-                val song = downloaded[which]
-                val actions = arrayOf("▶ Play Now", "➕ Add to Queue", "🗑 Delete Download")
-                AlertDialog.Builder(this)
-                    .setTitle(song.title)
-                    .setItems(actions) { _, act ->
-                        when (act) {
-                            0 -> playSongNow(song)
-                            1 -> addSongToQueue(song)
-                            2 -> {
-                                playlistDbHelper.deleteDownloadedSong(song.id)
-                                refreshCollectionData()
-                                Toast.makeText(this, "Removed from Downloads", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            }
-            .setPositiveButton("▶ Play All Offline") { _, _ ->
-                val mediaItems = downloaded.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.prepare()
-                    c.play()
-                }
-            }
-            .setNeutralButton("🔀 Shuffle All") { _, _ ->
-                val mediaItems = downloaded.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.shuffleModeEnabled = true
-                    c.prepare()
-                    c.play()
-                }
-            }
-            .setNegativeButton("Close", null)
-            .show()
+        showSongCollectionSheet(
+            title = "Downloaded Music",
+            subtitle = "Offline tracks",
+            songs = downloaded,
+            isDownloaded = true
+        )
     }
 
     private fun openGenreTracks(genre: GenreCategory) {
@@ -1618,61 +2553,68 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddToPlaylistDialog(song: Song) {
-        val playlists = playlistDbHelper.getAllPlaylists()
-        if (playlists.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle("Add to Playlist")
-                .setMessage("No playlists found. Create one first.")
-                .setPositiveButton("Create Playlist") { _, _ -> showCreatePlaylistDialog() }
-                .setNegativeButton("Cancel", null)
-                .show()
-            return
-        }
-        val names = playlists.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Select Playlist")
-            .setItems(names) { _, which ->
-                val playlist = playlists[which]
-                val added = playlistDbHelper.addSongToPlaylist(playlist.id, song)
-                if (added) {
-                    refreshCollectionData()
-                    Toast.makeText(this, "Added to '${playlist.name}'", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Track already in playlist", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun showSettingsDialog() {
         val dialog = BottomSheetDialog(this)
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_backend_settings, null)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_playlist, null)
         dialog.setContentView(view)
 
-        val etBase: EditText = view.findViewById(R.id.etBaseUrl)
-        val btnSave: Button = view.findViewById(R.id.btnSaveBaseUrl)
-        val btnReset: Button = view.findViewById(R.id.btnResetBaseUrl)
-        val tvTelem: TextView = view.findViewById(R.id.tvTelemetry)
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
 
-        etBase.setText(appSettings.getBaseUrl())
-        val stats = filterListManager.getStatisticsSnapshot()
-        tvTelem.text = "Queries: ${stats.totalRequestsEvaluated} | Allowed: ${stats.allowedRequests} | Blocked: ${stats.blockedRequests} | Audio CDN Bypass: ${stats.audioStreamBypasses}"
+        val ivClose: ImageView = view.findViewById(R.id.ivCloseAddToPlaylist)
+        val tvTarget: TextView = view.findViewById(R.id.tvAddToPlaylistSongTarget)
+        val btnNewPlaylist: View = view.findViewById(R.id.btnCreateNewPlaylistInSheet)
+        val rvPlaylists: RecyclerView = view.findViewById(R.id.rvExistingPlaylists)
+        val tvEmptyNote: TextView = view.findViewById(R.id.tvNoPlaylistsNote)
+        val tvHeader: TextView = view.findViewById(R.id.tvYourPlaylistsHeader)
 
-        btnSave.setOnClickListener {
-            val saved = appSettings.setBaseUrl(etBase.text.toString())
-            etBase.setText(saved)
-            Toast.makeText(this, "Saved endpoint: $saved", Toast.LENGTH_SHORT).show()
+        tvTarget.text = "${song.title} • ${song.artists}"
+        ivClose.setOnClickListener { dialog.dismiss() }
+
+        btnNewPlaylist.setOnClickListener {
             dialog.dismiss()
+            showCreatePlaylistDialog(songToAdd = song)
         }
 
-        btnReset.setOnClickListener {
-            val defaultUrl = appSettings.resetToDefault()
-            etBase.setText(defaultUrl)
-            Toast.makeText(this, "Reset to default: $defaultUrl", Toast.LENGTH_SHORT).show()
+        val playlists = playlistDbHelper.getAllPlaylists()
+        if (playlists.isEmpty()) {
+            tvEmptyNote.visibility = View.VISIBLE
+            tvHeader.visibility = View.GONE
+            rvPlaylists.visibility = View.GONE
+        } else {
+            tvEmptyNote.visibility = View.GONE
+            tvHeader.visibility = View.VISIBLE
+            rvPlaylists.visibility = View.VISIBLE
+            rvPlaylists.layoutManager = LinearLayoutManager(this)
+
+            val adapter = PlaylistAdapter(
+                onPlaylistSelected = { pl ->
+                    val added = playlistDbHelper.addSongToPlaylist(pl.id, song)
+                    if (added) {
+                        refreshCollectionData()
+                        Toast.makeText(this, "Added to '${pl.name}'", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(this, "Track is already in '${pl.name}'", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onPlaylistOptions = { pl ->
+                    showPlaylistDetailDialog(pl)
+                }
+            )
+            rvPlaylists.adapter = adapter
+            adapter.submitList(playlists)
         }
 
         dialog.show()
+    }
+
+    private fun openExploreSearch() {
+        bottomNavigation.selectedItemId = R.id.nav_search
+        containerSearch.post {
+            etSearchQuery.requestFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(etSearchQuery, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     override fun onStart() {

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="140dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        app:cardBackgroundColor="@color/surface_black"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/ivPlaylistCover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Playlist Artwork"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_library_music" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#22000000" />
+
+            <FrameLayout
+                android:id="@+id/btnPlaylistQuickPlay"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_play_circle_red"
+                android:elevation="4dp">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_play_arrow"
+                    app:tint="@color/white_primary" />
+            </FrameLayout>
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/tvPlaylistTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/youtube_sans_bold_font"
+        android:maxLines="1"
+        android:text="Playlist Title"
+        android:textColor="@color/white_primary"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tvPlaylistSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif"
+        android:maxLines="1"
+        android:text="Collection • Melody"
+        android:textColor="@color/muted_grey"
+        android:textSize="11sp" />
+
+</LinearLayout>

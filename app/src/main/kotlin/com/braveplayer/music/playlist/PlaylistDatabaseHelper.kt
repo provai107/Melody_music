@@ -23,6 +23,17 @@ data class PlayHistoryEntry(
     val isMeaningfulPlay: Boolean
 )
 
+data class SearchHistoryItem(
+    val id: Long = 0,
+    val queryText: String,
+    val title: String,
+    val subtitle: String,
+    val imageUrl: String? = null,
+    val contentType: String = "Song",
+    val songId: String? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 /**
  * SQLite persistence layer for user playlists, liked songs, and listening history.
  * Caps listening history growth to protect storage and maintain privacy strictly on-device.
@@ -32,7 +43,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "brave_playlists.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         // Playlists Table
         private const val TABLE_PLAYLISTS = "playlists"
@@ -98,7 +109,19 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_D_LOCAL_PATH = "local_path"
         private const val COL_D_DOWNLOADED_AT = "downloaded_at"
 
+        // Search History Table
+        private const val TABLE_SEARCH_HISTORY = "search_history"
+        private const val COL_SH_ID = "id"
+        private const val COL_SH_QUERY = "query_text"
+        private const val COL_SH_TITLE = "title"
+        private const val COL_SH_SUBTITLE = "subtitle"
+        private const val COL_SH_IMAGE_URL = "image_url"
+        private const val COL_SH_TYPE = "content_type"
+        private const val COL_SH_SONG_ID = "song_id"
+        private const val COL_SH_TIMESTAMP = "timestamp"
+
         const val MAX_HISTORY_ROWS = 500
+        const val MAX_SEARCH_HISTORY_ROWS = 50
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -135,6 +158,26 @@ class PlaylistDatabaseHelper(context: Context) :
         createLikedSongsTable(db)
         createHistoryTable(db)
         createDownloadedSongsTable(db)
+        createSearchHistoryTable(db)
+    }
+
+    private fun createSearchHistoryTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_SEARCH_HISTORY (
+                $COL_SH_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_SH_QUERY TEXT NOT NULL,
+                $COL_SH_TITLE TEXT NOT NULL,
+                $COL_SH_SUBTITLE TEXT NOT NULL,
+                $COL_SH_IMAGE_URL TEXT,
+                $COL_SH_TYPE TEXT NOT NULL,
+                $COL_SH_SONG_ID TEXT,
+                $COL_SH_TIMESTAMP INTEGER NOT NULL
+            );
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_timestamp ON $TABLE_SEARCH_HISTORY($COL_SH_TIMESTAMP DESC);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_query ON $TABLE_SEARCH_HISTORY($COL_SH_QUERY);")
     }
 
     private fun createLikedSongsTable(db: SQLiteDatabase) {
@@ -207,6 +250,9 @@ class PlaylistDatabaseHelper(context: Context) :
         }
         if (oldVersion < 3) {
             createDownloadedSongsTable(db)
+        }
+        if (oldVersion < 4) {
+            createSearchHistoryTable(db)
         }
     }
 
@@ -661,6 +707,43 @@ class PlaylistDatabaseHelper(context: Context) :
         return db.insertWithOnConflict(TABLE_DOWNLOADED, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
+    fun getDownloadedSong(songId: String): Song? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_DOWNLOADED,
+            null,
+            "$COL_D_SONG_ID = ?",
+            arrayOf(songId),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                val idxId = it.getColumnIndexOrThrow(COL_D_SONG_ID)
+                val idxTitle = it.getColumnIndexOrThrow(COL_D_TITLE)
+                val idxArtists = it.getColumnIndexOrThrow(COL_D_ARTISTS)
+                val idxAlbum = it.getColumnIndexOrThrow(COL_D_ALBUM)
+                val idxImage = it.getColumnIndexOrThrow(COL_D_IMAGE_URL)
+                val idxDuration = it.getColumnIndexOrThrow(COL_D_DURATION)
+                val idxPath = it.getColumnIndexOrThrow(COL_D_LOCAL_PATH)
+                val localPath = it.getString(idxPath)
+                return Song(
+                    id = it.getString(idxId),
+                    title = it.getString(idxTitle),
+                    artists = it.getString(idxArtists),
+                    album = it.getString(idxAlbum),
+                    imageUrl = it.getString(idxImage),
+                    durationSec = it.getInt(idxDuration),
+                    mediaUrl = localPath,
+                    mediaUrlDefault = localPath,
+                    previewUrl = null
+                )
+            }
+        }
+        return null
+    }
+
     fun isSongDownloaded(songId: String): Boolean {
         val db = readableDatabase
         val cursor = db.query(
@@ -675,6 +758,13 @@ class PlaylistDatabaseHelper(context: Context) :
         cursor.use {
             return it.moveToFirst()
         }
+    }
+
+    fun isDownloadedFileAvailableOnDisk(songId: String): Boolean {
+        val song = getDownloadedSong(songId) ?: return false
+        val path = song.mediaUrl ?: return false
+        val file = java.io.File(path)
+        return file.exists() && file.length() > 0
     }
 
     fun getAllDownloadedSongs(): List<Song> {
@@ -721,5 +811,111 @@ class PlaylistDatabaseHelper(context: Context) :
     fun deleteDownloadedSong(songId: String): Boolean {
         val db = writableDatabase
         return db.delete(TABLE_DOWNLOADED, "$COL_D_SONG_ID = ?", arrayOf(songId)) > 0
+    }
+
+    // ==========================================
+    // Search History Operations
+    // ==========================================
+
+    fun recordSearchHistory(item: SearchHistoryItem): Long {
+        val trimmedQuery = item.queryText.trim()
+        val trimmedTitle = item.title.trim()
+        if (trimmedQuery.isEmpty() && trimmedTitle.isEmpty()) return -1L
+
+        val db = writableDatabase
+        // Deduplicate: if an entry with the same query or songId exists, remove the previous record
+        if (!item.songId.isNullOrBlank()) {
+            db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_SONG_ID = ?", arrayOf(item.songId))
+        } else {
+            db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_QUERY = ? OR $COL_SH_TITLE = ?", arrayOf(trimmedQuery, trimmedTitle))
+        }
+
+        val values = ContentValues().apply {
+            put(COL_SH_QUERY, trimmedQuery)
+            put(COL_SH_TITLE, trimmedTitle)
+            put(COL_SH_SUBTITLE, item.subtitle)
+            put(COL_SH_IMAGE_URL, item.imageUrl)
+            put(COL_SH_TYPE, item.contentType)
+            put(COL_SH_SONG_ID, item.songId)
+            put(COL_SH_TIMESTAMP, System.currentTimeMillis())
+        }
+        val insertedId = db.insert(TABLE_SEARCH_HISTORY, null, values)
+
+        // Prune older history beyond MAX_SEARCH_HISTORY_ROWS
+        db.execSQL(
+            """
+            DELETE FROM $TABLE_SEARCH_HISTORY
+            WHERE $COL_SH_ID NOT IN (
+                SELECT $COL_SH_ID FROM $TABLE_SEARCH_HISTORY
+                ORDER BY $COL_SH_TIMESTAMP DESC
+                LIMIT $MAX_SEARCH_HISTORY_ROWS
+            );
+            """.trimIndent()
+        )
+        return insertedId
+    }
+
+    fun recordSongSearch(song: Song): Long {
+        return recordSearchHistory(
+            SearchHistoryItem(
+                queryText = song.title,
+                title = song.title,
+                subtitle = "Song • ${song.artists}",
+                imageUrl = song.imageUrl,
+                contentType = "Song",
+                songId = song.id
+            )
+        )
+    }
+
+    fun getRecentSearches(limit: Int = 10): List<SearchHistoryItem> {
+        val list = mutableListOf<SearchHistoryItem>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_SEARCH_HISTORY,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COL_SH_TIMESTAMP DESC",
+            limit.toString()
+        )
+        cursor.use {
+            val idxId = it.getColumnIndexOrThrow(COL_SH_ID)
+            val idxQuery = it.getColumnIndexOrThrow(COL_SH_QUERY)
+            val idxTitle = it.getColumnIndexOrThrow(COL_SH_TITLE)
+            val idxSub = it.getColumnIndexOrThrow(COL_SH_SUBTITLE)
+            val idxImg = it.getColumnIndexOrThrow(COL_SH_IMAGE_URL)
+            val idxType = it.getColumnIndexOrThrow(COL_SH_TYPE)
+            val idxSongId = it.getColumnIndexOrThrow(COL_SH_SONG_ID)
+            val idxTime = it.getColumnIndexOrThrow(COL_SH_TIMESTAMP)
+
+            while (it.moveToNext()) {
+                list.add(
+                    SearchHistoryItem(
+                        id = it.getLong(idxId),
+                        queryText = it.getString(idxQuery),
+                        title = it.getString(idxTitle),
+                        subtitle = it.getString(idxSub),
+                        imageUrl = it.getString(idxImg),
+                        contentType = it.getString(idxType),
+                        songId = it.getString(idxSongId),
+                        timestamp = it.getLong(idxTime)
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun removeSearchHistoryItem(id: Long): Boolean {
+        val db = writableDatabase
+        return db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_ID = ?", arrayOf(id.toString())) > 0
+    }
+
+    fun clearSearchHistory() {
+        val db = writableDatabase
+        db.delete(TABLE_SEARCH_HISTORY, null, null)
     }
 }

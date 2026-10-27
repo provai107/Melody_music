@@ -77,10 +77,20 @@ class PlaybackService : MediaSessionService() {
 
         createNotificationChannel()
 
+        // Clean any audio streaming cache on startup to prevent disk storage growth
+        com.braveplayer.music.util.NetworkUtils.clearAudioStreamingCache(this)
+
         val upstreamFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(10000)
             .setReadTimeoutMs(10000)
+            .setDefaultRequestProperties(
+                mapOf(
+                    "Cache-Control" to "no-cache, no-store, must-revalidate",
+                    "Pragma" to "no-cache",
+                    "Expires" to "0"
+                )
+            )
 
         val braveDataSourceFactory = BraveMedia3HttpDataSource.Factory(
             upstreamFactory = upstreamFactory,
@@ -242,28 +252,43 @@ class PlaybackService : MediaSessionService() {
                     recommendations = (recommendations + onlineCandidates).distinctBy { it.id }
                 }
 
-                // Resilient local fallback: If online recommendations fail or offline, pull from liked tracks or history
+                // Resilient fallback: If device is offline, only provide downloaded tracks.
+                // When online, pull from user liked tracks or history to maintain continuous taste-based playback.
                 if (recommendations.isEmpty()) {
-                    var localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
-                        .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
-                        .distinctBy { it.id }
-                        .shuffled()
-                        .take(8)
-
-                    // If all local songs were already queued, recycle them so infinite playback never halts
-                    if (localCandidates.isEmpty()) {
-                        extendedTrackIds.clear()
-                        localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                    if (!com.braveplayer.music.util.NetworkUtils.isOnline(this@PlaybackService)) {
+                        val downloadedCandidates = playlistDbHelper.getAllDownloadedSongs()
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
+                            .shuffled()
+                            .take(8)
+                        recommendations = downloadedCandidates
+                    } else {
+                        var localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
                             .distinctBy { it.id }
                             .shuffled()
                             .take(8)
+
+                        // If all local songs were already queued, recycle them so infinite playback never halts
+                        if (localCandidates.isEmpty()) {
+                            extendedTrackIds.clear()
+                            localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                                .distinctBy { it.id }
+                                .shuffled()
+                                .take(8)
+                        }
+                        recommendations = localCandidates
                     }
-                    recommendations = localCandidates
                 }
 
                 if (recommendations.isNotEmpty()) {
                     extendedTrackIds.addAll(recommendations.map { it.id })
-                    val newMediaItems = recommendations.map { SongMediaItemMapper.toMediaItem(it) }
+                    val newMediaItems = recommendations.map {
+                        SongMediaItemMapper.toMediaItem(
+                            song = it,
+                            origin = SongMediaItemMapper.ORIGIN_AUTOPLAY,
+                            contextName = "Similar to ${seedSong.title}"
+                        )
+                    }
 
                     val previousCount = exoPlayer.mediaItemCount
                     exoPlayer.addMediaItems(newMediaItems)

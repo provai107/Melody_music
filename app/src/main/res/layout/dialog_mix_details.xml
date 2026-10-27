@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutMixDetailsSheet"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ytm_surface_dark"
+    android:orientation="vertical"
+    android:paddingTop="8dp">
+
+    <!-- Top Drag Handle -->
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="Drag Handle"
+        android:src="@drawable/single_bar_drag_handle" />
+
+    <!-- Top Bar with Close Chevron -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp">
+
+        <ImageView
+            android:id="@+id/ivCloseMixDetails"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:padding="6dp"
+            android:src="@drawable/ic_ytm_chevron_down"
+            app:tint="@color/ytm_icon_active" />
+
+        <TextView
+            android:id="@+id/tvMixBadgeHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:fontFamily="sans-serif-bold"
+            android:letterSpacing="0.08"
+            android:text="PERSONALIZED MIX"
+            android:textColor="@color/ytm_text_secondary"
+            android:textSize="11sp" />
+    </RelativeLayout>
+
+    <!-- Hero Mix Header Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/tvMixDetailTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:text="Daily Mix 1"
+            android:textColor="@color/ytm_text_primary"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/tvMixDetailSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Based on your favorite listening"
+            android:textColor="@color/ytm_red"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvMixDetailDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif"
+            android:text="A personalized session curated from your top listened artists and history."
+            android:textColor="@color/ytm_text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvMixDetailTrackCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="sans-serif"
+            android:text="20 tracks"
+            android:textColor="@color/ytm_text_tertiary"
+            android:textSize="11sp" />
+
+        <!-- Action Buttons Row (Play, Shuffle, Save as Playlist) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPlayMixAction"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:backgroundTint="@color/white"
+                android:fontFamily="sans-serif-medium"
+                android:text="▶ Play"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnShuffleMixAction"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/ytm_surface_card"
+                android:fontFamily="sans-serif-medium"
+                android:text="🔀 Shuffle"
+                android:textColor="@color/ytm_text_primary"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnSaveMixAction"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/ytm_surface_card"
+                android:fontFamily="sans-serif-medium"
+                android:text="💾 Save"
+                android:textColor="@color/ytm_text_primary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/ytm_divider" />
+
+    <!-- Tracks RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMixTracksList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp" />
+
+</LinearLayout>

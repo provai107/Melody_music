@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?android:attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="16dp"
-    android:paddingTop="10dp"
+    android:paddingTop="8dp"
     android:paddingEnd="12dp"
-    android:paddingBottom="10dp">
+    android:paddingBottom="8dp">
 
     <!-- Track Album Cover -->
     <androidx.cardview.widget.CardView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        app:cardBackgroundColor="@color/tidal_surface_card"
-        app:cardCornerRadius="6dp"
+        app:cardBackgroundColor="@color/ytm_surface_dark"
+        app:cardCornerRadius="4dp"
         app:cardElevation="0dp">
 
         <ImageView
@@ -42,16 +42,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="@font/youtube_sans_bold_font"
             android:maxLines="1"
             android:text="Song Title"
-            android:textColor="@color/tidal_text_primary"
+            android:textColor="@color/ytm_text_primary"
             android:textSize="15sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -66,8 +66,8 @@
                 android:paddingTop="1dp"
                 android:paddingEnd="4dp"
                 android:paddingBottom="1dp"
-                android:text="HI-FI"
-                android:textColor="@color/tidal_badge_text"
+                android:text="320K"
+                android:textColor="@color/ytm_text_secondary"
                 android:textSize="8sp" />
 
             <TextView
@@ -78,7 +78,7 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text="Artist Name"
-                android:textColor="@color/tidal_text_secondary"
+                android:textColor="@color/ytm_text_secondary"
                 android:textSize="13sp" />
 
             <TextView
@@ -89,7 +89,7 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text=""
-                android:textColor="@color/tidal_text_tertiary"
+                android:textColor="@color/ytm_text_tertiary"
                 android:textSize="11sp"
                 android:visibility="gone" />
         </LinearLayout>
@@ -103,7 +103,7 @@
         android:layout_marginEnd="6dp"
         android:fontFamily="sans-serif"
         android:text="3:45"
-        android:textColor="@color/tidal_text_secondary"
+        android:textColor="@color/ytm_text_secondary"
         android:textSize="12sp" />
 
     <!-- Like Action Button -->
@@ -114,7 +114,8 @@
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Like Song"
         android:padding="7dp"
-        android:src="@drawable/ic_heart_outline" />
+        android:src="@drawable/ic_ytm_thumb_up_outline"
+        app:tint="@color/ytm_icon_inactive" />
 
     <!-- Context Menu / Add to Queue Button -->
     <ImageView
@@ -124,6 +125,7 @@
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Song Options"
         android:padding="6dp"
-        android:src="@drawable/ic_more_vert" />
+        android:src="@drawable/ic_ytm_overflow"
+        app:tint="@color/ytm_icon_inactive" />
 
 </LinearLayout>
