@@ -33,7 +33,7 @@
             android:contentDescription="Close"
             android:padding="6dp"
             android:src="@drawable/ic_close"
-            app:tint="@color/white_primary" />
+            app:tint="@color/textPrimary" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -50,7 +50,7 @@
                 android:fontFamily="@font/youtube_sans_bold_font"
                 android:maxLines="1"
                 android:text="Collection Title"
-                android:textColor="@color/white_primary"
+                android:textColor="@color/textPrimary"
                 android:textSize="18sp" />
 
             <TextView
@@ -60,7 +60,7 @@
                 android:layout_marginTop="2dp"
                 android:fontFamily="sans-serif"
                 android:text="0 tracks"
-                android:textColor="@color/muted_grey"
+                android:textColor="@color/textSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -75,7 +75,7 @@
             android:padding="7dp"
             android:src="@drawable/ic_delete"
             android:visibility="gone"
-            app:tint="@color/youtube_red" />
+            app:tint="@color/accentPrimary" />
     </RelativeLayout>
 
     <!-- Action Buttons Row -->
@@ -95,10 +95,10 @@
             android:layout_height="40dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/youtube_red"
+            android:backgroundTint="@color/accentPrimary"
             android:fontFamily="sans-serif-bold"
             android:text="▶  Play All"
-            android:textColor="@color/white_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="13sp" />
 
         <Button
@@ -108,10 +108,10 @@
             android:layout_height="40dp"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/card_red_tint_surface"
+            android:backgroundTint="@color/surfaceElevated"
             android:fontFamily="sans-serif-bold"
             android:text="🔀  Shuffle"
-            android:textColor="@color/white_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="13sp" />
     </LinearLayout>
 
@@ -120,7 +120,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="12dp"
         android:layout_marginBottom="4dp"
-        android:background="@color/border_grey" />
+        android:background="@color/borderSubtle" />
 
     <!-- Content Frame -->
     <FrameLayout
@@ -151,7 +151,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:src="@drawable/ic_library_music"
-                app:tint="@color/muted_grey" />
+                app:tint="@color/textSecondary" />
 
             <TextView
                 android:id="@+id/tvCollectionEmptyTitle"
@@ -160,7 +160,7 @@
                 android:layout_marginTop="14dp"
                 android:fontFamily="@font/youtube_sans_bold_font"
                 android:text="No tracks found"
-                android:textColor="@color/white_primary"
+                android:textColor="@color/textPrimary"
                 android:textSize="18sp" />
 
             <TextView
@@ -171,7 +171,7 @@
                 android:gravity="center"
                 android:fontFamily="sans-serif"
                 android:text="Add songs to enjoy them here."
-                android:textColor="@color/muted_grey"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp" />
         </LinearLayout>
 

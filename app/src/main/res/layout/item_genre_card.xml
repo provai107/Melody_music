@@ -25,7 +25,7 @@
         android:fontFamily="@font/youtube_sans_bold_font"
         android:maxLines="1"
         android:text="Pop"
-        android:textColor="@color/ytm_text_primary"
+        android:textColor="@color/textPrimary"
         android:textSize="14sp" />
 
     <TextView
@@ -36,6 +36,6 @@
         android:fontFamily="sans-serif"
         android:maxLines="1"
         android:text="Top Hits"
-        android:textColor="@color/ytm_text_secondary"
+        android:textColor="@color/textSecondary"
         android:textSize="10sp" />
 </LinearLayout>

@@ -4,7 +4,7 @@
     android:id="@+id/layoutMixDetailsSheet"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/ytm_surface_dark"
+    android:background="@drawable/bg_now_playing_sheet"
     android:orientation="vertical"
     android:paddingTop="8dp">
 
@@ -34,7 +34,7 @@
             android:contentDescription="Close"
             android:padding="6dp"
             android:src="@drawable/ic_ytm_chevron_down"
-            app:tint="@color/ytm_icon_active" />
+            app:tint="@color/textPrimary" />
 
         <TextView
             android:id="@+id/tvMixBadgeHeader"
@@ -44,7 +44,7 @@
             android:fontFamily="sans-serif-bold"
             android:letterSpacing="0.08"
             android:text="PERSONALIZED MIX"
-            android:textColor="@color/ytm_text_secondary"
+            android:textColor="@color/textSecondary"
             android:textSize="11sp" />
     </RelativeLayout>
 
@@ -64,7 +64,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/youtube_sans_bold_font"
             android:text="Daily Mix 1"
-            android:textColor="@color/ytm_text_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="24sp" />
 
         <TextView
@@ -74,7 +74,7 @@
             android:layout_marginTop="2dp"
             android:fontFamily="sans-serif-medium"
             android:text="Based on your favorite listening"
-            android:textColor="@color/ytm_red"
+            android:textColor="@color/accentPrimary"
             android:textSize="13sp" />
 
         <TextView
@@ -84,7 +84,7 @@
             android:layout_marginTop="4dp"
             android:fontFamily="sans-serif"
             android:text="A personalized session curated from your top listened artists and history."
-            android:textColor="@color/ytm_text_secondary"
+            android:textColor="@color/textSecondary"
             android:textSize="12sp" />
 
         <TextView
@@ -94,7 +94,7 @@
             android:layout_marginTop="6dp"
             android:fontFamily="sans-serif"
             android:text="20 tracks"
-            android:textColor="@color/ytm_text_tertiary"
+            android:textColor="@color/textDisabled"
             android:textSize="11sp" />
 
         <!-- Action Buttons Row (Play, Shuffle, Save as Playlist) -->
@@ -110,10 +110,10 @@
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/accentPrimary"
                 android:fontFamily="sans-serif-medium"
                 android:text="▶ Play"
-                android:textColor="@color/black"
+                android:textColor="@color/textPrimary"
                 android:textSize="12sp" />
 
             <Button
@@ -122,10 +122,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:backgroundTint="@color/ytm_surface_card"
+                android:backgroundTint="@color/surfaceElevated"
                 android:fontFamily="sans-serif-medium"
                 android:text="🔀 Shuffle"
-                android:textColor="@color/ytm_text_primary"
+                android:textColor="@color/textPrimary"
                 android:textSize="12sp" />
 
             <Button
@@ -134,10 +134,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:backgroundTint="@color/ytm_surface_card"
+                android:backgroundTint="@color/surfaceElevated"
                 android:fontFamily="sans-serif-medium"
                 android:text="💾 Save"
-                android:textColor="@color/ytm_text_primary"
+                android:textColor="@color/textPrimary"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
@@ -145,7 +145,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/ytm_divider" />
+        android:background="@color/borderSubtle" />
 
     <!-- Tracks RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView

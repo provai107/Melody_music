@@ -1,51 +1,58 @@
 <resources>
-    <!-- Base Application Theme: YouTube Music True Dark Theme with Glow Gradient -->
+    <!-- Base Application Theme: Melody Minimal Dark Theme -->
     <style name="Theme.BraveMusicPlayer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/youtube_red</item>
-        <item name="colorPrimaryVariant">@color/surface_black</item>
-        <item name="colorOnPrimary">@color/white_primary</item>
-        <item name="colorSecondary">@color/youtube_red</item>
-        <item name="colorSecondaryVariant">@color/youtube_red</item>
-        <item name="colorOnSecondary">@color/white_primary</item>
-        <item name="android:colorBackground">@color/deep_black</item>
-        <item name="android:statusBarColor">@color/ytm_bg_top_glow</item>
-        <item name="android:navigationBarColor">@color/surface_black</item>
+        <item name="colorPrimary">@color/accentPrimary</item>
+        <item name="colorPrimaryVariant">@color/surfaceCard</item>
+        <item name="colorOnPrimary">@color/textPrimary</item>
+        <item name="colorSecondary">@color/accentPrimary</item>
+        <item name="colorSecondaryVariant">@color/accentPressed</item>
+        <item name="colorOnSecondary">@color/textPrimary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowBackground">@drawable/bg_ytm_gradient</item>
-        <item name="bottomSheetDialogTheme">@style/YtmBottomSheetDialogTheme</item>
+        <item name="bottomSheetDialogTheme">@style/MelodyBottomSheetDialogTheme</item>
     </style>
 
-    <style name="YtmBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/YtmBottomSheetStyle</item>
+    <style name="MelodyBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/MelodyBottomSheetStyle</item>
         <item name="android:windowIsFloating">false</item>
-        <item name="android:navigationBarColor">@color/surface_black</item>
+        <item name="android:navigationBarColor">@color/background</item>
     </style>
 
-    <style name="YtmBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
+    <style name="MelodyBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
     </style>
 
     <!-- Legacy Style Aliases for Seamless Backward Compatibility -->
-    <style name="TidalBottomSheetDialogTheme" parent="YtmBottomSheetDialogTheme" />
-    <style name="TidalBottomSheetStyle" parent="YtmBottomSheetStyle" />
+    <style name="YtmBottomSheetDialogTheme" parent="MelodyBottomSheetDialogTheme" />
+    <style name="YtmBottomSheetStyle" parent="MelodyBottomSheetStyle" />
+    <style name="TidalBottomSheetDialogTheme" parent="MelodyBottomSheetDialogTheme" />
+    <style name="TidalBottomSheetStyle" parent="MelodyBottomSheetStyle" />
 
-    <!-- YouTube Music Typography Styles -->
-    <style name="TextAppearance.YTM.DisplayTitle" parent="TextAppearance.MaterialComponents.Headline6">
+    <!-- Melody Typography Styles -->
+    <style name="TextAppearance.Melody.DisplayTitle" parent="TextAppearance.MaterialComponents.Headline6">
         <item name="fontFamily">@font/youtube_sans_bold_font</item>
-        <item name="android:textColor">@color/white_primary</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">22sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.YTM.SectionHeader" parent="TextAppearance.MaterialComponents.Subtitle1">
+    <style name="TextAppearance.Melody.SectionHeader" parent="TextAppearance.MaterialComponents.Subtitle1">
         <item name="fontFamily">@font/youtube_sans_bold_font</item>
-        <item name="android:textColor">@color/white_primary</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">19sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.YTM.Subheading" parent="TextAppearance.MaterialComponents.Caption">
-        <item name="android:textColor">@color/muted_grey</item>
+    <style name="TextAppearance.Melody.Subheading" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/textSecondary</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:letterSpacing">0.05</item>
+        <item name="android:letterSpacing">0.03</item>
     </style>
+
+    <!-- Aliases for previous YTM references -->
+    <style name="TextAppearance.YTM.DisplayTitle" parent="TextAppearance.Melody.DisplayTitle" />
+    <style name="TextAppearance.YTM.SectionHeader" parent="TextAppearance.Melody.SectionHeader" />
+    <style name="TextAppearance.YTM.Subheading" parent="TextAppearance.Melody.Subheading" />
 </resources>

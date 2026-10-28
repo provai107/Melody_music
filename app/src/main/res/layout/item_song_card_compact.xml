@@ -16,7 +16,7 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:cardBackgroundColor="@color/surface_black"
+            app:cardBackgroundColor="@color/surfaceCard"
             app:cardCornerRadius="8dp"
             app:cardElevation="0dp">
 
@@ -48,7 +48,7 @@
                 android:layout_height="16dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_play_arrow"
-                app:tint="@color/white_primary" />
+                app:tint="@color/textPrimary" />
         </FrameLayout>
 
         <!-- Optional Origin / Ranking Badge (Top-Left) -->
@@ -65,7 +65,7 @@
             android:paddingTop="2dp"
             android:paddingEnd="5dp"
             android:paddingBottom="2dp"
-            android:textColor="@color/white_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="9sp"
             android:visibility="gone" />
     </RelativeLayout>
@@ -80,7 +80,7 @@
         android:fontFamily="@font/youtube_sans_bold_font"
         android:maxLines="1"
         android:text="Track Title"
-        android:textColor="@color/white_primary"
+        android:textColor="@color/textPrimary"
         android:textSize="13sp" />
 
     <!-- Artist Subtitle Row with Optional 3-Dot Options Button -->
@@ -100,7 +100,7 @@
             android:fontFamily="sans-serif"
             android:maxLines="1"
             android:text="Artist Name"
-            android:textColor="@color/muted_grey"
+            android:textColor="@color/textSecondary"
             android:textSize="11sp" />
 
         <ImageView
@@ -113,7 +113,7 @@
             android:contentDescription="Track Options"
             android:padding="2dp"
             android:src="@drawable/ic_more_vert"
-            app:tint="@color/light_grey_inactive" />
+            app:tint="@color/textSecondary" />
     </RelativeLayout>
 
 </LinearLayout>

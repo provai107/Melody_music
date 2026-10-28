@@ -28,8 +28,8 @@
         <androidx.cardview.widget.CardView
             android:layout_width="44dp"
             android:layout_height="44dp"
-            app:cardBackgroundColor="@color/ytm_surface_dark"
-            app:cardCornerRadius="4dp"
+            app:cardBackgroundColor="@color/surfaceCard"
+            app:cardCornerRadius="6dp"
             app:cardElevation="0dp">
 
             <ImageView
@@ -59,7 +59,7 @@
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
                 android:text="Track Title"
-                android:textColor="@color/ytm_text_primary"
+                android:textColor="@color/textPrimary"
                 android:textSize="14sp" />
 
             <TextView
@@ -71,7 +71,7 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text="Artist"
-                android:textColor="@color/ytm_text_secondary"
+                android:textColor="@color/textSecondary"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -84,7 +84,7 @@
             android:contentDescription="Like Track"
             android:padding="7dp"
             android:src="@drawable/ic_ytm_thumb_up_outline"
-            app:tint="@color/ytm_icon_active" />
+            app:tint="@color/textSecondary" />
 
         <!-- Quick Play / Pause -->
         <ImageView
@@ -95,7 +95,7 @@
             android:contentDescription="Play/Pause"
             android:padding="6dp"
             android:src="@drawable/ic_ytm_play"
-            app:tint="@color/ytm_icon_active" />
+            app:tint="@color/textPrimary" />
 
         <!-- Quick Skip Next -->
         <ImageView
@@ -106,11 +106,11 @@
             android:contentDescription="Next Track"
             android:padding="6dp"
             android:src="@drawable/ic_ytm_skip_next"
-            app:tint="@color/ytm_icon_active" />
+            app:tint="@color/textSecondary" />
 
     </LinearLayout>
 
-    <!-- Bottom Progress Indicator Line (YouTube Music style) -->
+    <!-- Bottom Progress Indicator Line -->
     <ProgressBar
         android:id="@+id/pbMiniProgress"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
@@ -118,7 +118,7 @@
         android:layout_height="2dp"
         android:max="1000"
         android:progress="0"
-        android:progressBackgroundTint="@color/progress_track_grey"
-        android:progressTint="@color/ytm_red" />
+        android:progressBackgroundTint="@color/progressTrack"
+        android:progressTint="@color/accentPrimary" />
 
 </LinearLayout>
