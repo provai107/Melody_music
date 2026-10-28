@@ -4,3 +4,4 @@ build/
 *.iml
 .venv/
 .vscode/
+local.properties
