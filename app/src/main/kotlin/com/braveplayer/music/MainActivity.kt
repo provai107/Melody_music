@@ -825,6 +825,9 @@ class MainActivity : AppCompatActivity() {
             val newEnabled = !appSettings.isAutoplayEnabled()
             appSettings.setAutoplayEnabled(newEnabled)
             updateAutoplayDisplay()
+            if (newEnabled) {
+                triggerAutoplayCheck()
+            }
             val text = if (newEnabled) "Autoplay enabled" else "Autoplay disabled"
             Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
         }
@@ -1216,6 +1219,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun triggerAutoplayCheck() {
+        try {
+            val bundle = android.os.Bundle()
+            mediaController?.sendCustomCommand(
+                androidx.media3.session.SessionCommand(PlaybackService.COMMAND_EXTEND_AUTOPLAY, bundle),
+                bundle
+            )
+        } catch (_: Exception) {}
+    }
+
     private fun playSongNow(song: Song) {
         val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
         val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
@@ -1251,6 +1264,9 @@ class MainActivity : AppCompatActivity() {
             controller.setMediaItem(mediaItem)
             controller.prepare()
             controller.play()
+            if (appSettings.isAutoplayEnabled()) {
+                triggerAutoplayCheck()
+            }
         }
     }
 
@@ -2470,6 +2486,9 @@ class MainActivity : AppCompatActivity() {
         switchAutoplay.setOnCheckedChangeListener { _, isChecked ->
             appSettings.setAutoplayEnabled(isChecked)
             updateAutoplayDisplay()
+            if (isChecked) {
+                triggerAutoplayCheck()
+            }
         }
 
         switchSmartShuffle.setOnCheckedChangeListener { _, isChecked ->

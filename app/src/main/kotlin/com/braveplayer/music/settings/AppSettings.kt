@@ -10,9 +10,9 @@ import android.content.SharedPreferences
 class AppSettings(context: Context) {
 
     companion object {
-        private const val PREFS_NAME = "brave_music_settings"
+        const val PREFS_NAME = "brave_music_settings"
         private const val KEY_BASE_URL = "backend_base_url"
-        private const val KEY_AUTOPLAY = "autoplay_enabled"
+        const val KEY_AUTOPLAY = "autoplay_enabled"
         private const val KEY_SMART_SHUFFLE = "smart_shuffle_enabled"
         private const val KEY_SHUFFLE_MODE = "shuffle_mode"
         private const val KEY_PERSONALIZATION = "personalization_enabled"

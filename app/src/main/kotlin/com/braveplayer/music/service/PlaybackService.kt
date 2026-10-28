@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -17,6 +18,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.braveplayer.music.MainActivity
 import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.media.BraveMedia3HttpDataSource
@@ -30,9 +33,13 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Media3 MediaSessionService managing background playback, ExoPlayer ownership,
@@ -44,6 +51,7 @@ class PlaybackService : MediaSessionService() {
     companion object {
         const val CHANNEL_ID = "brave_playback_channel"
         const val NOTIFICATION_ID = 1001
+        const val COMMAND_EXTEND_AUTOPLAY = "com.braveplayer.music.EXTEND_AUTOPLAY"
     }
 
     private var player: ExoPlayer? = null
@@ -63,7 +71,9 @@ class PlaybackService : MediaSessionService() {
     private var hasEverStartedPlayback: Boolean = false
     private var isExtendingQueue: Boolean = false
     private val failedTrackIds = mutableSetOf<String>()
-    private val extendedTrackIds = mutableSetOf<String>()
+    private val recentExtendedIds = LinkedHashSet<String>()
+    private var autoplayWatchdogJob: Job? = null
+    private var prefsChangeListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -118,6 +128,21 @@ class PlaybackService : MediaSessionService() {
                     if (currentTrackStartTimeMs == 0L) {
                         currentTrackStartTimeMs = System.currentTimeMillis()
                     }
+                    checkAndExtendQueueIfNeeded(exoPlayer)
+                }
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (playWhenReady) {
+                    hasEverStartedPlayback = true
+                    checkAndExtendQueueIfNeeded(exoPlayer)
+                }
+            }
+
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                if (exoPlayer.playWhenReady || exoPlayer.isPlaying) {
+                    hasEverStartedPlayback = true
+                    checkAndExtendQueueIfNeeded(exoPlayer)
                 }
             }
 
@@ -128,9 +153,13 @@ class PlaybackService : MediaSessionService() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 persistCurrentQueueState(exoPlayer)
 
+                if (exoPlayer.playWhenReady || exoPlayer.isPlaying) {
+                    hasEverStartedPlayback = true
+                }
+
                 if (playbackState == Player.STATE_ENDED) {
                     recordCurrentTrackHistory(isPlaybackEnded = true)
-                    checkAndExtendQueueIfNeeded(exoPlayer)
+                    checkAndExtendQueueIfNeeded(exoPlayer, force = true)
                 } else if (playbackState == Player.STATE_READY && exoPlayer.playWhenReady) {
                     checkAndExtendQueueIfNeeded(exoPlayer)
                 }
@@ -143,6 +172,10 @@ class PlaybackService : MediaSessionService() {
                 // Update current track tracking
                 currentPlayingSong = mediaItem?.let { SongMediaItemMapper.fromMediaItem(it) }
                 currentTrackStartTimeMs = if (exoPlayer.isPlaying) System.currentTimeMillis() else 0L
+
+                if (exoPlayer.playWhenReady || exoPlayer.isPlaying) {
+                    hasEverStartedPlayback = true
+                }
 
                 persistCurrentQueueState(exoPlayer)
                 checkAndExtendQueueIfNeeded(exoPlayer)
@@ -175,6 +208,42 @@ class PlaybackService : MediaSessionService() {
 
         // Restore persisted queue state without auto-playing loudly
         restorePersistedQueue(exoPlayer)
+
+        // Listen for preference changes so toggling Autoplay in UI triggers check immediately
+        prefsChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == AppSettings.KEY_AUTOPLAY && appSettings.isAutoplayEnabled()) {
+                player?.let { exo ->
+                    checkAndExtendQueueIfNeeded(exo, force = true)
+                }
+            }
+        }
+        getSharedPreferences(AppSettings.PREFS_NAME, Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(prefsChangeListener)
+
+        // Start background watchdog to ensure queue never runs out of upcoming tracks
+        startAutoplayWatchdog()
+    }
+
+    private fun startAutoplayWatchdog() {
+        autoplayWatchdogJob?.cancel()
+        autoplayWatchdogJob = serviceScope.launch {
+            while (isActive) {
+                delay(12_000L) // Proactive check every 12 seconds
+                player?.let { exo ->
+                    if ((exo.isPlaying || exo.playWhenReady) && appSettings.isAutoplayEnabled()) {
+                        checkAndExtendQueueIfNeeded(exo)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun recordExtendedIds(ids: Collection<String>) {
+        recentExtendedIds.addAll(ids)
+        while (recentExtendedIds.size > 30) {
+            val first = recentExtendedIds.iterator().next()
+            recentExtendedIds.remove(first)
+        }
     }
 
     private fun recordCurrentTrackHistory(isPlaybackEnded: Boolean) {
@@ -201,9 +270,12 @@ class PlaybackService : MediaSessionService() {
         currentTrackStartTimeMs = 0L
     }
 
-    private fun checkAndExtendQueueIfNeeded(exoPlayer: ExoPlayer) {
+    private fun checkAndExtendQueueIfNeeded(exoPlayer: ExoPlayer, force: Boolean = false) {
         if (!appSettings.isAutoplayEnabled()) return
-        if (!hasEverStartedPlayback) return // Never autoplay just on app launch / boot
+        if (exoPlayer.playWhenReady || exoPlayer.isPlaying) {
+            hasEverStartedPlayback = true
+        }
+        if (!hasEverStartedPlayback) return // Never autoplay just on app launch / boot before playback
         if (exoPlayer.mediaItemCount == 0) return
         if (exoPlayer.repeatMode != Player.REPEAT_MODE_OFF) return // Do not extend if user requested loop
         if (isExtendingQueue) return
@@ -211,7 +283,8 @@ class PlaybackService : MediaSessionService() {
         val currentIndex = exoPlayer.currentMediaItemIndex
         val totalCount = exoPlayer.mediaItemCount
         val remainingTracks = (totalCount - 1 - currentIndex).coerceAtLeast(0)
-        val isNearEnd = remainingTracks < 4 || exoPlayer.playbackState == Player.STATE_ENDED
+        // Proactively extend when 3 or fewer tracks remain, playback ended, or force requested
+        val isNearEnd = remainingTracks <= 3 || exoPlayer.playbackState == Player.STATE_ENDED || force
 
         if (!isNearEnd) return
 
@@ -226,69 +299,117 @@ class PlaybackService : MediaSessionService() {
                 val hiddenIds = playlistDbHelper.getHiddenSongIds()
                 val notInterestedIds = playlistDbHelper.getNotInterestedSongIds()
                 val currentQueueIds = (0 until totalCount).map { exoPlayer.getMediaItemAt(it).mediaId }.toSet()
-                val excludeIds = (currentQueueIds + failedTrackIds + extendedTrackIds + hiddenIds + notInterestedIds).toMutableSet()
+                val strictExcludeIds = (currentQueueIds + failedTrackIds + hiddenIds + notInterestedIds).toSet()
                 val baseUrl = appSettings.getBaseUrl()
 
-                var recommendations = try {
-                    recommendationEngine.getRecommendations(
-                        baseUrl = baseUrl,
-                        seedSong = seedSong,
-                        excludeSongIds = excludeIds,
-                        limit = 8,
-                        personalizationEnabled = appSettings.isPersonalizationEnabled(),
-                        avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
-                        diversityMode = appSettings.getRecommendationDiversity()
-                    )
-                } catch (_: Exception) {
-                    emptyList()
-                }
+                val candidates = mutableListOf<Song>()
 
-                // If seed-based recommendations are thin (< 4), enrich with dynamic trending seeds
-                if (recommendations.size < 4) {
-                    val fallbackQueries = listOf("Top Hits", "Trending Hits", "Global Pop", "Dance Hits", "Acoustic Hits")
-                    val query = fallbackQueries.random()
-                    val onlineCandidates = try {
-                        recommendationEngine.fetchCandidateSongs(baseUrl, query)
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
-                            .take(8)
-                    } catch (_: Exception) {
-                        emptyList()
+                // Strategy 1: Multi-signal Recommendation Engine using Seed Song
+                try {
+                    withTimeoutOrNull(5000L) {
+                        val recs = recommendationEngine.getRecommendations(
+                            baseUrl = baseUrl,
+                            seedSong = seedSong,
+                            excludeSongIds = strictExcludeIds + recentExtendedIds,
+                            limit = 8,
+                            personalizationEnabled = appSettings.isPersonalizationEnabled(),
+                            avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
+                            diversityMode = appSettings.getRecommendationDiversity()
+                        )
+                        candidates.addAll(recs)
                     }
-                    recommendations = (recommendations + onlineCandidates).distinctBy { it.id }
+                } catch (e: Exception) {
+                    android.util.Log.w("PlaybackService", "Autoplay seed recommendations error: ${e.message}")
                 }
 
-                // Resilient fallback: If device is offline, only provide downloaded tracks.
-                // When online, pull from user liked tracks or history to maintain continuous taste-based playback.
-                if (recommendations.isEmpty()) {
-                    if (!com.braveplayer.music.util.NetworkUtils.isOnline(this@PlaybackService)) {
-                        val downloadedCandidates = playlistDbHelper.getAllDownloadedSongs()
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
-                            .shuffled()
-                            .take(8)
-                        recommendations = downloadedCandidates
-                    } else {
-                        var localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
-                            .distinctBy { it.id }
-                            .shuffled()
-                            .take(8)
+                // Strategy 2: Artist & Contextual Discovery Searches
+                if (candidates.size < 6) {
+                    val searchQueries = mutableListOf<String>()
+                    val primaryArtist = seedSong.artists.split(",", "&", "feat.", "ft.", "/").firstOrNull()?.trim() ?: ""
+                    if (primaryArtist.isNotBlank() && primaryArtist.lowercase() !in playlistDbHelper.getNotInterestedArtists()) {
+                        searchQueries.add("$primaryArtist hits")
+                    }
 
-                        // If all local songs were already queued, recycle them so infinite playback never halts
-                        if (localCandidates.isEmpty()) {
-                            extendedTrackIds.clear()
-                            localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
-                                .filter { it.id !in hiddenIds && it.id !in notInterestedIds }
-                                .distinctBy { it.id }
-                                .shuffled()
-                                .take(8)
-                        }
-                        recommendations = localCandidates
+                    val dynamicTokens = listOf(
+                        "Trending Songs",
+                        "Top Global Hits",
+                        "Bollywood Top 50",
+                        "Latest Pop Hits",
+                        "Dance Pop Hits",
+                        "Chill Melodies",
+                        "Acoustic Pop",
+                        "Viral Songs",
+                        "English Top Hits",
+                        "Hindi Top Songs"
+                    ).shuffled()
+                    searchQueries.addAll(dynamicTokens)
+
+                    for (query in searchQueries) {
+                        if (candidates.size >= 8) break
+                        try {
+                            withTimeoutOrNull(3500L) {
+                                val songs = recommendationEngine.fetchCandidateSongs(baseUrl, query)
+                                val valid = songs.filter {
+                                    it.id !in strictExcludeIds &&
+                                    it.id !in recentExtendedIds &&
+                                    it.id !in candidates.map { c -> c.id }
+                                }
+                                candidates.addAll(valid)
+                            }
+                        } catch (_: Exception) {}
                     }
                 }
 
-                if (recommendations.isNotEmpty()) {
-                    extendedTrackIds.addAll(recommendations.map { it.id })
-                    val newMediaItems = recommendations.map {
+                // Strategy 3: Relax recent extended filter if online pool was restricted
+                if (candidates.size < 6) {
+                    for (query in listOf("Trending Songs", "Top Global Hits", "Melody Hits").shuffled()) {
+                        if (candidates.size >= 8) break
+                        try {
+                            withTimeoutOrNull(3500L) {
+                                val songs = recommendationEngine.fetchCandidateSongs(baseUrl, query)
+                                val valid = songs.filter {
+                                    it.id !in strictExcludeIds &&
+                                    it.id !in candidates.map { c -> c.id }
+                                }
+                                candidates.addAll(valid)
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+
+                // Strategy 4: Local Storage & User Favorites/History Fallback (offline or API issue)
+                if (candidates.size < 6) {
+                    val downloaded = playlistDbHelper.getAllDownloadedSongs()
+                        .filter { it.id !in strictExcludeIds && it.id !in candidates.map { c -> c.id } }
+                        .shuffled()
+                    candidates.addAll(downloaded)
+                }
+
+                if (candidates.size < 6) {
+                    val localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(100))
+                        .filter { it.id !in strictExcludeIds && it.id !in candidates.map { c -> c.id } }
+                        .distinctBy { it.id }
+                        .shuffled()
+                    candidates.addAll(localCandidates)
+                }
+
+                // Strategy 5: Infinite Autoplay Safety Net - Re-queue previous non-current tracks so queue NEVER terminates
+                if (candidates.isEmpty()) {
+                    val currentPlayingId = exoPlayer.currentMediaItem?.mediaId
+                    val recyclable = (0 until totalCount)
+                        .map { exoPlayer.getMediaItemAt(it) }
+                        .filter { it.mediaId != currentPlayingId && it.mediaId !in hiddenIds && it.mediaId !in failedTrackIds }
+                        .map { SongMediaItemMapper.fromMediaItem(it) }
+                        .distinctBy { it.id }
+                        .shuffled()
+                    candidates.addAll(recyclable)
+                }
+
+                if (candidates.isNotEmpty()) {
+                    val finalBatch = candidates.take(8)
+                    recordExtendedIds(finalBatch.map { it.id })
+
+                    val newMediaItems = finalBatch.map {
                         SongMediaItemMapper.toMediaItem(
                             song = it,
                             origin = SongMediaItemMapper.ORIGIN_AUTOPLAY,
@@ -300,8 +421,10 @@ class PlaybackService : MediaSessionService() {
                     val previousCount = exoPlayer.mediaItemCount
                     exoPlayer.addMediaItems(newMediaItems)
 
-                    // If playback was ended at queue end, resume seamlessly into new recommendations
-                    if (exoPlayer.playbackState == Player.STATE_ENDED) {
+                    // If playback was ended at queue end, or stalled without next track, resume immediately into new songs
+                    if (exoPlayer.playbackState == Player.STATE_ENDED ||
+                        (!exoPlayer.isPlaying && exoPlayer.playWhenReady && currentIndex >= previousCount - 1)
+                    ) {
                         val targetIndex = previousCount.coerceAtMost(exoPlayer.mediaItemCount - 1)
                         if (targetIndex >= 0) {
                             exoPlayer.seekToDefaultPosition(targetIndex)
@@ -310,8 +433,8 @@ class PlaybackService : MediaSessionService() {
                         }
                     }
                 }
-            } catch (_: Exception) {
-                // Fail gracefully without interrupting existing playback
+            } catch (e: Exception) {
+                android.util.Log.e("PlaybackService", "Error during autoplay queue extension", e)
             } finally {
                 isExtendingQueue = false
             }
@@ -349,7 +472,7 @@ class PlaybackService : MediaSessionService() {
             exoPlayer.prepare()
             exoPlayer.play()
         } else {
-            checkAndExtendQueueIfNeeded(exoPlayer)
+            checkAndExtendQueueIfNeeded(exoPlayer, force = true)
         }
     }
 
@@ -405,6 +528,14 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         recordCurrentTrackHistory(isPlaybackEnded = false)
+        autoplayWatchdogJob?.cancel()
+        autoplayWatchdogJob = null
+
+        prefsChangeListener?.let {
+            getSharedPreferences(AppSettings.PREFS_NAME, Context.MODE_PRIVATE)
+                .unregisterOnSharedPreferenceChangeListener(it)
+        }
+
         serviceScope.cancel()
 
         player?.let { exoPlayer ->
@@ -419,7 +550,35 @@ class PlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private class MediaSessionCallback : MediaSession.Callback {
+    private inner class MediaSessionCallback : MediaSession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                .add(SessionCommand(COMMAND_EXTEND_AUTOPLAY, android.os.Bundle.EMPTY))
+                .build()
+            return MediaSession.ConnectionResult.accept(
+                sessionCommands,
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            )
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: android.os.Bundle
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == COMMAND_EXTEND_AUTOPLAY) {
+                player?.let { exo ->
+                    checkAndExtendQueueIfNeeded(exo, force = true)
+                }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            return super.onCustomCommand(session, controller, customCommand, args)
+        }
+
         override fun onAddMediaItems(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
