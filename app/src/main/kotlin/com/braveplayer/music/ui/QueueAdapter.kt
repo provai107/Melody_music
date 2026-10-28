@@ -60,12 +60,13 @@ class QueueAdapter(
         // Partition upcoming items (from currentIndex + 1 until end)
         val upcomingManual = mutableListOf<QueueRow.Track>()
         val upcomingContext = mutableListOf<QueueRow.Track>()
-        val upcomingAutoplay = mutableListOf<QueueRow.Track>()
+        val upcomingRecommended = mutableListOf<QueueRow.Track>()
 
         val startIndex = (currentIndex + 1).coerceAtLeast(0)
         for (i in startIndex until totalCount) {
             val item = newItems[i]
             val origin = SongMediaItemMapper.getQueueOrigin(item)
+            val isRec = SongMediaItemMapper.isRecommended(item)
             val ctxName = SongMediaItemMapper.getContextName(item)
             val trackRow = QueueRow.Track(
                 mediaItem = item,
@@ -75,31 +76,33 @@ class QueueAdapter(
                 contextName = ctxName
             )
 
-            when (origin) {
-                SongMediaItemMapper.ORIGIN_MANUAL -> upcomingManual.add(trackRow)
-                SongMediaItemMapper.ORIGIN_AUTOPLAY -> upcomingAutoplay.add(trackRow)
-                else -> upcomingContext.add(trackRow)
+            if (isRec || origin == SongMediaItemMapper.ORIGIN_RECOMMENDED || origin == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
+                upcomingRecommended.add(trackRow)
+            } else if (origin == SongMediaItemMapper.ORIGIN_MANUAL) {
+                upcomingManual.add(trackRow)
+            } else {
+                upcomingContext.add(trackRow)
             }
         }
 
-        // Section 1: Manually Queued Tracks ("Play Next" / "Add to Queue")
+        // Section 1: Manually Queued Priority Tracks ("Up Next")
         if (upcomingManual.isNotEmpty()) {
             rows.add(
                 QueueRow.Header(
-                    title = "NEXT IN QUEUE",
+                    title = "UP NEXT",
                     subtitle = "${upcomingManual.size} track${if (upcomingManual.size > 1) "s" else ""} queued by you"
                 )
             )
             rows.addAll(upcomingManual)
         }
 
-        // Section 2: Remaining Context Tracks (from Album / Playlist / Mix / Search)
+        // Section 2: Remaining Tracks ("From Your Playlist / Album")
         if (upcomingContext.isNotEmpty()) {
             val firstCtx = upcomingContext.first().contextName
             val headerTitle = if (!firstCtx.isNullOrBlank()) {
-                "NEXT FROM: ${firstCtx.uppercase()}"
+                "FROM YOUR PLAYLIST: ${firstCtx.uppercase()}"
             } else {
-                "NEXT FROM CURRENT SESSION"
+                "FROM YOUR PLAYLIST / ALBUM"
             }
             rows.add(
                 QueueRow.Header(
@@ -110,17 +113,17 @@ class QueueAdapter(
             rows.addAll(upcomingContext)
         }
 
-        // Section 3: Smart Autoplay Recommendations
-        if (upcomingAutoplay.isNotEmpty()) {
-            val firstSeed = upcomingAutoplay.first().contextName
-            val sub = if (!firstSeed.isNullOrBlank()) "$firstSeed • Autoplay On" else "Infinite Autoplay On"
+        // Section 3: Recommended Next ("Recommended Next" with ✨ badge)
+        if (upcomingRecommended.isNotEmpty()) {
+            val firstSeed = upcomingRecommended.first().contextName
+            val sub = if (!firstSeed.isNullOrBlank()) "✨ $firstSeed • Smart Next Play" else "✨ Tailored to your taste"
             rows.add(
                 QueueRow.Header(
-                    title = "AUTOPLAY RECOMMENDATIONS",
+                    title = "RECOMMENDED NEXT",
                     subtitle = sub
                 )
             )
-            rows.addAll(upcomingAutoplay)
+            rows.addAll(upcomingRecommended)
         }
 
         notifyDataSetChanged()
@@ -236,18 +239,17 @@ class QueueAdapter(
             tvArtist.text = artist
             ivIndicator.visibility = if (track.isPlaying) View.VISIBLE else View.GONE
 
-            when (track.origin) {
-                SongMediaItemMapper.ORIGIN_MANUAL -> {
-                    tvBadge.text = "QUEUED"
-                    tvBadge.visibility = View.VISIBLE
-                }
-                SongMediaItemMapper.ORIGIN_AUTOPLAY -> {
-                    tvBadge.text = "AUTOPLAY"
-                    tvBadge.visibility = View.VISIBLE
-                }
-                else -> {
-                    tvBadge.visibility = View.GONE
-                }
+            if (SongMediaItemMapper.isRecommended(item) || track.origin == SongMediaItemMapper.ORIGIN_RECOMMENDED) {
+                tvBadge.text = "✨ RECOMMENDED"
+                tvBadge.visibility = View.VISIBLE
+            } else if (track.origin == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
+                tvBadge.text = "AUTOPLAY"
+                tvBadge.visibility = View.VISIBLE
+            } else if (track.origin == SongMediaItemMapper.ORIGIN_MANUAL) {
+                tvBadge.text = "QUEUED"
+                tvBadge.visibility = View.VISIBLE
+            } else {
+                tvBadge.visibility = View.GONE
             }
 
             val imageUrl = item.mediaMetadata.extras?.getString(SongMediaItemMapper.EXTRA_IMAGE_URL)

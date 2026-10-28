@@ -46,8 +46,12 @@ class MixGenerator(
         val resultSongs = mutableListOf<Song>()
         val seenIds = mutableSetOf<String>()
 
-        val liked = dbHelper.getAllLikedSongs()
-        val mostPlayed = dbHelper.getMostPlayedSongs(limit).map { it.first }
+        val hiddenIds = dbHelper.getHiddenSongIds()
+        val notInterestedIds = dbHelper.getNotInterestedSongIds()
+        seenIds.addAll(hiddenIds + notInterestedIds)
+
+        val liked = dbHelper.getAllLikedSongs().filter { it.id !in seenIds }
+        val mostPlayed = dbHelper.getMostPlayedSongs(limit).map { it.first }.filter { it.id !in seenIds }
 
         // Interleave top most played and liked tracks
         for (i in 0 until maxOf(liked.size, mostPlayed.size)) {
@@ -111,6 +115,7 @@ class MixGenerator(
     suspend fun generateDailyMix2(baseUrl: String, limit: Int = 20): PersonalizedMix = withContext(Dispatchers.IO) {
         val resultSongs = mutableListOf<Song>()
         val seenIds = mutableSetOf<String>()
+        seenIds.addAll(dbHelper.getHiddenSongIds() + dbHelper.getNotInterestedSongIds())
 
         val artistCounts = dbHelper.getArtistPlayCounts()
         // Pick secondary artist from history, or secondary liked song's artist
@@ -152,6 +157,7 @@ class MixGenerator(
     suspend fun generateChillMix(baseUrl: String, limit: Int = 20): PersonalizedMix = withContext(Dispatchers.IO) {
         val resultSongs = mutableListOf<Song>()
         val seenIds = mutableSetOf<String>()
+        seenIds.addAll(dbHelper.getHiddenSongIds() + dbHelper.getNotInterestedSongIds())
 
         val chillQueries = listOf("Acoustic Pop", "Chill Lofi", "Relaxing Acoustic", "Calm Melodies")
         for (query in chillQueries) {
@@ -182,7 +188,9 @@ class MixGenerator(
         val frequentArtists = dbHelper.getArtistPlayCounts().keys.map { it.lowercase() }.toSet()
         val likedIds = dbHelper.getLikedSongIds()
         val recentIds = dbHelper.getRecentSongIds(50)
-        val excludeIds = likedIds + recentIds
+        val hiddenIds = dbHelper.getHiddenSongIds()
+        val notInterestedIds = dbHelper.getNotInterestedSongIds()
+        val excludeIds = likedIds + recentIds + hiddenIds + notInterestedIds
 
         val seedTracks = dbHelper.getAllLikedSongs().take(3).ifEmpty {
             dbHelper.getRecentlyPlayedSongs(3)

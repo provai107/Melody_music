@@ -31,7 +31,12 @@ data class SearchHistoryItem(
     val imageUrl: String? = null,
     val contentType: String = "Song",
     val songId: String? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val mediaUrl: String? = null,
+    val mediaUrlDefault: String? = null,
+    val durationSec: Int = 0,
+    val album: String = "",
+    val artists: String = ""
 )
 
 /**
@@ -43,7 +48,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "brave_playlists.db"
-        private const val DATABASE_VERSION = 4
+        private const val DATABASE_VERSION = 5
 
         // Playlists Table
         private const val TABLE_PLAYLISTS = "playlists"
@@ -119,6 +124,23 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_SH_TYPE = "content_type"
         private const val COL_SH_SONG_ID = "song_id"
         private const val COL_SH_TIMESTAMP = "timestamp"
+        private const val COL_SH_MEDIA_URL = "media_url"
+        private const val COL_SH_MEDIA_URL_DEF = "media_url_default"
+        private const val COL_SH_DURATION = "duration_sec"
+        private const val COL_SH_ALBUM = "album"
+        private const val COL_SH_ARTISTS = "artists"
+
+        // Recommendation Feedback Table (Spotify-style Like / Not Interested / Hide)
+        private const val TABLE_RECOMMENDATION_FEEDBACK = "recommendation_feedback"
+        private const val COL_RF_ID = "id"
+        private const val COL_RF_SONG_ID = "song_id"
+        private const val COL_RF_TITLE = "title"
+        private const val COL_RF_ARTISTS = "artists"
+        private const val COL_RF_ACTION = "action"
+        private const val COL_RF_TIMESTAMP = "timestamp"
+
+        const val ACTION_NOT_INTERESTED = "NOT_INTERESTED"
+        const val ACTION_HIDE = "HIDE"
 
         const val MAX_HISTORY_ROWS = 500
         const val MAX_SEARCH_HISTORY_ROWS = 50
@@ -159,6 +181,24 @@ class PlaylistDatabaseHelper(context: Context) :
         createHistoryTable(db)
         createDownloadedSongsTable(db)
         createSearchHistoryTable(db)
+        createRecommendationFeedbackTable(db)
+    }
+
+    private fun createRecommendationFeedbackTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_RECOMMENDATION_FEEDBACK (
+                $COL_RF_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_RF_SONG_ID TEXT NOT NULL,
+                $COL_RF_TITLE TEXT,
+                $COL_RF_ARTISTS TEXT,
+                $COL_RF_ACTION TEXT NOT NULL,
+                $COL_RF_TIMESTAMP INTEGER NOT NULL
+            );
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_rf_song_id ON $TABLE_RECOMMENDATION_FEEDBACK($COL_RF_SONG_ID);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_rf_action ON $TABLE_RECOMMENDATION_FEEDBACK($COL_RF_ACTION);")
     }
 
     private fun createSearchHistoryTable(db: SQLiteDatabase) {
@@ -172,7 +212,12 @@ class PlaylistDatabaseHelper(context: Context) :
                 $COL_SH_IMAGE_URL TEXT,
                 $COL_SH_TYPE TEXT NOT NULL,
                 $COL_SH_SONG_ID TEXT,
-                $COL_SH_TIMESTAMP INTEGER NOT NULL
+                $COL_SH_TIMESTAMP INTEGER NOT NULL,
+                $COL_SH_MEDIA_URL TEXT,
+                $COL_SH_MEDIA_URL_DEF TEXT,
+                $COL_SH_DURATION INTEGER DEFAULT 0,
+                $COL_SH_ALBUM TEXT DEFAULT '',
+                $COL_SH_ARTISTS TEXT DEFAULT ''
             );
             """.trimIndent()
         )
@@ -253,6 +298,16 @@ class PlaylistDatabaseHelper(context: Context) :
         }
         if (oldVersion < 4) {
             createSearchHistoryTable(db)
+        }
+        if (oldVersion < 5) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_MEDIA_URL TEXT;")
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_MEDIA_URL_DEF TEXT;")
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_DURATION INTEGER DEFAULT 0;")
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_ALBUM TEXT DEFAULT '';")
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_ARTISTS TEXT DEFAULT '';")
+            } catch (_: Exception) {}
+            createRecommendationFeedbackTable(db)
         }
     }
 
@@ -838,6 +893,11 @@ class PlaylistDatabaseHelper(context: Context) :
             put(COL_SH_TYPE, item.contentType)
             put(COL_SH_SONG_ID, item.songId)
             put(COL_SH_TIMESTAMP, System.currentTimeMillis())
+            put(COL_SH_MEDIA_URL, item.mediaUrl)
+            put(COL_SH_MEDIA_URL_DEF, item.mediaUrlDefault)
+            put(COL_SH_DURATION, item.durationSec)
+            put(COL_SH_ALBUM, item.album)
+            put(COL_SH_ARTISTS, item.artists)
         }
         val insertedId = db.insert(TABLE_SEARCH_HISTORY, null, values)
 
@@ -863,7 +923,12 @@ class PlaylistDatabaseHelper(context: Context) :
                 subtitle = "Song • ${song.artists}",
                 imageUrl = song.imageUrl,
                 contentType = "Song",
-                songId = song.id
+                songId = song.id,
+                mediaUrl = song.mediaUrl,
+                mediaUrlDefault = song.mediaUrlDefault,
+                durationSec = song.durationSec,
+                album = song.album,
+                artists = song.artists
             )
         )
     }
@@ -890,6 +955,11 @@ class PlaylistDatabaseHelper(context: Context) :
             val idxType = it.getColumnIndexOrThrow(COL_SH_TYPE)
             val idxSongId = it.getColumnIndexOrThrow(COL_SH_SONG_ID)
             val idxTime = it.getColumnIndexOrThrow(COL_SH_TIMESTAMP)
+            val idxMediaUrl = it.getColumnIndex(COL_SH_MEDIA_URL)
+            val idxMediaUrlDef = it.getColumnIndex(COL_SH_MEDIA_URL_DEF)
+            val idxDuration = it.getColumnIndex(COL_SH_DURATION)
+            val idxAlbum = it.getColumnIndex(COL_SH_ALBUM)
+            val idxArtists = it.getColumnIndex(COL_SH_ARTISTS)
 
             while (it.moveToNext()) {
                 list.add(
@@ -901,7 +971,12 @@ class PlaylistDatabaseHelper(context: Context) :
                         imageUrl = it.getString(idxImg),
                         contentType = it.getString(idxType),
                         songId = it.getString(idxSongId),
-                        timestamp = it.getLong(idxTime)
+                        timestamp = it.getLong(idxTime),
+                        mediaUrl = if (idxMediaUrl >= 0 && !it.isNull(idxMediaUrl)) it.getString(idxMediaUrl) else null,
+                        mediaUrlDefault = if (idxMediaUrlDef >= 0 && !it.isNull(idxMediaUrlDef)) it.getString(idxMediaUrlDef) else null,
+                        durationSec = if (idxDuration >= 0 && !it.isNull(idxDuration)) it.getInt(idxDuration) else 0,
+                        album = if (idxAlbum >= 0 && !it.isNull(idxAlbum)) it.getString(idxAlbum) else "",
+                        artists = if (idxArtists >= 0 && !it.isNull(idxArtists)) it.getString(idxArtists) else ""
                     )
                 )
             }
@@ -917,5 +992,224 @@ class PlaylistDatabaseHelper(context: Context) :
     fun clearSearchHistory() {
         val db = writableDatabase
         db.delete(TABLE_SEARCH_HISTORY, null, null)
+    }
+
+    // ==========================================
+    // Recommendation Feedback Operations
+    // ==========================================
+
+    fun recordNotInterested(song: Song): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_RF_SONG_ID, song.id)
+            put(COL_RF_TITLE, song.title)
+            put(COL_RF_ARTISTS, song.artists)
+            put(COL_RF_ACTION, ACTION_NOT_INTERESTED)
+            put(COL_RF_TIMESTAMP, System.currentTimeMillis())
+        }
+        return db.insert(TABLE_RECOMMENDATION_FEEDBACK, null, values)
+    }
+
+    fun hideSong(song: Song): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_RF_SONG_ID, song.id)
+            put(COL_RF_TITLE, song.title)
+            put(COL_RF_ARTISTS, song.artists)
+            put(COL_RF_ACTION, ACTION_HIDE)
+            put(COL_RF_TIMESTAMP, System.currentTimeMillis())
+        }
+        return db.insert(TABLE_RECOMMENDATION_FEEDBACK, null, values)
+    }
+
+    fun unhideSong(songId: String): Boolean {
+        val db = writableDatabase
+        return db.delete(
+            TABLE_RECOMMENDATION_FEEDBACK,
+            "$COL_RF_SONG_ID = ? AND $COL_RF_ACTION = ?",
+            arrayOf(songId, ACTION_HIDE)
+        ) > 0
+    }
+
+    fun isSongHidden(songId: String): Boolean {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOMMENDATION_FEEDBACK,
+            arrayOf(COL_RF_ID),
+            "$COL_RF_SONG_ID = ? AND $COL_RF_ACTION = ?",
+            arrayOf(songId, ACTION_HIDE),
+            null,
+            null,
+            null
+        )
+        return cursor.use { it.moveToFirst() }
+    }
+
+    fun getHiddenSongIds(): Set<String> {
+        val ids = mutableSetOf<String>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOMMENDATION_FEEDBACK,
+            arrayOf(COL_RF_SONG_ID),
+            "$COL_RF_ACTION = ?",
+            arrayOf(ACTION_HIDE),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getString(0))
+            }
+        }
+        return ids
+    }
+
+    fun getNotInterestedSongIds(): Set<String> {
+        val ids = mutableSetOf<String>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOMMENDATION_FEEDBACK,
+            arrayOf(COL_RF_SONG_ID),
+            "$COL_RF_ACTION = ?",
+            arrayOf(ACTION_NOT_INTERESTED),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getString(0))
+            }
+        }
+        return ids
+    }
+
+    fun getNotInterestedArtists(): Set<String> {
+        val artists = mutableSetOf<String>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOMMENDATION_FEEDBACK,
+            arrayOf(COL_RF_ARTISTS),
+            "$COL_RF_ACTION = ?",
+            arrayOf(ACTION_NOT_INTERESTED),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                val raw = it.getString(0) ?: ""
+                for (a in raw.split(",", "&", "/")) {
+                    val t = a.trim().lowercase()
+                    if (t.isNotEmpty()) artists.add(t)
+                }
+            }
+        }
+        return artists
+    }
+
+    fun resetLearnedPreferences() {
+        val db = writableDatabase
+        db.delete(TABLE_HISTORY, null, null)
+        db.delete(TABLE_RECOMMENDATION_FEEDBACK, null, null)
+    }
+
+    // ==========================================
+    // Cached Song Lookups for Resilient Playback
+    // ==========================================
+
+    fun getLikedSong(songId: String): Song? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_LIKED,
+            null,
+            "$COL_L_SONG_ID = ?",
+            arrayOf(songId),
+            null,
+            null,
+            null
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return Song(
+                    id = it.getString(it.getColumnIndexOrThrow(COL_L_SONG_ID)),
+                    title = it.getString(it.getColumnIndexOrThrow(COL_L_TITLE)),
+                    artists = it.getString(it.getColumnIndexOrThrow(COL_L_ARTISTS)),
+                    album = it.getString(it.getColumnIndexOrThrow(COL_L_ALBUM)),
+                    imageUrl = it.getString(it.getColumnIndexOrThrow(COL_L_IMAGE_URL)),
+                    durationSec = it.getInt(it.getColumnIndexOrThrow(COL_L_DURATION)),
+                    mediaUrl = it.getString(it.getColumnIndexOrThrow(COL_L_MEDIA_URL)),
+                    mediaUrlDefault = it.getString(it.getColumnIndexOrThrow(COL_L_MEDIA_URL_DEF)),
+                    previewUrl = it.getString(it.getColumnIndexOrThrow(COL_L_PREVIEW_URL))
+                )
+            }
+        }
+        return null
+    }
+
+    fun getHistorySong(songId: String): Song? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_HISTORY,
+            null,
+            "$COL_H_SONG_ID = ?",
+            arrayOf(songId),
+            null,
+            null,
+            "$COL_H_PLAYED_AT DESC",
+            "1"
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return Song(
+                    id = it.getString(it.getColumnIndexOrThrow(COL_H_SONG_ID)),
+                    title = it.getString(it.getColumnIndexOrThrow(COL_H_TITLE)),
+                    artists = it.getString(it.getColumnIndexOrThrow(COL_H_ARTISTS)),
+                    album = it.getString(it.getColumnIndexOrThrow(COL_H_ALBUM)),
+                    imageUrl = it.getString(it.getColumnIndexOrThrow(COL_H_IMAGE_URL)),
+                    durationSec = it.getInt(it.getColumnIndexOrThrow(COL_H_DURATION)),
+                    mediaUrl = it.getString(it.getColumnIndexOrThrow(COL_H_MEDIA_URL)),
+                    mediaUrlDefault = it.getString(it.getColumnIndexOrThrow(COL_H_MEDIA_URL_DEF)),
+                    previewUrl = it.getString(it.getColumnIndexOrThrow(COL_H_PREVIEW_URL))
+                )
+            }
+        }
+        return null
+    }
+
+    fun findCachedSong(songId: String): Song? {
+        getDownloadedSong(songId)?.let { if (it.getBestPlaybackUrl() != null) return it }
+        getLikedSong(songId)?.let { if (it.getBestPlaybackUrl() != null) return it }
+        getHistorySong(songId)?.let { if (it.getBestPlaybackUrl() != null) return it }
+
+        // Also check playlist songs
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_PLAYLIST_SONGS,
+            null,
+            "$COL_PS_SONG_ID = ?",
+            arrayOf(songId),
+            null,
+            null,
+            "$COL_PS_ID DESC",
+            "1"
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return Song(
+                    id = it.getString(it.getColumnIndexOrThrow(COL_PS_SONG_ID)),
+                    title = it.getString(it.getColumnIndexOrThrow(COL_PS_TITLE)),
+                    artists = it.getString(it.getColumnIndexOrThrow(COL_PS_ARTISTS)),
+                    album = it.getString(it.getColumnIndexOrThrow(COL_PS_ALBUM)),
+                    imageUrl = it.getString(it.getColumnIndexOrThrow(COL_PS_IMAGE_URL)),
+                    durationSec = it.getInt(it.getColumnIndexOrThrow(COL_PS_DURATION)),
+                    mediaUrl = it.getString(it.getColumnIndexOrThrow(COL_PS_MEDIA_URL)),
+                    mediaUrlDefault = it.getString(it.getColumnIndexOrThrow(COL_PS_MEDIA_URL_DEF)),
+                    previewUrl = it.getString(it.getColumnIndexOrThrow(COL_PS_PREVIEW_URL))
+                )
+            }
+        }
+        return null
     }
 }

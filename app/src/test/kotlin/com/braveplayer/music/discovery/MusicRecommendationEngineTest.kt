@@ -137,4 +137,64 @@ class MusicRecommendationEngineTest {
 
         assertThat(ranked).hasSize(1)
     }
+
+    @Test
+    fun testNotInterestedCandidateIsPermanentlyFiltered() {
+        val seed = Song("s", "Seed", "Artist A", "Album", null, 200, "https://aac.saavncdn.com/s.mp3", null, null)
+        val cand1 = Song("c1", "Song 1", "Artist A", "Album", null, 200, "https://aac.saavncdn.com/1.mp3", null, null)
+        val cand2 = Song("c2", "Song 2", "Artist B", "Album", null, 200, "https://aac.saavncdn.com/2.mp3", null, null)
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = listOf(cand1, cand2),
+            excludeSongIds = emptySet(),
+            likedIds = emptySet(),
+            skippedIds = emptySet(),
+            notInterestedIds = setOf("c1")
+        )
+
+        assertThat(ranked).noneMatch { it.id == "c1" }
+        assertThat(ranked).anyMatch { it.id == "c2" }
+    }
+
+    @Test
+    fun testDiversityDiscoveryModeBoostsUnfamiliarArtists() {
+        val seed = Song("s", "Seed", "Familiar Artist", "Album", null, 200, "https://aac.saavncdn.com/s.mp3", null, null)
+        val candFamiliar = Song("c1", "Known Track", "Familiar Artist", "Album", null, 200, "https://aac.saavncdn.com/1.mp3", null, null)
+        val candDiscovery = Song("c2", "Fresh Track", "New Independent Artist", "Album", null, 200, "https://aac.saavncdn.com/2.mp3", null, null)
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = listOf(candFamiliar, candDiscovery),
+            excludeSongIds = emptySet(),
+            likedIds = emptySet(),
+            skippedIds = emptySet(),
+            artistPlayCounts = mapOf("Familiar Artist" to 15),
+            diversityMode = com.braveplayer.music.settings.AppSettings.DIVERSITY_DISCOVERY
+        )
+
+        // In discovery mode, unfamiliar artist receives a boost and familiar artist is penalized
+        assertThat(ranked.first().id).isEqualTo("c2")
+    }
+
+    @Test
+    fun testDatabaseHelperRecommendationFeedbackAndReset() {
+        val song = Song("test_song", "Test Song", "Test Artist", "Test Album", null, 200, "https://aac.saavncdn.com/t.mp3", null, null)
+        
+        assertThat(dbHelper.isSongHidden("test_song")).isFalse()
+        dbHelper.hideSong(song)
+        assertThat(dbHelper.isSongHidden("test_song")).isTrue()
+        assertThat(dbHelper.getHiddenSongIds()).contains("test_song")
+
+        dbHelper.unhideSong("test_song")
+        assertThat(dbHelper.isSongHidden("test_song")).isFalse()
+
+        dbHelper.recordNotInterested(song)
+        assertThat(dbHelper.getNotInterestedSongIds()).contains("test_song")
+        assertThat(dbHelper.getNotInterestedArtists()).contains("test artist")
+
+        dbHelper.resetLearnedPreferences()
+        assertThat(dbHelper.getNotInterestedSongIds()).isEmpty()
+        assertThat(dbHelper.getNotInterestedArtists()).isEmpty()
+    }
 }

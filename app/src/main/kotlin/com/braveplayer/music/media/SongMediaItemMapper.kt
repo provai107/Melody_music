@@ -25,15 +25,18 @@ object SongMediaItemMapper {
     const val EXTRA_CURRENT_URL_INDEX = "current_url_index"
     const val EXTRA_QUEUE_ORIGIN = "queue_origin"
     const val EXTRA_CONTEXT_NAME = "context_name"
+    const val EXTRA_IS_RECOMMENDED = "is_recommended"
 
     const val ORIGIN_MANUAL = "MANUAL"
     const val ORIGIN_CONTEXT = "CONTEXT"
     const val ORIGIN_AUTOPLAY = "AUTOPLAY"
+    const val ORIGIN_RECOMMENDED = "RECOMMENDED"
 
     fun toMediaItem(
         song: Song,
         origin: String = ORIGIN_CONTEXT,
-        contextName: String? = null
+        contextName: String? = null,
+        isRecommended: Boolean = false
     ): MediaItem {
         val candidateUrls = song.getCandidatePlaybackUrls()
         val rawUri = song.getBestPlaybackUrl() ?: ""
@@ -52,6 +55,7 @@ object SongMediaItemMapper {
             putStringArrayList(EXTRA_CANDIDATE_URLS, ArrayList(candidateUrls))
             putInt(EXTRA_CURRENT_URL_INDEX, 0)
             putString(EXTRA_QUEUE_ORIGIN, origin)
+            putBoolean(EXTRA_IS_RECOMMENDED, isRecommended || origin == ORIGIN_RECOMMENDED)
             if (!contextName.isNullOrBlank()) {
                 putString(EXTRA_CONTEXT_NAME, contextName)
             }
@@ -74,6 +78,14 @@ object SongMediaItemMapper {
 
     fun getQueueOrigin(mediaItem: MediaItem): String {
         return mediaItem.mediaMetadata.extras?.getString(EXTRA_QUEUE_ORIGIN) ?: ORIGIN_CONTEXT
+    }
+
+    fun isRecommended(mediaItem: MediaItem): Boolean {
+        val extras = mediaItem.mediaMetadata.extras ?: return false
+        val origin = extras.getString(EXTRA_QUEUE_ORIGIN)
+        return extras.getBoolean(EXTRA_IS_RECOMMENDED, false) ||
+                origin == ORIGIN_RECOMMENDED ||
+                origin == ORIGIN_AUTOPLAY
     }
 
     fun getContextName(mediaItem: MediaItem): String? {

@@ -122,6 +122,38 @@ class MusicMetadataService(
         }
     }
 
+    suspend fun fetchSongDetails(baseUrl: String, songId: String, fallbackQuery: String? = null): Song? = withContext(Dispatchers.IO) {
+        val trimmedId = songId.trim()
+        if (trimmedId.isEmpty()) return@withContext null
+
+        try {
+            val url = "$baseUrl/song/$trimmedId"
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .build()
+            val response = httpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: ""
+                val songs = SearchResponseParser.parseSearchResponse(body)
+                val match = songs.firstOrNull { it.id == trimmedId } ?: songs.firstOrNull()
+                if (match != null && match.getBestPlaybackUrl() != null) {
+                    return@withContext match
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Fallback to search query
+        val queryToSearch = fallbackQuery?.takeIf { it.isNotBlank() } ?: trimmedId
+        val searchRes = searchSongs(baseUrl, queryToSearch, maxRetries = 1)
+        if (searchRes is SearchResult.Success) {
+            val exact = searchRes.songs.firstOrNull { it.id == trimmedId }
+            if (exact != null && exact.getBestPlaybackUrl() != null) return@withContext exact
+            return@withContext searchRes.songs.firstOrNull { it.getBestPlaybackUrl() != null }
+        }
+        null
+    }
+
     data class MetadataQueryResult(
         val statusCode: Int,
         val isBlocked: Boolean,

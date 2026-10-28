@@ -223,8 +223,10 @@ class PlaybackService : MediaSessionService() {
                 val seedItem = exoPlayer.getMediaItemAt(seedIndex)
                 val seedSong = SongMediaItemMapper.fromMediaItem(seedItem)
 
+                val hiddenIds = playlistDbHelper.getHiddenSongIds()
+                val notInterestedIds = playlistDbHelper.getNotInterestedSongIds()
                 val currentQueueIds = (0 until totalCount).map { exoPlayer.getMediaItemAt(it).mediaId }.toSet()
-                val excludeIds = (currentQueueIds + failedTrackIds + extendedTrackIds).toMutableSet()
+                val excludeIds = (currentQueueIds + failedTrackIds + extendedTrackIds + hiddenIds + notInterestedIds).toMutableSet()
                 val baseUrl = appSettings.getBaseUrl()
 
                 var recommendations = try {
@@ -232,7 +234,10 @@ class PlaybackService : MediaSessionService() {
                         baseUrl = baseUrl,
                         seedSong = seedSong,
                         excludeSongIds = excludeIds,
-                        limit = 8
+                        limit = 8,
+                        personalizationEnabled = appSettings.isPersonalizationEnabled(),
+                        avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
+                        diversityMode = appSettings.getRecommendationDiversity()
                     )
                 } catch (_: Exception) {
                     emptyList()
@@ -244,7 +249,7 @@ class PlaybackService : MediaSessionService() {
                     val query = fallbackQueries.random()
                     val onlineCandidates = try {
                         recommendationEngine.fetchCandidateSongs(baseUrl, query)
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
                             .take(8)
                     } catch (_: Exception) {
                         emptyList()
@@ -257,13 +262,13 @@ class PlaybackService : MediaSessionService() {
                 if (recommendations.isEmpty()) {
                     if (!com.braveplayer.music.util.NetworkUtils.isOnline(this@PlaybackService)) {
                         val downloadedCandidates = playlistDbHelper.getAllDownloadedSongs()
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
                             .shuffled()
                             .take(8)
                         recommendations = downloadedCandidates
                     } else {
                         var localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
-                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds }
+                            .filter { it.id !in currentQueueIds && it.id !in failedTrackIds && it.id !in hiddenIds && it.id !in notInterestedIds }
                             .distinctBy { it.id }
                             .shuffled()
                             .take(8)
@@ -272,6 +277,7 @@ class PlaybackService : MediaSessionService() {
                         if (localCandidates.isEmpty()) {
                             extendedTrackIds.clear()
                             localCandidates = (playlistDbHelper.getAllLikedSongs() + playlistDbHelper.getRecentlyPlayedSongs(50))
+                                .filter { it.id !in hiddenIds && it.id !in notInterestedIds }
                                 .distinctBy { it.id }
                                 .shuffled()
                                 .take(8)
@@ -286,7 +292,8 @@ class PlaybackService : MediaSessionService() {
                         SongMediaItemMapper.toMediaItem(
                             song = it,
                             origin = SongMediaItemMapper.ORIGIN_AUTOPLAY,
-                            contextName = "Similar to ${seedSong.title}"
+                            contextName = "Similar to ${seedSong.title}",
+                            isRecommended = true
                         )
                     }
 
