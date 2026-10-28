@@ -42,6 +42,8 @@ class CategoryChannelAdapter(
             tvTitle.text = category.name
             tvSubtitle.text = category.subtitle
             tvIcon.text = category.emoji
+            tvIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            itemView.contentDescription = "Browse category ${category.name}, ${category.subtitle}"
             tvBadge.text = "BROWSE"
 
             // Cycle between subtle dark maroon, restrained violet, and midnight-blue backgrounds

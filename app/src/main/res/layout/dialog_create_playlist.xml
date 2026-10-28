@@ -8,6 +8,7 @@
     android:padding="20dp">
 
     <TextView
+        android:id="@+id/tvCreatePlaylistTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/youtube_sans_bold_font"
@@ -16,6 +17,7 @@
         android:textSize="20sp" />
 
     <TextView
+        android:id="@+id/tvCreatePlaylistSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
@@ -40,6 +42,7 @@
         android:singleLine="true"
         android:textColor="@color/textPrimary"
         android:textColorHint="@color/textDisabled"
+        android:contentDescription="Playlist title"
         android:textSize="15sp" />
 
     <LinearLayout
@@ -53,7 +56,8 @@
             android:id="@+id/btnCancelCreatePlaylist"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
+            android:minHeight="44dp"
             android:fontFamily="sans-serif-medium"
             android:text="Cancel"
             android:textColor="@color/textSecondary"
@@ -63,7 +67,8 @@
             android:id="@+id/btnConfirmCreatePlaylist"
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
+            android:minHeight="44dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="@color/accentPrimary"
             android:fontFamily="sans-serif-bold"

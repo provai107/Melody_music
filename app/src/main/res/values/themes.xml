@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base Application Theme: Melody Minimal Dark Theme -->
     <style name="Theme.BraveMusicPlayer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accentPrimary</item>
@@ -9,7 +9,9 @@
         <item name="colorOnSecondary">@color/textPrimary</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
-        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/backgroundSecondary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
         <item name="android:windowBackground">@drawable/bg_ytm_gradient</item>
         <item name="bottomSheetDialogTheme">@style/MelodyBottomSheetDialogTheme</item>
     </style>
@@ -17,7 +19,8 @@
     <style name="MelodyBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/MelodyBottomSheetStyle</item>
         <item name="android:windowIsFloating">false</item>
-        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/backgroundSecondary</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
     </style>
 
     <style name="MelodyBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">

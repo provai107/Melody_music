@@ -109,8 +109,8 @@
     <!-- Like Action Button -->
     <ImageView
         android:id="@+id/btnLikeSong"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Like Song"
         android:padding="7dp"
@@ -120,8 +120,8 @@
     <!-- Context Menu / Add to Queue Button -->
     <ImageView
         android:id="@+id/btnAddToQueue"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Song Options"
         android:padding="6dp"

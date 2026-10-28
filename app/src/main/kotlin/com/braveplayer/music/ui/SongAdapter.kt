@@ -73,13 +73,17 @@ class SongAdapter(
             tvArtist.text = artistText
             tvSongDuration.text = song.formattedDuration
 
+            val durationDesc = if (song.formattedDuration.isNotBlank()) ", duration ${song.formattedDuration}" else ""
+            itemView.contentDescription = "${song.title}, by ${song.artists}$durationDesc"
+            ivCover.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+
             val liked = isSongLiked?.invoke(song.id) == true
-            updateLikeIcon(liked)
+            updateLikeIcon(liked, song.title)
 
             btnLikeSong.setOnClickListener {
                 onSongLikeToggled?.invoke(song)
                 val newLiked = isSongLiked?.invoke(song.id) == true
-                updateLikeIcon(newLiked)
+                updateLikeIcon(newLiked, song.title)
             }
 
             itemView.setOnClickListener {
@@ -91,6 +95,7 @@ class SongAdapter(
                 true
             }
 
+            btnAddToQueue.contentDescription = "Options for ${song.title}"
             btnAddToQueue.setOnClickListener {
                 if (onSongOptions != null) {
                     onSongOptions.invoke(song)
@@ -121,13 +126,15 @@ class SongAdapter(
             }
         }
 
-        private fun updateLikeIcon(liked: Boolean) {
+        private fun updateLikeIcon(liked: Boolean, title: String = "") {
             if (liked) {
-                btnLikeSong.setImageResource(R.drawable.ic_ytm_thumb_up_fill)
-                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.ytm_icon_active))
+                btnLikeSong.setImageResource(R.drawable.ic_heart_filled)
+                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.accentPrimary))
+                btnLikeSong.contentDescription = if (title.isNotBlank()) "Remove $title from liked songs" else "Remove from liked songs"
             } else {
-                btnLikeSong.setImageResource(R.drawable.ic_ytm_thumb_up_outline)
-                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.ytm_icon_inactive))
+                btnLikeSong.setImageResource(R.drawable.ic_heart_outline)
+                btnLikeSong.setColorFilter(itemView.context.getColor(R.color.textSecondary))
+                btnLikeSong.contentDescription = if (title.isNotBlank()) "Add $title to liked songs" else "Add to liked songs"
             }
         }
 

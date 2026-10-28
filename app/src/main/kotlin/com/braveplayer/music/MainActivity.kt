@@ -28,6 +28,7 @@ import android.widget.RadioGroup
 import androidx.appcompat.widget.SwitchCompat
 import android.app.Dialog
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -127,6 +128,7 @@ class MainActivity : AppCompatActivity() {
 
     // Bottom Navigation & Tabs
     private lateinit var bottomNavigation: BottomNavigationView
+    private lateinit var appHeaderBar: View
     private lateinit var containerHome: View
     private lateinit var containerSearch: View
     private lateinit var containerCollection: View
@@ -210,6 +212,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cardCollectionDownloads: View
     private lateinit var tvCollectionDownloadsCount: TextView
     private lateinit var rvPlaylistsCollection: RecyclerView
+    private var layoutPlaylistsEmpty: View? = null
 
     // Docked Mini-Player UI
     private lateinit var layoutMiniPlayer: View
@@ -336,6 +339,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initViews() {
         bottomNavigation = findViewById(R.id.bottomNavigation)
+        appHeaderBar = findViewById(R.id.topAppBar)
         containerHome = findViewById(R.id.containerHome)
         containerSearch = findViewById(R.id.containerSearch)
         containerCollection = findViewById(R.id.containerCollection)
@@ -401,6 +405,8 @@ class MainActivity : AppCompatActivity() {
         cardCollectionDownloads = findViewById(R.id.cardCollectionDownloads)
         tvCollectionDownloadsCount = findViewById(R.id.tvCollectionDownloadsCount)
         rvPlaylistsCollection = findViewById(R.id.rvPlaylistsCollection)
+        layoutPlaylistsEmpty = findViewById(R.id.layoutPlaylistsEmpty)
+        findViewById<View?>(R.id.btnEmptyCreatePlaylist)?.setOnClickListener { showCreatePlaylistDialog() }
 
         // Mini-Player UI
         layoutMiniPlayer = findViewById(R.id.layoutMiniPlayer)
@@ -540,6 +546,8 @@ class MainActivity : AppCompatActivity() {
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
             onSongSelected = { song ->
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
                 playlistDbHelper.recordSongSearch(song)
                 playSongNow(song)
             },
@@ -550,6 +558,14 @@ class MainActivity : AppCompatActivity() {
         )
         rvSearchResults.layoutManager = LinearLayoutManager(this)
         rvSearchResults.adapter = searchAdapter
+        rvSearchResults.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+                }
+            }
+        })
 
         // SECTION 4: Recently Played Horizontal Carousel
         homeRecentCardAdapter = HorizontalSongCardAdapter(
@@ -651,11 +667,33 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
+
+        bottomNavigation.setOnItemReselectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    (containerHome as? androidx.core.widget.NestedScrollView)?.smoothScrollTo(0, 0)
+                }
+                R.id.nav_search -> {
+                    if (layoutSearchResultsContainer.visibility == View.VISIBLE) {
+                        rvSearchResults.smoothScrollToPosition(0)
+                    } else {
+                        (layoutExploreDiscovery as? androidx.core.widget.NestedScrollView)?.smoothScrollTo(0, 0)
+                    }
+                }
+                R.id.nav_collection -> {
+                    (containerCollection as? androidx.core.widget.NestedScrollView)?.smoothScrollTo(0, 0)
+                }
+            }
+        }
     }
 
     private enum class Tab { HOME, SEARCH, COLLECTION }
 
     private fun switchTab(tab: Tab) {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+
+        appHeaderBar.visibility = if (tab == Tab.HOME) View.VISIBLE else View.GONE
         containerHome.visibility = if (tab == Tab.HOME) View.VISIBLE else View.GONE
         containerSearch.visibility = if (tab == Tab.SEARCH) View.VISIBLE else View.GONE
         containerCollection.visibility = if (tab == Tab.COLLECTION) View.VISIBLE else View.GONE
@@ -664,6 +702,23 @@ class MainActivity : AppCompatActivity() {
     private fun setupNowPlayingSheet() {
         nowPlayingBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         nowPlayingBehavior.peekHeight = 0
+
+        nowPlayingBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(bottomSheet.windowToken, 0)
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED || newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    layoutMiniPlayer.alpha = 1f
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                if (layoutMiniPlayer.visibility == View.VISIBLE || slideOffset > 0f) {
+                    layoutMiniPlayer.alpha = (1f - slideOffset).coerceIn(0f, 1f)
+                }
+            }
+        })
 
         // Tap on docked mini player expands full sheet
         layoutMiniPlayer.setOnClickListener {
@@ -691,6 +746,39 @@ class MainActivity : AppCompatActivity() {
         cardContinueListening.setOnClickListener { resumeLastPlayback() }
         btnContinuePlay.setOnClickListener { resumeLastPlayback() }
 
+        // System Back Navigation & Soft Keyboard Dismissal
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (nowPlayingBehavior.state != BottomSheetBehavior.STATE_COLLAPSED &&
+                    nowPlayingBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+                    nowPlayingBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    return
+                }
+                if (containerSearch.visibility == View.VISIBLE) {
+                    if (!etSearchQuery.text.isNullOrEmpty()) {
+                        etSearchQuery.text?.clear()
+                        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+                        return
+                    }
+                    if (bottomNavigation.selectedItemId != R.id.nav_home) {
+                        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+                        bottomNavigation.selectedItemId = R.id.nav_home
+                        return
+                    }
+                }
+                if (containerCollection.visibility == View.VISIBLE) {
+                    if (bottomNavigation.selectedItemId != R.id.nav_home) {
+                        bottomNavigation.selectedItemId = R.id.nav_home
+                        return
+                    }
+                }
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+            }
+        })
+
         // Explore & Live Search Actions
         btnSearchClear.setOnClickListener {
             etSearchQuery.text?.clear()
@@ -700,6 +788,13 @@ class MainActivity : AppCompatActivity() {
             playlistDbHelper.clearSearchHistory()
             refreshRecentSearchesSection()
         }
+
+        (layoutExploreDiscovery as? androidx.core.widget.NestedScrollView)?.setOnScrollChangeListener(
+            androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+            }
+        )
 
         btnSeeAllTrendingExplore.setOnClickListener {
             showFullTrendingDialog()
@@ -861,6 +956,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnNowPlayingQueueAction.setOnClickListener { showQueueDialog() }
+        findViewById<View?>(R.id.btnNowPlayingQueueTop)?.setOnClickListener { showQueueDialog() }
         btnNowPlayingLyricsAction.setOnClickListener {
             val item = mediaController?.currentMediaItem ?: return@setOnClickListener
             val song = SongMediaItemMapper.fromMediaItem(item)
@@ -1010,15 +1106,31 @@ class MainActivity : AppCompatActivity() {
             loadArtwork(song.imageUrl, ivMiniCover)
 
             val isLiked = playlistDbHelper.isSongLiked(song.id)
-            btnMiniLike.setImageResource(if (isLiked) R.drawable.ic_ytm_thumb_up_fill else R.drawable.ic_ytm_thumb_up_outline)
+            val primaryColor = ContextCompat.getColor(
+                this,
+                if (appSettings.isReducedIntensityEnabled()) R.color.accentPressed else R.color.accentPrimary
+            )
+            val mutedColor = ContextCompat.getColor(this, R.color.textSecondary)
+
+            btnMiniLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+            btnMiniLike.setColorFilter(if (isLiked) primaryColor else mutedColor)
+            btnMiniLike.contentDescription = if (isLiked) "Remove $title from liked songs" else "Add $title to liked songs"
+
             btnMiniPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_ytm_pause else R.drawable.ic_ytm_play)
+            btnMiniPlayPause.contentDescription = if (controller.isPlaying) "Pause $title" else "Play $title"
 
             // Update Now Playing Sheet
             tvNowPlayingTitle.text = title
             tvNowPlayingArtist.text = if (album.isNotBlank()) "$artist • $album" else artist
             loadArtwork(song.imageUrl, ivNowPlayingCover)
-            btnNowPlayingLike.setImageResource(if (isLiked) R.drawable.ic_ytm_thumb_up_fill else R.drawable.ic_ytm_thumb_up_outline)
+
+            btnNowPlayingLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+            btnNowPlayingLike.setColorFilter(if (isLiked) primaryColor else mutedColor)
+            btnNowPlayingLike.contentDescription = if (isLiked) "Remove $title from liked songs" else "Add $title to liked songs"
+
             btnNowPlayingPlayPause.setImageResource(if (controller.isPlaying) R.drawable.ic_ytm_pause else R.drawable.ic_ytm_play)
+            btnNowPlayingPlayPause.contentDescription = if (controller.isPlaying) "Pause $title" else "Play $title"
+            findViewById<View?>(R.id.layoutNowPlayingPlayPause)?.contentDescription = if (controller.isPlaying) "Pause $title" else "Play $title"
         } else {
             layoutMiniPlayer.visibility = View.GONE
         }
@@ -1100,18 +1212,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateRepeatControls(repeatMode: Int) {
+        val primaryColor = ContextCompat.getColor(
+            this,
+            if (appSettings.isReducedIntensityEnabled()) R.color.accentPressed else R.color.accentPrimary
+        )
+        val mutedColor = ContextCompat.getColor(this, R.color.textSecondary)
         when (repeatMode) {
             Player.REPEAT_MODE_ALL -> {
                 btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
+                btnNowPlayingRepeat.setColorFilter(primaryColor)
+                btnNowPlayingRepeat.contentDescription = "Repeat all enabled"
             }
             Player.REPEAT_MODE_ONE -> {
                 btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat_one)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
+                btnNowPlayingRepeat.setColorFilter(primaryColor)
+                btnNowPlayingRepeat.contentDescription = "Repeat one enabled"
             }
             else -> {
                 btnNowPlayingRepeat.setImageResource(R.drawable.ic_ytm_repeat)
-                btnNowPlayingRepeat.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_secondary))
+                btnNowPlayingRepeat.setColorFilter(mutedColor)
+                btnNowPlayingRepeat.contentDescription = "Repeat disabled"
             }
         }
     }
@@ -1129,18 +1249,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateShuffleControls(state: SmartShuffleState = smartShuffleState) {
+        val primaryColor = ContextCompat.getColor(
+            this,
+            if (appSettings.isReducedIntensityEnabled()) R.color.accentPressed else R.color.accentPrimary
+        )
+        val mutedColor = ContextCompat.getColor(this, R.color.textSecondary)
         when (state) {
             SmartShuffleState.NORMAL -> {
                 btnNowPlayingShuffle.setImageResource(R.drawable.ic_ytm_shuffle)
-                btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_secondary))
+                btnNowPlayingShuffle.setColorFilter(mutedColor)
+                btnNowPlayingShuffle.contentDescription = "Shuffle disabled"
             }
             SmartShuffleState.SHUFFLE -> {
                 btnNowPlayingShuffle.setImageResource(R.drawable.ic_ytm_shuffle)
-                btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.ytm_text_primary))
+                btnNowPlayingShuffle.setColorFilter(primaryColor)
+                btnNowPlayingShuffle.contentDescription = "Shuffle enabled"
             }
             SmartShuffleState.SMART_SHUFFLE -> {
                 btnNowPlayingShuffle.setImageResource(R.drawable.ic_ytm_smart_shuffle)
-                btnNowPlayingShuffle.setColorFilter(ContextCompat.getColor(this, R.color.ytm_red))
+                btnNowPlayingShuffle.setColorFilter(primaryColor)
+                btnNowPlayingShuffle.contentDescription = "Smart Shuffle enabled with recommendations"
             }
         }
     }
@@ -1231,8 +1359,9 @@ class MainActivity : AppCompatActivity() {
         val enabled = appSettings.isAutoplayEnabled()
         tvNowPlayingAutoplayStatus.text = if (enabled) "AUTOPLAY ON" else "AUTOPLAY OFF"
         tvNowPlayingAutoplayStatus.setTextColor(
-            ContextCompat.getColor(this, if (enabled) R.color.ytm_text_primary else R.color.ytm_text_secondary)
+            ContextCompat.getColor(this, if (enabled) R.color.textPrimary else R.color.textSecondary)
         )
+        tvNowPlayingAutoplayStatus.contentDescription = if (enabled) "Autoplay is on, continuous playback active" else "Autoplay is off"
     }
 
     private fun triggerAutoplayCheck() {
@@ -1700,15 +1829,20 @@ class MainActivity : AppCompatActivity() {
     private fun refreshCollectionData() {
         val likedCount = playlistDbHelper.getAllLikedSongs().size
         tvCollectionLikedCount.text = "$likedCount tracks"
+        cardCollectionLiked.contentDescription = "Liked songs collection, $likedCount tracks"
 
         val historyCount = playlistDbHelper.getRecentlyPlayedSongs(100).size
         tvCollectionHistoryCount.text = "$historyCount recent plays"
+        cardCollectionHistory.contentDescription = "Listening history, $historyCount recent plays"
 
         val downloadedCount = playlistDbHelper.getAllDownloadedSongs().size
         tvCollectionDownloadsCount.text = "$downloadedCount offline tracks"
+        cardCollectionDownloads.contentDescription = "Downloaded offline music, $downloadedCount tracks"
 
         val playlists = playlistDbHelper.getAllPlaylists()
         collectionPlaylistAdapter.submitList(playlists)
+        layoutPlaylistsEmpty?.visibility = if (playlists.isEmpty()) View.VISIBLE else View.GONE
+        rvPlaylistsCollection.visibility = if (playlists.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun openMixDetail(mixType: String) {
@@ -1967,40 +2101,116 @@ class MainActivity : AppCompatActivity() {
         dialog.behavior.skipCollapsed = true
 
         val ivClose: ImageView = view.findViewById(R.id.ivCloseCollectionSheet)
+        val tvTopTitle: TextView? = view.findViewById(R.id.tvCollectionSheetTopTitle)
         val tvTitle: TextView = view.findViewById(R.id.tvCollectionSheetTitle)
         val tvSub: TextView = view.findViewById(R.id.tvCollectionSheetSubtitle)
+        val ivHeroArt: ImageView? = view.findViewById(R.id.ivCollectionHeroArt)
+        val ivRename: ImageView? = view.findViewById(R.id.ivCollectionSheetRename)
         val ivAction: ImageView = view.findViewById(R.id.ivCollectionSheetAction)
         val btnPlayAll: Button = view.findViewById(R.id.btnCollectionPlayAll)
         val btnShuffle: Button = view.findViewById(R.id.btnCollectionShuffle)
+        val btnAddTracks: Button? = view.findViewById(R.id.btnCollectionAddTracks)
         val rvSongs: RecyclerView = view.findViewById(R.id.rvCollectionSongs)
         val layoutEmpty: View = view.findViewById(R.id.layoutCollectionEmpty)
         val tvEmptyTitle: TextView = view.findViewById(R.id.tvCollectionEmptyTitle)
         val tvEmptyMsg: TextView = view.findViewById(R.id.tvCollectionEmptyMsg)
+        val btnEmptyAction: Button? = view.findViewById(R.id.btnCollectionEmptyAction)
 
         ivClose.setOnClickListener { dialog.dismiss() }
         tvTitle.text = title
+        tvTopTitle?.text = title
         tvSub.text = if (songs.isNotEmpty()) "${songs.size} tracks • $subtitle" else subtitle
 
+        // Hero Artwork Setup
+        if (ivHeroArt != null) {
+            when {
+                isHistory -> {
+                    ivHeroArt.setImageResource(R.drawable.ic_queue_music)
+                    ivHeroArt.setColorFilter(ContextCompat.getColor(this, R.color.accentBlue))
+                }
+                isDownloaded -> {
+                    ivHeroArt.setImageResource(R.drawable.ic_download)
+                    ivHeroArt.setColorFilter(ContextCompat.getColor(this, R.color.accentViolet))
+                }
+                playlist != null -> {
+                    if (songs.isNotEmpty() && !songs[0].imageUrl.isNullOrBlank()) {
+                        ivHeroArt.clearColorFilter()
+                        ivHeroArt.setPadding(0, 0, 0, 0)
+                        loadArtwork(songs[0].imageUrl, ivHeroArt)
+                    } else {
+                        ivHeroArt.setImageResource(R.drawable.ic_library_music)
+                        ivHeroArt.setColorFilter(ContextCompat.getColor(this, R.color.accentPrimary))
+                    }
+                }
+                else -> {
+                    // Liked Songs
+                    ivHeroArt.setImageResource(R.drawable.ic_heart_filled)
+                    ivHeroArt.setColorFilter(ContextCompat.getColor(this, R.color.accentPrimary))
+                }
+            }
+        }
+
+        // Rename Action
+        if (playlist != null && ivRename != null) {
+            ivRename.visibility = View.VISIBLE
+            ivRename.setOnClickListener {
+                showRenamePlaylistDialog(playlist) { newName ->
+                    tvTitle.text = newName
+                    tvTopTitle?.text = newName
+                }
+            }
+        } else {
+            ivRename?.visibility = View.GONE
+        }
+
+        // Delete / Clear Action
         if (onClearAction != null) {
             ivAction.visibility = View.VISIBLE
             ivAction.setImageResource(R.drawable.ic_delete)
             ivAction.contentDescription = "Clear History"
             ivAction.setOnClickListener {
-                onClearAction.invoke()
-                dialog.dismiss()
+                AlertDialog.Builder(this)
+                    .setTitle("Clear History")
+                    .setMessage("Are you sure you want to clear your listening history?")
+                    .setPositiveButton("Clear") { _, _ ->
+                        onClearAction.invoke()
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
         } else if (playlist != null) {
             ivAction.visibility = View.VISIBLE
             ivAction.setImageResource(R.drawable.ic_delete)
             ivAction.contentDescription = "Delete Playlist"
             ivAction.setOnClickListener {
-                playlistDbHelper.deletePlaylist(playlist.id)
-                refreshCollectionData()
-                dialog.dismiss()
-                Toast.makeText(this, "Playlist '${playlist.name}' deleted", Toast.LENGTH_SHORT).show()
+                AlertDialog.Builder(this)
+                    .setTitle("Delete Playlist")
+                    .setMessage("Are you sure you want to delete '${playlist.name}'?")
+                    .setPositiveButton("Delete") { _, _ ->
+                        playlistDbHelper.deletePlaylist(playlist.id)
+                        refreshCollectionData()
+                        dialog.dismiss()
+                        Toast.makeText(this, "Playlist '${playlist.name}' deleted", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
         } else {
             ivAction.visibility = View.GONE
+        }
+
+        // Add Tracks Action
+        if (playlist != null && btnAddTracks != null) {
+            btnAddTracks.visibility = View.VISIBLE
+            btnAddTracks.setOnClickListener {
+                dialog.dismiss()
+                switchTab(Tab.SEARCH)
+                bottomNavigation.selectedItemId = R.id.nav_search
+                Toast.makeText(this, "Search songs and tap ⋮ to add to '${playlist.name}'", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            btnAddTracks?.visibility = View.GONE
         }
 
         btnPlayAll.setOnClickListener {
@@ -2080,6 +2290,15 @@ class MainActivity : AppCompatActivity() {
                     tvEmptyMsg.text = "Tap the heart icon on any song to save it here."
                 }
             }
+            if (btnEmptyAction != null) {
+                btnEmptyAction.visibility = View.VISIBLE
+                btnEmptyAction.text = if (playlist != null) "+ Add Songs" else "Explore Music"
+                btnEmptyAction.setOnClickListener {
+                    dialog.dismiss()
+                    switchTab(Tab.SEARCH)
+                    bottomNavigation.selectedItemId = R.id.nav_search
+                }
+            }
         } else {
             layoutEmpty.visibility = View.GONE
             rvSongs.visibility = View.VISIBLE
@@ -2089,7 +2308,24 @@ class MainActivity : AppCompatActivity() {
                 scope = lifecycleScope,
                 httpClient = metadataService.httpClient,
                 onSongSelected = { song ->
-                    playSongNow(song)
+                    val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this@MainActivity)
+                    val playableSongs = if (!isOnline && !isDownloaded) {
+                        songs.mapNotNull { playlistDbHelper.getDownloadedSong(it.id) }
+                    } else {
+                        songs.map { s -> if (playlistDbHelper.isSongDownloaded(s.id)) playlistDbHelper.getDownloadedSong(s.id) ?: s else s }
+                    }
+                    val startIndex = playableSongs.indexOfFirst { it.id == song.id }
+                    if (startIndex >= 0) {
+                        val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
+                        mediaController?.let { c ->
+                            c.stop()
+                            c.setMediaItems(mediaItems, startIndex, 0L)
+                            c.prepare()
+                            c.play()
+                        }
+                    } else {
+                        playSongNow(song)
+                    }
                 },
                 onSongAddToQueue = { song ->
                     addSongToQueue(song)
@@ -2111,10 +2347,42 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showRenamePlaylistDialog(playlist: Playlist, onRenamed: (String) -> Unit) {
+        val dialog = Dialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_playlist, null)
+        dialog.setContentView(view)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val tvTitle = view.findViewById<TextView>(R.id.tvCreatePlaylistTitle)
+        val tvSub = view.findViewById<TextView>(R.id.tvCreatePlaylistSubtitle)
+        val etName = view.findViewById<EditText>(R.id.etPlaylistNameInput)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancelCreatePlaylist)
+        val btnConfirm = view.findViewById<Button>(R.id.btnConfirmCreatePlaylist)
+
+        tvTitle?.text = "Rename Playlist"
+        tvSub?.text = "Enter a new name for '${playlist.name}'"
+        etName.setText(playlist.name)
+        etName.setSelection(playlist.name.length)
+        btnConfirm.text = "Save"
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnConfirm.setOnClickListener {
+            val newName = etName.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                playlistDbHelper.renamePlaylist(playlist.id, newName)
+                refreshCollectionData()
+                onRenamed(newName)
+                dialog.dismiss()
+                Toast.makeText(this, "Playlist renamed to '$newName'", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
+    }
+
     private fun showLikedSongsDialog() {
         val liked = playlistDbHelper.getAllLikedSongs()
         showSongCollectionSheet(
-            title = "Liked Music",
+            title = "Liked Songs",
             subtitle = "Saved to your library",
             songs = liked
         )
@@ -2478,6 +2746,7 @@ class MainActivity : AppCompatActivity() {
         val switchSmartShuffle: SwitchCompat = view.findViewById(R.id.switchSmartShuffle)
         val switchPersonalization: SwitchCompat = view.findViewById(R.id.switchPersonalization)
         val switchAvoidRecent: SwitchCompat = view.findViewById(R.id.switchAvoidRecent)
+        val switchReducedIntensity: SwitchCompat? = view.findViewById(R.id.switchReducedIntensity)
         val rgDiversity: RadioGroup = view.findViewById(R.id.rgDiversity)
         val rbBalanced: RadioButton = view.findViewById(R.id.rbBalanced)
         val rbFamiliar: RadioButton = view.findViewById(R.id.rbFamiliar)
@@ -2491,6 +2760,11 @@ class MainActivity : AppCompatActivity() {
         switchSmartShuffle.isChecked = (smartShuffleState == SmartShuffleState.SMART_SHUFFLE || appSettings.isSmartShuffleEnabled())
         switchPersonalization.isChecked = appSettings.isPersonalizationEnabled()
         switchAvoidRecent.isChecked = appSettings.shouldAvoidRecentlyPlayed()
+        switchReducedIntensity?.isChecked = appSettings.isReducedIntensityEnabled()
+        switchReducedIntensity?.setOnCheckedChangeListener { _, isChecked ->
+            appSettings.setReducedIntensityEnabled(isChecked)
+            syncUiWithPlayer()
+        }
 
         when (appSettings.getRecommendationDiversity()) {
             AppSettings.DIVERSITY_FAMILIAR -> rbFamiliar.isChecked = true

@@ -72,6 +72,10 @@ class TrendingRowAdapter(
             tvTitle.text = song.title
             val artistStr = if (song.artists.isNotBlank()) song.artists else "Trending Artist"
             tvSubtitle.text = "Song • $artistStr"
+            itemView.contentDescription = "Trending rank #$rank, ${song.title}, by $artistStr"
+            btnPlay.contentDescription = "Play ${song.title}"
+            btnOptions.contentDescription = "Options for ${song.title}"
+            ivThumb.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             btnPlay.visibility = View.VISIBLE
             btnOptions.visibility = View.VISIBLE

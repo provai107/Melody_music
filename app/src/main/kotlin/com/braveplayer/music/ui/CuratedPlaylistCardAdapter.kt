@@ -75,6 +75,9 @@ class CuratedPlaylistCardAdapter(
         fun bind(item: HomeCollectionItem) {
             tvTitle.text = item.title
             tvSubtitle.text = item.subtitle
+            itemView.contentDescription = "Playlist ${item.title}, ${item.subtitle}"
+            btnQuickPlay.contentDescription = "Play playlist ${item.title}"
+            ivCover.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             imageLoadJob?.cancel()
             val imageUrl = item.imageUrl

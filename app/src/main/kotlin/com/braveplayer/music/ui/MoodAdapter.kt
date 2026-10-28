@@ -31,8 +31,10 @@ class MoodAdapter(
 
         fun bind(mood: MoodCategory) {
             tvEmoji.text = mood.emoji
+            tvEmoji.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             tvName.text = mood.name
             tvSubtitle.text = mood.subtitle
+            itemView.contentDescription = "Filter by mood: ${mood.name}"
 
             itemView.setOnClickListener {
                 onMoodClicked(mood)

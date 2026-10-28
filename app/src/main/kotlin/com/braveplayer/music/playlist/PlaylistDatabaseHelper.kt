@@ -362,6 +362,17 @@ class PlaylistDatabaseHelper(context: Context) :
         return deleted > 0
     }
 
+    fun renamePlaylist(playlistId: Long, newName: String): Boolean {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) return false
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_P_NAME, trimmed)
+        }
+        val updated = db.update(TABLE_PLAYLISTS, values, "$COL_P_ID = ?", arrayOf(playlistId.toString()))
+        return updated > 0
+    }
+
     fun addSongToPlaylist(playlistId: Long, song: Song): Boolean {
         val db = writableDatabase
         val maxOrderQuery = "SELECT MAX($COL_PS_SORT_ORDER) FROM $TABLE_PLAYLIST_SONGS WHERE $COL_PS_PLAYLIST_ID = ?"

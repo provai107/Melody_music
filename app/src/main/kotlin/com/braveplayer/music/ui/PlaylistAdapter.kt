@@ -44,6 +44,8 @@ class PlaylistAdapter(
         fun bind(playlist: Playlist) {
             tvName.text = playlist.name
             tvCount.text = "${playlist.songCount} tracks"
+            itemView.contentDescription = "Playlist ${playlist.name}, ${playlist.songCount} tracks"
+            btnOptions.contentDescription = "Options for playlist ${playlist.name}"
 
             itemView.setOnClickListener {
                 onPlaylistSelected(playlist)
