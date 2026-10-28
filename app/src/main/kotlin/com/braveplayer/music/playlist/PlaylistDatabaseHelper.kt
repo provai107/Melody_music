@@ -36,8 +36,29 @@ data class SearchHistoryItem(
     val mediaUrlDefault: String? = null,
     val durationSec: Int = 0,
     val album: String = "",
-    val artists: String = ""
-)
+    val artists: String = "",
+    val previewUrl: String? = null
+) {
+    /**
+     * Converts this historical search item into a domain [Song] model while preserving its stable ID.
+     * Returns null if [songId] is missing or blank (e.g. pure query entries).
+     */
+    fun toSong(): Song? {
+        val stableId = songId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val effectiveArtists = if (artists.isNotBlank()) artists else subtitle.removePrefix("Song • ").trim()
+        return Song(
+            id = stableId,
+            title = title,
+            artists = effectiveArtists,
+            album = album,
+            imageUrl = imageUrl,
+            durationSec = durationSec,
+            mediaUrl = mediaUrl,
+            mediaUrlDefault = mediaUrlDefault,
+            previewUrl = previewUrl
+        )
+    }
+}
 
 /**
  * SQLite persistence layer for user playlists, liked songs, and listening history.
@@ -48,7 +69,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "brave_playlists.db"
-        private const val DATABASE_VERSION = 5
+        private const val DATABASE_VERSION = 6
 
         // Playlists Table
         private const val TABLE_PLAYLISTS = "playlists"
@@ -129,6 +150,7 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_SH_DURATION = "duration_sec"
         private const val COL_SH_ALBUM = "album"
         private const val COL_SH_ARTISTS = "artists"
+        private const val COL_SH_PREVIEW_URL = "preview_url"
 
         // Recommendation Feedback Table (Spotify-style Like / Not Interested / Hide)
         private const val TABLE_RECOMMENDATION_FEEDBACK = "recommendation_feedback"
@@ -217,12 +239,14 @@ class PlaylistDatabaseHelper(context: Context) :
                 $COL_SH_MEDIA_URL_DEF TEXT,
                 $COL_SH_DURATION INTEGER DEFAULT 0,
                 $COL_SH_ALBUM TEXT DEFAULT '',
-                $COL_SH_ARTISTS TEXT DEFAULT ''
+                $COL_SH_ARTISTS TEXT DEFAULT '',
+                $COL_SH_PREVIEW_URL TEXT
             );
             """.trimIndent()
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_timestamp ON $TABLE_SEARCH_HISTORY($COL_SH_TIMESTAMP DESC);")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_query ON $TABLE_SEARCH_HISTORY($COL_SH_QUERY);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_song_id ON $TABLE_SEARCH_HISTORY($COL_SH_SONG_ID);")
     }
 
     private fun createLikedSongsTable(db: SQLiteDatabase) {
@@ -308,6 +332,12 @@ class PlaylistDatabaseHelper(context: Context) :
                 db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_ARTISTS TEXT DEFAULT '';")
             } catch (_: Exception) {}
             createRecommendationFeedbackTable(db)
+        }
+        if (oldVersion < 6) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_PREVIEW_URL TEXT;")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_song_id ON $TABLE_SEARCH_HISTORY($COL_SH_SONG_ID);")
+            } catch (_: Exception) {}
         }
     }
 
@@ -878,11 +908,11 @@ class PlaylistDatabaseHelper(context: Context) :
         if (trimmedQuery.isEmpty() && trimmedTitle.isEmpty()) return -1L
 
         val db = writableDatabase
-        // Deduplicate: if an entry with the same query or songId exists, remove the previous record
+        // Deduplicate without destroying distinct songs with the same title or cross-contaminating queries and songs:
         if (!item.songId.isNullOrBlank()) {
             db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_SONG_ID = ?", arrayOf(item.songId))
         } else {
-            db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_QUERY = ? OR $COL_SH_TITLE = ?", arrayOf(trimmedQuery, trimmedTitle))
+            db.delete(TABLE_SEARCH_HISTORY, "$COL_SH_SONG_ID IS NULL AND ($COL_SH_QUERY = ? OR $COL_SH_TITLE = ?)", arrayOf(trimmedQuery, trimmedTitle))
         }
 
         val values = ContentValues().apply {
@@ -895,6 +925,7 @@ class PlaylistDatabaseHelper(context: Context) :
             put(COL_SH_TIMESTAMP, System.currentTimeMillis())
             put(COL_SH_MEDIA_URL, item.mediaUrl)
             put(COL_SH_MEDIA_URL_DEF, item.mediaUrlDefault)
+            put(COL_SH_PREVIEW_URL, item.previewUrl)
             put(COL_SH_DURATION, item.durationSec)
             put(COL_SH_ALBUM, item.album)
             put(COL_SH_ARTISTS, item.artists)
@@ -926,6 +957,7 @@ class PlaylistDatabaseHelper(context: Context) :
                 songId = song.id,
                 mediaUrl = song.mediaUrl,
                 mediaUrlDefault = song.mediaUrlDefault,
+                previewUrl = song.previewUrl,
                 durationSec = song.durationSec,
                 album = song.album,
                 artists = song.artists
@@ -957,6 +989,7 @@ class PlaylistDatabaseHelper(context: Context) :
             val idxTime = it.getColumnIndexOrThrow(COL_SH_TIMESTAMP)
             val idxMediaUrl = it.getColumnIndex(COL_SH_MEDIA_URL)
             val idxMediaUrlDef = it.getColumnIndex(COL_SH_MEDIA_URL_DEF)
+            val idxPreviewUrl = it.getColumnIndex(COL_SH_PREVIEW_URL)
             val idxDuration = it.getColumnIndex(COL_SH_DURATION)
             val idxAlbum = it.getColumnIndex(COL_SH_ALBUM)
             val idxArtists = it.getColumnIndex(COL_SH_ARTISTS)
@@ -974,6 +1007,7 @@ class PlaylistDatabaseHelper(context: Context) :
                         timestamp = it.getLong(idxTime),
                         mediaUrl = if (idxMediaUrl >= 0 && !it.isNull(idxMediaUrl)) it.getString(idxMediaUrl) else null,
                         mediaUrlDefault = if (idxMediaUrlDef >= 0 && !it.isNull(idxMediaUrlDef)) it.getString(idxMediaUrlDef) else null,
+                        previewUrl = if (idxPreviewUrl >= 0 && !it.isNull(idxPreviewUrl)) it.getString(idxPreviewUrl) else null,
                         durationSec = if (idxDuration >= 0 && !it.isNull(idxDuration)) it.getInt(idxDuration) else 0,
                         album = if (idxAlbum >= 0 && !it.isNull(idxAlbum)) it.getString(idxAlbum) else "",
                         artists = if (idxArtists >= 0 && !it.isNull(idxArtists)) it.getString(idxArtists) else ""

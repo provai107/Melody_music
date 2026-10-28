@@ -136,20 +136,22 @@ class MusicMetadataService(
             if (response.isSuccessful) {
                 val body = response.body?.string() ?: ""
                 val songs = SearchResponseParser.parseSearchResponse(body)
-                val match = songs.firstOrNull { it.id == trimmedId } ?: songs.firstOrNull()
+                // Require strict stable ID match; never substitute an unrelated track
+                val match = songs.firstOrNull { it.id == trimmedId }
                 if (match != null && match.getBestPlaybackUrl() != null) {
                     return@withContext match
                 }
             }
         } catch (_: Exception) {}
 
-        // Fallback to search query
+        // Fallback to search query but ONLY accept results matching the exact stable song ID
         val queryToSearch = fallbackQuery?.takeIf { it.isNotBlank() } ?: trimmedId
         val searchRes = searchSongs(baseUrl, queryToSearch, maxRetries = 1)
         if (searchRes is SearchResult.Success) {
             val exact = searchRes.songs.firstOrNull { it.id == trimmedId }
-            if (exact != null && exact.getBestPlaybackUrl() != null) return@withContext exact
-            return@withContext searchRes.songs.firstOrNull { it.getBestPlaybackUrl() != null }
+            if (exact != null && exact.getBestPlaybackUrl() != null) {
+                return@withContext exact
+            }
         }
         null
     }

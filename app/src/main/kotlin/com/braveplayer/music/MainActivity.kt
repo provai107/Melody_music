@@ -110,6 +110,19 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSION_REQUEST_NOTIFICATIONS = 1002
         private val coverImageCache = LruCache<String, Bitmap>(100)
+
+        // Verified official direct Melody APK download URL from GitHub Releases
+        const val OFFICIAL_APK_DOWNLOAD_URL =
+            "https://github.com/hernos5/melody/releases/latest/download/Melody.apk"
+
+        fun buildShareMessage(song: Song?): String {
+            return if (song != null && song.title.isNotBlank()) {
+                val artistPart = if (song.artists.isNotBlank()) " by ${song.artists}" else ""
+                "Listening to \"${song.title}\"$artistPart on Melody 🎵\n\nDownload the latest version here: $OFFICIAL_APK_DOWNLOAD_URL"
+            } else {
+                "Listen with Melody 🎵 Download the latest version here: $OFFICIAL_APK_DOWNLOAD_URL"
+            }
+        }
     }
 
     private lateinit var appSettings: AppSettings
@@ -469,45 +482,7 @@ class MainActivity : AppCompatActivity() {
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
             onItemClick = { item ->
-                if (!item.songId.isNullOrBlank()) {
-                    if (!item.mediaUrl.isNullOrBlank() || !item.mediaUrlDefault.isNullOrBlank()) {
-                        val song = Song(
-                            id = item.songId,
-                            title = item.title,
-                            artists = if (item.artists.isNotBlank()) item.artists else item.subtitle.removePrefix("Song • "),
-                            album = item.album,
-                            imageUrl = item.imageUrl,
-                            durationSec = item.durationSec,
-                            mediaUrl = item.mediaUrl,
-                            mediaUrlDefault = item.mediaUrlDefault,
-                            previewUrl = null
-                        )
-                        playSongNow(song)
-                    } else {
-                        val cached = playlistDbHelper.findCachedSong(item.songId)
-                        if (cached != null && cached.getBestPlaybackUrl() != null) {
-                            playSongNow(cached)
-                        } else {
-                            Toast.makeText(this@MainActivity, "Loading '${item.title}' stream...", Toast.LENGTH_SHORT).show()
-                            lifecycleScope.launch {
-                                val baseUrl = appSettings.getBaseUrl()
-                                val resolved = metadataService.fetchSongDetails(baseUrl, item.songId, item.title)
-                                if (resolved != null && resolved.getBestPlaybackUrl() != null) {
-                                    playlistDbHelper.recordSongSearch(resolved)
-                                    playSongNow(resolved)
-                                } else {
-                                    etSearchQuery.setText(item.title)
-                                    etSearchQuery.setSelection(item.title.length)
-                                    performSearch(item.title)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    etSearchQuery.setText(item.queryText)
-                    etSearchQuery.setSelection(item.queryText.length)
-                    performSearch(item.queryText)
-                }
+                handleHistoricalItemClick(item)
             },
             onRemoveClick = { item ->
                 playlistDbHelper.removeSearchHistoryItem(item.id)
@@ -906,12 +881,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
         btnNowPlayingShareAction.setOnClickListener {
-            val item = mediaController?.currentMediaItem ?: return@setOnClickListener
-            val song = SongMediaItemMapper.fromMediaItem(item)
+            val item = mediaController?.currentMediaItem
+            val song = if (item != null) SongMediaItemMapper.fromMediaItem(item) else null
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_SUBJECT, song.title)
-                putExtra(Intent.EXTRA_TEXT, "Listening to \"${song.title}\" by ${song.artists} on Melody")
+                putExtra(Intent.EXTRA_SUBJECT, if (!song?.title.isNullOrBlank()) "Listen to \"${song?.title}\" on Melody" else "Download Melody")
+                putExtra(Intent.EXTRA_TEXT, buildShareMessage(song))
             }
             startActivity(Intent.createChooser(shareIntent, "Share Track"))
         }
@@ -1468,6 +1443,70 @@ class MainActivity : AppCompatActivity() {
         liveSearchJob?.cancel()
         val genId = ++searchGenerationId
         performLiveSearch(query, genId)
+    }
+
+    private var historicalPlaybackJob: Job? = null
+    private var historicalRequestGenId: Long = 0L
+
+    /**
+     * Handles selection of a Search History item.
+     * - If pure query: populates input and executes search.
+     * - If song item: reconstructs the exact song via its stable ID and plays it,
+     *   preventing stale list indices, query substitutions, or racing async requests from replacing the track.
+     */
+    private fun handleHistoricalItemClick(item: SearchHistoryItem) {
+        val songId = item.songId?.trim()
+        if (songId.isNullOrEmpty()) {
+            // Pure search query entry: populate search box and search
+            etSearchQuery.setText(item.queryText)
+            etSearchQuery.setSelection(item.queryText.length)
+            performSearch(item.queryText)
+            return
+        }
+
+        // Cancel previous pending live search and previous historical playback resolutions to eliminate race conditions
+        liveSearchJob?.cancel()
+        historicalPlaybackJob?.cancel()
+        val currentGenId = ++historicalRequestGenId
+
+        // 1. Direct reconstruction of the historical song from stored metadata
+        val historicalSong = item.toSong()
+
+        // 2. If the historical record already has a valid stream URL, play it immediately
+        if (historicalSong != null && historicalSong.getBestPlaybackUrl() != null) {
+            playSongNow(historicalSong)
+            return
+        }
+
+        // 3. Check locally cached tracks (downloaded, liked, history, playlist) by exact stable ID
+        val cached = playlistDbHelper.findCachedSong(songId)
+        if (cached != null && cached.id == songId && cached.getBestPlaybackUrl() != null) {
+            playSongNow(cached)
+            return
+        }
+
+        // 4. Incomplete metadata/stream: asynchronously resolve using stored stable ID
+        Toast.makeText(this@MainActivity, "Loading '${item.title}' stream...", Toast.LENGTH_SHORT).show()
+        historicalPlaybackJob = lifecycleScope.launch {
+            val baseUrl = appSettings.getBaseUrl()
+            val resolved = metadataService.fetchSongDetails(baseUrl, songId, item.title)
+
+            // Guard against stale async responses replacing the currently selected song
+            if (currentGenId != historicalRequestGenId) return@launch
+
+            if (resolved != null && resolved.id == songId && resolved.getBestPlaybackUrl() != null) {
+                // Ensure audio source, title, artist, and artwork strictly correspond to the same song
+                playlistDbHelper.recordSongSearch(resolved)
+                refreshRecentSearchesSection()
+                playSongNow(resolved)
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Playback stream unavailable for '${item.title}'",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private enum class SearchState { IDLE, LOADING, EMPTY, ERROR, RESULTS }

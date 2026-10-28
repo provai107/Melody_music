@@ -128,4 +128,143 @@ class SearchHistoryDatabaseTest {
         assertThat(blankId).isEqualTo(-1L)
         assertThat(dbHelper.getRecentSearches()).isEmpty()
     }
+
+    @Test
+    fun testSongsWithIdenticalTitlesRemainDistinct() {
+        // Song 1: "Stay" by The Kid LAROI & Justin Bieber
+        val song1 = Song(
+            id = "stay_laroi_101",
+            title = "Stay",
+            artists = "The Kid LAROI, Justin Bieber",
+            album = "F*CK LOVE 3",
+            imageUrl = "https://saavncdn.com/stay_laroi.jpg",
+            durationSec = 141,
+            mediaUrl = "https://aac.saavncdn.com/stay_laroi.mp4",
+            mediaUrlDefault = "https://aac.saavncdn.com/stay_laroi_def.mp4",
+            previewUrl = "https://preview.saavncdn.com/stay_laroi.mp3"
+        )
+        // Song 2: "Stay" by Rihanna ft. Mikky Ekko (identical title, different stable ID)
+        val song2 = Song(
+            id = "stay_rihanna_202",
+            title = "Stay",
+            artists = "Rihanna, Mikky Ekko",
+            album = "Unapologetic",
+            imageUrl = "https://saavncdn.com/stay_rihanna.jpg",
+            durationSec = 240,
+            mediaUrl = "https://aac.saavncdn.com/stay_rihanna.mp4",
+            mediaUrlDefault = "https://aac.saavncdn.com/stay_rihanna_def.mp4",
+            previewUrl = "https://preview.saavncdn.com/stay_rihanna.mp3"
+        )
+
+        val id1 = dbHelper.recordSongSearch(song1)
+        val id2 = dbHelper.recordSongSearch(song2)
+
+        assertThat(id1).isGreaterThan(0)
+        assertThat(id2).isGreaterThan(0)
+
+        val history = dbHelper.getRecentSearches()
+        assertThat(history).hasSize(2)
+
+        // Both entries must exist distinctly with their respective stable IDs and metadata preserved
+        val rihannaEntry = history.first { it.songId == "stay_rihanna_202" }
+        assertThat(rihannaEntry.title).isEqualTo("Stay")
+        assertThat(rihannaEntry.artists).isEqualTo("Rihanna, Mikky Ekko")
+        assertThat(rihannaEntry.mediaUrl).isEqualTo("https://aac.saavncdn.com/stay_rihanna.mp4")
+        assertThat(rihannaEntry.previewUrl).isEqualTo("https://preview.saavncdn.com/stay_rihanna.mp3")
+
+        val laroiEntry = history.first { it.songId == "stay_laroi_101" }
+        assertThat(laroiEntry.title).isEqualTo("Stay")
+        assertThat(laroiEntry.artists).isEqualTo("The Kid LAROI, Justin Bieber")
+        assertThat(laroiEntry.mediaUrl).isEqualTo("https://aac.saavncdn.com/stay_laroi.mp4")
+
+        // Verifying toSong() produces the exact distinct songs
+        val reconstructedRihanna = rihannaEntry.toSong()!!
+        val reconstructedLaroi = laroiEntry.toSong()!!
+
+        assertThat(reconstructedRihanna.id).isEqualTo("stay_rihanna_202")
+        assertThat(reconstructedLaroi.id).isEqualTo("stay_laroi_101")
+        assertThat(reconstructedRihanna.getBestPlaybackUrl()).isEqualTo("https://aac.saavncdn.com/stay_rihanna_def.mp4")
+        assertThat(reconstructedLaroi.getBestPlaybackUrl()).isEqualTo("https://aac.saavncdn.com/stay_laroi_def.mp4")
+    }
+
+    @Test
+    fun testSearchQueryDoesNotWipeOutHistoricalSongWithMatchingTitle() {
+        val song = Song(
+            id = "hello_adele_555",
+            title = "Hello",
+            artists = "Adele",
+            album = "25",
+            imageUrl = "https://saavncdn.com/hello.jpg",
+            durationSec = 295,
+            mediaUrl = "https://aac.saavncdn.com/hello.mp4",
+            mediaUrlDefault = null,
+            previewUrl = null
+        )
+        dbHelper.recordSongSearch(song)
+
+        // Now user types "Hello" into search box
+        val queryItem = SearchHistoryItem(
+            queryText = "Hello",
+            title = "Hello",
+            subtitle = "Search query",
+            contentType = "Search",
+            songId = null
+        )
+        dbHelper.recordSearchHistory(queryItem)
+
+        val history = dbHelper.getRecentSearches()
+        assertThat(history).hasSize(2)
+
+        // The song entry must STILL exist with its stable ID!
+        val songEntry = history.firstOrNull { it.songId == "hello_adele_555" }
+        assertThat(songEntry).isNotNull
+        assertThat(songEntry?.title).isEqualTo("Hello")
+        assertThat(songEntry?.artists).isEqualTo("Adele")
+
+        // The query entry also exists
+        val queryEntry = history.firstOrNull { it.songId == null }
+        assertThat(queryEntry).isNotNull
+        assertThat(queryEntry?.queryText).isEqualTo("Hello")
+    }
+
+    @Test
+    fun testReopeningDatabaseRestoresExactSongIdentity() {
+        val originalSong = Song(
+            id = "starboy_weeknd_999",
+            title = "Starboy",
+            artists = "The Weeknd, Daft Punk",
+            album = "Starboy",
+            imageUrl = "https://saavncdn.com/starboy.jpg",
+            durationSec = 230,
+            mediaUrl = "https://aac.saavncdn.com/starboy.mp4",
+            mediaUrlDefault = "https://aac.saavncdn.com/starboy_default.mp4",
+            previewUrl = "https://preview.saavncdn.com/starboy.mp3"
+        )
+        dbHelper.recordSongSearch(originalSong)
+
+        // Simulate app restart / closing and reopening the SQLite database
+        dbHelper.close()
+        val reopenedDb = PlaylistDatabaseHelper(context)
+        try {
+            val history = reopenedDb.getRecentSearches()
+            assertThat(history).hasSize(1)
+
+            val entry = history[0]
+            val restoredSong = entry.toSong()
+
+            assertThat(restoredSong).isNotNull
+            assertThat(restoredSong?.id).isEqualTo("starboy_weeknd_999")
+            assertThat(restoredSong?.title).isEqualTo("Starboy")
+            assertThat(restoredSong?.artists).isEqualTo("The Weeknd, Daft Punk")
+            assertThat(restoredSong?.album).isEqualTo("Starboy")
+            assertThat(restoredSong?.imageUrl).isEqualTo("https://saavncdn.com/starboy.jpg")
+            assertThat(restoredSong?.durationSec).isEqualTo(230)
+            assertThat(restoredSong?.mediaUrl).isEqualTo("https://aac.saavncdn.com/starboy.mp4")
+            assertThat(restoredSong?.mediaUrlDefault).isEqualTo("https://aac.saavncdn.com/starboy_default.mp4")
+            assertThat(restoredSong?.previewUrl).isEqualTo("https://preview.saavncdn.com/starboy.mp3")
+            assertThat(restoredSong?.getBestPlaybackUrl()).isEqualTo("https://aac.saavncdn.com/starboy_default.mp4")
+        } finally {
+            reopenedDb.close()
+        }
+    }
 }
