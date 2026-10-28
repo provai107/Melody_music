@@ -18,12 +18,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     signingConfigs {
         create("release") {
-            storeFile = file("${rootDir}/release.keystore")
-            storePassword = "braveplayer"
-            keyAlias = "braveplayer"
-            keyPassword = "braveplayer"
+            val envKeystore = System.getenv("KEYSTORE_FILE")
+            storeFile = if (!envKeystore.isNullOrBlank() && file(envKeystore).exists()) {
+                file(envKeystore)
+            } else {
+                file("${rootDir}/release.keystore")
+            }
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "braveplayer"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "braveplayer"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "braveplayer"
         }
     }
 

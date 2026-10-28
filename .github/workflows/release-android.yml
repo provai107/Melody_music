@@ -1,0 +1,244 @@
+name: Build & Release Melody Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release Notes'
+        required: false
+        default: 'Bug fixes and performance improvements.'
+      mandatory_update:
+        description: 'Enforce mandatory update'
+        type: boolean
+        required: false
+        default: false
+  release:
+    types: [published]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build, Sign & Publish Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Extract & Validate Version Info
+        id: version_info
+        run: |
+          set -e
+
+          # Extract versionCode and versionName from app/build.gradle.kts
+          VERSION_CODE=$(grep -E 'versionCode\s*=\s*[0-9]+' app/build.gradle.kts | head -n 1 | awk '{print $NF}')
+          VERSION_NAME=$(grep -E 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+
+          if [ -z "$VERSION_CODE" ] || [ "$VERSION_CODE" -le 0 ]; then
+            echo "::error::Invalid or missing versionCode in app/build.gradle.kts: '$VERSION_CODE'"
+            exit 1
+          fi
+
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Invalid or missing versionName in app/build.gradle.kts"
+            exit 1
+          fi
+
+          echo "Detected App Version: v${VERSION_NAME} (versionCode: ${VERSION_CODE})"
+          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+
+          # Determine target tag name
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          else
+            TAG_NAME="v${VERSION_NAME}"
+          fi
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+
+          # Version verification against existing releases
+          echo "Checking previous published releases for version regression..."
+          PREV_METADATA=$(curl -sSL -f "https://github.com/${{ github.repository }}/releases/latest/download/latest.json" || true)
+          if [ -n "$PREV_METADATA" ]; then
+            PREV_CODE=$(echo "$PREV_METADATA" | python3 -c "import sys, json; print(json.load(sys.stdin).get('versionCode', 0))" 2>/dev/null || echo 0)
+            echo "Previous published versionCode: $PREV_CODE"
+            if [ "$VERSION_CODE" -le "$PREV_CODE" ]; then
+              echo "::error::Version regression detected! Current versionCode ($VERSION_CODE) must be strictly greater than previously published versionCode ($PREV_CODE)."
+              exit 1
+            fi
+          else
+            echo "No previous latest.json metadata found; proceeding with initial or unversioned release."
+          fi
+
+      - name: Run Unit Tests
+        run: |
+          echo "Running unit test suite..."
+          gradle testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Prepare Signing Keystore
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -e
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from GitHub Actions secret..."
+            KEYSTORE_PATH="${RUNNER_TEMP}/release.keystore"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+            echo "keystore_file=${KEYSTORE_PATH}" >> "$GITHUB_OUTPUT"
+            echo "keystore_pass=${KEYSTORE_PASSWORD}" >> "$GITHUB_OUTPUT"
+            echo "key_alias=${KEY_ALIAS}" >> "$GITHUB_OUTPUT"
+            echo "key_pass=${KEY_PASSWORD}" >> "$GITHUB_OUTPUT"
+          elif [ -f "${GITHUB_WORKSPACE}/release.keystore" ]; then
+            echo "::warning::KEYSTORE_BASE64 secret not found; falling back to repository release.keystore."
+            echo "keystore_file=${GITHUB_WORKSPACE}/release.keystore" >> "$GITHUB_OUTPUT"
+            echo "keystore_pass=braveplayer" >> "$GITHUB_OUTPUT"
+            echo "key_alias=braveplayer" >> "$GITHUB_OUTPUT"
+            echo "key_pass=braveplayer" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No signing keystore available! Please configure KEYSTORE_BASE64 in repository secrets."
+            exit 1
+          fi
+
+      - name: Assemble Release APK
+        env:
+          KEYSTORE_FILE: ${{ steps.keystore.outputs.keystore_file }}
+          KEYSTORE_PASSWORD: ${{ steps.keystore.outputs.keystore_pass }}
+          KEY_ALIAS: ${{ steps.keystore.outputs.key_alias }}
+          KEY_PASSWORD: ${{ steps.keystore.outputs.key_pass }}
+        run: |
+          gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare Assets & Calculate SHA-256
+        id: assets
+        run: |
+          set -e
+          RELEASE_DIR="app/build/outputs/apk/release"
+          SOURCE_APK="${RELEASE_DIR}/app-release.apk"
+
+          if [ ! -f "$SOURCE_APK" ]; then
+            echo "::error::Expected release APK not found at: $SOURCE_APK"
+            exit 1
+          fi
+
+          # Copy to predictable distribution name
+          cp "$SOURCE_APK" "${GITHUB_WORKSPACE}/Melody.apk"
+
+          # Calculate exact SHA-256 checksum
+          SHA256=$(sha256sum "${GITHUB_WORKSPACE}/Melody.apk" | awk '{print $1}')
+          echo "SHA-256: $SHA256"
+          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate & Validate latest.json Metadata
+        id: metadata
+        env:
+          VERSION_NAME: ${{ steps.version_info.outputs.version_name }}
+          VERSION_CODE: ${{ steps.version_info.outputs.version_code }}
+          TAG_NAME: ${{ steps.version_info.outputs.tag_name }}
+          SHA256: ${{ steps.assets.outputs.sha256 }}
+        run: |
+          set -e
+
+          # Determine notes
+          if [ "${{ github.event_name }}" = "release" ]; then
+            RAW_NOTES="${{ github.event.release.body }}"
+            MANDATORY="false"
+          else
+            RAW_NOTES="${{ github.event.inputs.release_notes }}"
+            MANDATORY="${{ github.event.inputs.mandatory_update }}"
+          fi
+
+          if [ -z "$RAW_NOTES" ]; then
+            RAW_NOTES="Bug fixes and performance improvements."
+          fi
+
+          # Generate JSON safely via python to prevent injection/escaping issues
+          python3 - <<EOF
+          import json, sys
+
+          raw_notes = """$RAW_NOTES""".strip()
+          if not raw_notes:
+              raw_notes = "Bug fixes and performance improvements."
+
+          data = {
+              "versionName": "$VERSION_NAME",
+              "versionCode": int("$VERSION_CODE"),
+              "releaseNotes": raw_notes,
+              "apkUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/Melody.apk",
+              "sha256": "$SHA256",
+              "mandatory": ("$MANDATORY".lower() == "true")
+          }
+
+          with open("latest.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+
+          print("Generated latest.json successfully:")
+          print(json.dumps(data, indent=2))
+          EOF
+
+          # Validate generated metadata
+          python3 - <<EOF
+          import json, re
+
+          with open("latest.json", "r") as f:
+              meta = json.load(f)
+
+          assert "versionName" in meta and meta["versionName"], "Missing versionName"
+          assert "versionCode" in meta and meta["versionCode"] > 0, "Invalid versionCode"
+          assert "apkUrl" in meta and meta["apkUrl"].startswith("https://"), "Invalid apkUrl"
+          assert "sha256" in meta and re.match(r'^[a-fA-F0-9]{64}$', meta["sha256"]), "Invalid sha256"
+          assert "mandatory" in meta and isinstance(meta["mandatory"], bool), "Invalid mandatory flag"
+          print("Metadata validation PASSED!")
+          EOF
+
+      - name: Publish Release Assets to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.version_info.outputs.tag_name }}
+          VERSION_NAME: ${{ steps.version_info.outputs.version_name }}
+        run: |
+          set -e
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "Uploading Melody.apk and latest.json to published release: $TAG_NAME"
+            gh release upload "$TAG_NAME" Melody.apk latest.json --clobber
+          else
+            echo "Manual workflow dispatch: Checking if release '$TAG_NAME' exists..."
+            if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+              echo "Creating new release for $TAG_NAME..."
+              gh release create "$TAG_NAME" \
+                --title "Melody v${VERSION_NAME}" \
+                --notes "${{ github.event.inputs.release_notes }}" \
+                Melody.apk latest.json
+            else
+              echo "Updating existing release assets for $TAG_NAME..."
+              gh release upload "$TAG_NAME" Melody.apk latest.json --clobber
+            fi
+          fi
+
+          echo "## 🚀 Melody Release Successfully Published!" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version**: \`v${VERSION_NAME}\` (Build \`${{ steps.version_info.outputs.version_code }}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **SHA-256**: \`${{ steps.assets.outputs.sha256 }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Asset**: [Melody.apk](https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/Melody.apk)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Metadata**: [latest.json](https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/latest.json)" >> "$GITHUB_STEP_SUMMARY"

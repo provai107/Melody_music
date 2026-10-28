@@ -62,6 +62,11 @@ import com.braveplayer.music.playlist.Playlist
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
 import com.braveplayer.music.service.PlaybackService
 import com.braveplayer.music.settings.AppSettings
+import com.braveplayer.music.update.AppUpdateDialogHelper
+import com.braveplayer.music.update.AppUpdateManager
+import com.braveplayer.music.update.UpdateCheckResult
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.braveplayer.music.ui.SearchChipAdapter
 import com.braveplayer.music.settings.FilterEngineProvider
 import com.braveplayer.music.ui.GenreAdapter
@@ -265,6 +270,10 @@ class MainActivity : AppCompatActivity() {
     private var lastQuery: String = ""
     private var isUserTrackingSeek: Boolean = false
 
+    // Automated App Updates
+    private lateinit var updateManager: AppUpdateManager
+    private lateinit var updateDialogHelper: AppUpdateDialogHelper
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val positionUpdateRunnable = object : Runnable {
         override fun run() {
@@ -285,6 +294,8 @@ class MainActivity : AppCompatActivity() {
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
         lyricsService = LyricsService(metadataService.httpClient)
         songDownloadHelper = SongDownloadHelper(this, playlistDbHelper)
+        updateManager = AppUpdateManager(this)
+        updateDialogHelper = AppUpdateDialogHelper(this, updateManager, lifecycleScope)
         com.braveplayer.music.util.NetworkUtils.clearAudioStreamingCache(this)
 
         initViews()
@@ -298,6 +309,17 @@ class MainActivity : AppCompatActivity() {
         refreshHomeData()
         refreshCollectionData()
         refreshSearchRecommendations()
+        checkAppUpdateOnLaunch()
+    }
+
+    private fun checkAppUpdateOnLaunch() {
+        lifecycleScope.launch {
+            delay(2500L) // Allow home UI and player to initialize first without lag
+            val result = updateManager.checkForUpdate(isManual = false)
+            if (result is UpdateCheckResult.UpdateAvailable) {
+                updateDialogHelper.showUpdateDialog(result.metadata)
+            }
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -2539,6 +2561,42 @@ class MainActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
+        }
+
+        // About Melody & Manual Check for updates
+        val tvAboutAppVersion: TextView? = view.findViewById(R.id.tvAboutAppVersion)
+        val btnCheckForUpdates: Button? = view.findViewById(R.id.btnCheckForUpdates)
+        val tvCheckUpdateStatus: TextView? = view.findViewById(R.id.tvCheckUpdateStatus)
+
+        tvAboutAppVersion?.text = "Version ${updateManager.getCurrentVersionName()} (Build ${updateManager.getCurrentVersionCode()})"
+
+        btnCheckForUpdates?.setOnClickListener {
+            btnCheckForUpdates.isEnabled = false
+            btnCheckForUpdates.text = "Checking for updates..."
+            tvCheckUpdateStatus?.visibility = View.VISIBLE
+            tvCheckUpdateStatus?.text = "Connecting to GitHub..."
+
+            lifecycleScope.launch {
+                val result = updateManager.checkForUpdate(isManual = true)
+                btnCheckForUpdates.isEnabled = true
+                btnCheckForUpdates.text = "Check for updates"
+
+                when (result) {
+                    is UpdateCheckResult.UpdateAvailable -> {
+                        tvCheckUpdateStatus?.text = "Update available: v${result.metadata.versionName}"
+                        updateDialogHelper.showUpdateDialog(result.metadata)
+                    }
+                    is UpdateCheckResult.UpToDate -> {
+                        val msg = "Melody is up to date (v${result.currentVersionName})"
+                        tvCheckUpdateStatus?.text = msg
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+                    }
+                    is UpdateCheckResult.Error -> {
+                        tvCheckUpdateStatus?.text = result.message
+                        Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
 
         dialog.show()
