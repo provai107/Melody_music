@@ -3,9 +3,9 @@
     android:shape="rectangle">
     <gradient
         android:angle="270"
-        android:startColor="@color/ytm_bg_top_glow"
-        android:centerColor="@color/ytm_bg_middle"
-        android:endColor="@color/ytm_bg_main"
+        android:startColor="@color/backgroundSecondary"
+        android:centerColor="@color/surfaceElevated"
+        android:endColor="@color/background"
         android:type="linear" />
     <corners
         android:topLeftRadius="20dp"

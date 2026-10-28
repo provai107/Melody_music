@@ -6,15 +6,15 @@
     android:background="?android:attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
-    <!-- Square Thumbnail (64dp) -->
+    <!-- Thumbnail (52dp) -->
     <androidx.cardview.widget.CardView
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        app:cardBackgroundColor="@color/surface_black"
-        app:cardCornerRadius="6dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp">
 
         <ImageView
@@ -43,19 +43,19 @@
             android:fontFamily="@font/youtube_sans_bold_font"
             android:maxLines="1"
             android:text="Search Query or Song"
-            android:textColor="@color/white_primary"
-            android:textSize="16sp" />
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/tvRecentSearchSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
             android:maxLines="1"
             android:text="Song • Artist"
-            android:textColor="@color/muted_grey"
+            android:textColor="@color/textSecondary"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -68,6 +68,6 @@
         android:contentDescription="Remove search entry"
         android:padding="8dp"
         android:src="@drawable/ic_close"
-        app:tint="@color/muted_grey" />
+        app:tint="@color/textSecondary" />
 
 </LinearLayout>

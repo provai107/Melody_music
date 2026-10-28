@@ -11,7 +11,7 @@
     <androidx.cardview.widget.CardView
         android:layout_width="140dp"
         android:layout_height="140dp"
-        app:cardBackgroundColor="@color/surface_black"
+        app:cardBackgroundColor="@color/surfaceCard"
         app:cardCornerRadius="8dp"
         app:cardElevation="0dp">
 
@@ -47,7 +47,7 @@
                     android:layout_height="16dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_play_arrow"
-                    app:tint="@color/white_primary" />
+                    app:tint="@color/textPrimary" />
             </FrameLayout>
         </RelativeLayout>
     </androidx.cardview.widget.CardView>
@@ -61,7 +61,7 @@
         android:fontFamily="@font/youtube_sans_bold_font"
         android:maxLines="1"
         android:text="Playlist Title"
-        android:textColor="@color/white_primary"
+        android:textColor="@color/textPrimary"
         android:textSize="13sp" />
 
     <TextView
@@ -73,7 +73,7 @@
         android:fontFamily="sans-serif"
         android:maxLines="1"
         android:text="Collection • Melody"
-        android:textColor="@color/muted_grey"
+        android:textColor="@color/textSecondary"
         android:textSize="11sp" />
 
 </LinearLayout>

@@ -42,7 +42,7 @@
                     android:fontFamily="@font/youtube_sans_bold_font"
                     android:letterSpacing="0.02"
                     android:text="Melody"
-                    android:textColor="@color/ytm_text_primary"
+                    android:textColor="@color/textPrimary"
                     android:textSize="22sp" />
             </LinearLayout>
 
@@ -63,7 +63,7 @@
                     android:contentDescription="Cast"
                     android:padding="8dp"
                     android:src="@drawable/ic_ytm_cast"
-                    app:tint="@color/ytm_icon_active" />
+                    app:tint="@color/textPrimary" />
 
                 <ImageView
                     android:id="@+id/btnTopSearch"
@@ -74,7 +74,7 @@
                     android:contentDescription="Search"
                     android:padding="8dp"
                     android:src="@drawable/ic_ytm_search"
-                    app:tint="@color/ytm_icon_active" />
+                    app:tint="@color/textPrimary" />
             </LinearLayout>
         </RelativeLayout>
 
@@ -110,7 +110,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/youtube_sans_bold_font"
                         android:text="Good evening"
-                        android:textColor="@color/white_primary"
+                        android:textColor="@color/textPrimary"
                         android:textSize="24sp" />
 
                     <TextView
@@ -120,7 +120,7 @@
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
                         android:text="Discover and stream tailored to your day"
-                        android:textColor="@color/muted_grey"
+                        android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
 
                     <!-- Small Quick Search Option in Home -->
@@ -140,7 +140,7 @@
                             android:layout_height="18dp"
                             android:contentDescription="Search Icon"
                             android:src="@drawable/ic_ytm_search"
-                            app:tint="@color/light_grey_inactive" />
+                            app:tint="@color/textSecondary" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -148,7 +148,7 @@
                             android:layout_marginStart="10dp"
                             android:fontFamily="sans-serif"
                             android:text="Search songs, albums, artists..."
-                            android:textColor="@color/light_grey_inactive"
+                            android:textColor="@color/textSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
 
@@ -160,244 +160,6 @@
                         android:layout_marginTop="14dp"
                         android:clipToPadding="false"
                         android:orientation="horizontal" />
-
-                    <!-- SECTION 3: QUICK ACCESS GRID (Compact 2x3 cards) -->
-                    <LinearLayout
-                        android:id="@+id/layoutQuickAccessGrid"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
-                        android:orientation="vertical">
-
-                        <!-- Row 1: Daily Mix 1 & Daily Mix 2 -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/cardDailyMix"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginEnd="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Daily Mix 1"
-                                    android:src="@drawable/ic_equalizer"
-                                    app:tint="@color/youtube_red" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Daily Mix 1"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/btnQuickDailyMix2"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginStart="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Daily Mix 2"
-                                    android:src="@drawable/ic_radio"
-                                    app:tint="@color/youtube_red" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Daily Mix 2"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <!-- Row 2: Liked Songs & Chill & Focus Mix -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            android:layout_marginTop="8dp"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/btnHomeLikedShortcut"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginEnd="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Liked Songs"
-                                    android:src="@drawable/ic_ytm_thumb_up_fill"
-                                    app:tint="@color/youtube_red" />
-
-                                <TextView
-                                    android:id="@+id/tvQuickLikedTitle"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Liked Songs"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/btnQuickChillMix"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginStart="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Chill &amp; Focus"
-                                    android:src="@drawable/ic_music_note"
-                                    app:tint="@color/youtube_red" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Chill &amp; Focus"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <!-- Row 3: Discovery Mix & Queue / Most Played -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            android:layout_marginTop="8dp"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/cardDiscoveryMix"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginEnd="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Discovery Mix"
-                                    android:src="@drawable/ic_ytm_explore_filled"
-                                    app:tint="@color/youtube_red" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Discovery Mix"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/btnHomeQueueShortcut"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_marginStart="6dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_rounded_card"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="10dp"
-                                android:paddingEnd="10dp">
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:contentDescription="Playing Queue"
-                                    android:src="@drawable/ic_queue_music"
-                                    app:tint="@color/white_primary" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:ellipsize="end"
-                                    android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:maxLines="1"
-                                    android:text="Playing Queue"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                    </LinearLayout>
 
                     <!-- SECTION 4: RECENTLY PLAYED SONGS (Horizontal Carousel) -->
                     <RelativeLayout
@@ -417,7 +179,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="PICK UP WHERE YOU LEFT OFF"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -426,7 +188,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Recently Played"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
 
@@ -440,7 +202,7 @@
                             android:fontFamily="sans-serif-medium"
                             android:padding="6dp"
                             android:text="See all"
-                            android:textColor="@color/muted_grey"
+                            android:textColor="@color/textSecondary"
                             android:textSize="12sp" />
                     </RelativeLayout>
 
@@ -464,7 +226,7 @@
                         android:fontFamily="sans-serif"
                         android:padding="16dp"
                         android:text="No recently played tracks yet. Tap any mix or search above to start listening!"
-                        android:textColor="@color/muted_grey"
+                        android:textColor="@color/textSecondary"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -486,7 +248,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="STREAMING CHARTS"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -495,7 +257,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Trending Right Now"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -506,7 +268,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="16dp"
-                        android:indeterminateTint="@color/youtube_red"
+                        android:indeterminateTint="@color/accentPrimary"
                         android:visibility="gone" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -536,7 +298,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="BASED ON YOUR TASTE"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -545,7 +307,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Made for You"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -556,7 +318,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="16dp"
-                        android:indeterminateTint="@color/youtube_red"
+                        android:indeterminateTint="@color/accentPrimary"
                         android:visibility="gone" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -586,7 +348,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="DYNAMIC SESSIONS"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -595,7 +357,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Daily Mixes"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -627,7 +389,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="YOUR HEAVY ROTATION"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -636,7 +398,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Most Played"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -659,7 +421,7 @@
                         android:fontFamily="sans-serif"
                         android:padding="16dp"
                         android:text="Play songs to build your personalized Most Played leaderboard!"
-                        android:textColor="@color/muted_grey"
+                        android:textColor="@color/textSecondary"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -681,7 +443,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="STYLES TAILORED FOR YOU"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -690,7 +452,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Your Favourite Genres"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -722,7 +484,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="EXPAND YOUR HORIZONS"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -731,7 +493,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Explore Other Genres"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -763,7 +525,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="FEATURED SOUNDSCAPES"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -772,7 +534,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Recommended Albums &amp; Playlists"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -804,7 +566,7 @@
                                 android:fontFamily="sans-serif-bold"
                                 android:letterSpacing="0.08"
                                 android:text="RESUME PLAYBACK"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -813,7 +575,7 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Continue Listening"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="20sp" />
                         </LinearLayout>
                     </RelativeLayout>
@@ -834,7 +596,7 @@
                         <androidx.cardview.widget.CardView
                             android:layout_width="54dp"
                             android:layout_height="54dp"
-                            app:cardBackgroundColor="@color/surface_black"
+                            app:cardBackgroundColor="@color/surfaceCard"
                             app:cardCornerRadius="6dp"
                             app:cardElevation="0dp">
 
@@ -863,7 +625,7 @@
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:maxLines="1"
                                 android:text="Ready to listen"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="14sp" />
 
                             <TextView
@@ -875,7 +637,7 @@
                                 android:fontFamily="sans-serif"
                                 android:maxLines="1"
                                 android:text="Resume your last session in Melody"
-                                android:textColor="@color/muted_grey"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
 
@@ -894,7 +656,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_play_arrow"
-                                app:tint="@color/white_primary" />
+                                app:tint="@color/textPrimary" />
                         </FrameLayout>
                     </LinearLayout>
 
@@ -944,7 +706,7 @@
                             android:background="@null"
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
-                            android:hint="Music, Artists, and Podcasts"
+                            android:hint="Search songs, artists, albums..."
                             android:imeOptions="actionSearch"
                             android:inputType="text"
                             android:maxLines="1"
@@ -1099,7 +861,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="10dp"
                                     android:fontFamily="@font/youtube_sans_bold_font"
-                                    android:text="Explore by Mood &amp; Genre"
+                                    android:text="Browse All"
                                     android:textColor="@color/white_primary"
                                     android:textSize="22sp" />
 
@@ -1211,7 +973,7 @@
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
                             android:fontFamily="@font/youtube_sans_bold_font"
-                            android:text="Library"
+                            android:text="Your Library"
                             android:textColor="@color/ytm_text_primary"
                             android:textSize="24sp" />
 

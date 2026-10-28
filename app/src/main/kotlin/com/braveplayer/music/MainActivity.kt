@@ -134,17 +134,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnHomeQuickSearch: View
 
     // Home Tab UI & Modern Carousels
-    private lateinit var cardDailyMix: View
-    private lateinit var cardDiscoveryMix: View
-    private lateinit var btnHomeLikedShortcut: View
-    private lateinit var btnHomeQueueShortcut: View
+    private var cardDailyMix: View? = null
+    private var cardDiscoveryMix: View? = null
+    private var btnHomeLikedShortcut: View? = null
+    private var btnHomeQueueShortcut: View? = null
     private lateinit var rvMoodHome: RecyclerView
     private lateinit var rvGenreHome: RecyclerView
     private lateinit var rvRecentlyPlayedHome: RecyclerView
     private lateinit var tvHomeGreeting: TextView
     private lateinit var tvHomeGreetingSub: TextView
-    private lateinit var btnQuickDailyMix2: View
-    private lateinit var btnQuickChillMix: View
+    private var btnQuickDailyMix2: View? = null
+    private var btnQuickChillMix: View? = null
     private lateinit var layoutRecentEmpty: View
     private lateinit var btnSeeAllRecent: View
     private lateinit var rvTrendingCarousel: RecyclerView
@@ -343,17 +343,11 @@ class MainActivity : AppCompatActivity() {
         btnHomeQuickSearch = findViewById(R.id.btnHomeQuickSearch)
 
         // Home UI & Modern Carousels
-        cardDailyMix = findViewById(R.id.cardDailyMix)
-        cardDiscoveryMix = findViewById(R.id.cardDiscoveryMix)
-        btnHomeLikedShortcut = findViewById(R.id.btnHomeLikedShortcut)
-        btnHomeQueueShortcut = findViewById(R.id.btnHomeQueueShortcut)
         rvMoodHome = findViewById(R.id.rvMoodHome)
         rvGenreHome = findViewById(R.id.rvGenreHome)
         rvRecentlyPlayedHome = findViewById(R.id.rvRecentlyPlayedHome)
         tvHomeGreeting = findViewById(R.id.tvHomeGreeting)
         tvHomeGreetingSub = findViewById(R.id.tvHomeGreetingSub)
-        btnQuickDailyMix2 = findViewById(R.id.btnQuickDailyMix2)
-        btnQuickChillMix = findViewById(R.id.btnQuickChillMix)
         layoutRecentEmpty = findViewById(R.id.layoutRecentEmpty)
         btnSeeAllRecent = findViewById(R.id.btnSeeAllRecent)
         rvTrendingCarousel = findViewById(R.id.rvTrendingCarousel)
@@ -687,12 +681,12 @@ class MainActivity : AppCompatActivity() {
         btnHomeQuickSearch.setOnClickListener { openExploreSearch() }
 
         // Home Actions
-        cardDailyMix.setOnClickListener { openMixDetail("Daily Mix 1") }
-        btnQuickDailyMix2.setOnClickListener { openMixDetail("Daily Mix 2") }
-        btnHomeLikedShortcut.setOnClickListener { showLikedSongsDialog() }
-        btnQuickChillMix.setOnClickListener { openMixDetail("Chill & Focus Mix") }
-        cardDiscoveryMix.setOnClickListener { openMixDetail("Discovery Mix") }
-        btnHomeQueueShortcut.setOnClickListener { showQueueDialog() }
+        cardDailyMix?.setOnClickListener { openMixDetail("Daily Mix 1") }
+        btnQuickDailyMix2?.setOnClickListener { openMixDetail("Daily Mix 2") }
+        btnHomeLikedShortcut?.setOnClickListener { showLikedSongsDialog() }
+        btnQuickChillMix?.setOnClickListener { openMixDetail("Chill & Focus Mix") }
+        cardDiscoveryMix?.setOnClickListener { openMixDetail("Discovery Mix") }
+        btnHomeQueueShortcut?.setOnClickListener { showQueueDialog() }
         btnSeeAllRecent.setOnClickListener { showHistoryDialog() }
         cardContinueListening.setOnClickListener { resumeLastPlayback() }
         btnContinuePlay.setOnClickListener { resumeLastPlayback() }

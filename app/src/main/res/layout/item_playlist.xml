@@ -17,7 +17,7 @@
     <androidx.cardview.widget.CardView
         android:layout_width="48dp"
         android:layout_height="48dp"
-        app:cardBackgroundColor="@color/card_red_tint_surface"
+        app:cardBackgroundColor="@color/surfaceElevated"
         app:cardCornerRadius="8dp"
         app:cardElevation="0dp">
 
@@ -27,7 +27,7 @@
             android:contentDescription="Playlist Icon"
             android:padding="12dp"
             android:src="@drawable/ic_library_music"
-            app:tint="@color/youtube_red" />
+            app:tint="@color/accentPrimary" />
     </androidx.cardview.widget.CardView>
 
     <LinearLayout
@@ -45,7 +45,7 @@
             android:fontFamily="@font/youtube_sans_bold_font"
             android:maxLines="1"
             android:text="Playlist Name"
-            android:textColor="@color/white_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="15sp" />
 
         <TextView
@@ -55,7 +55,7 @@
             android:layout_marginTop="2dp"
             android:fontFamily="sans-serif"
             android:text="0 tracks"
-            android:textColor="@color/muted_grey"
+            android:textColor="@color/textSecondary"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -67,5 +67,5 @@
         android:contentDescription="Playlist Options"
         android:padding="6dp"
         android:src="@drawable/ic_ytm_overflow"
-        app:tint="@color/muted_grey" />
+        app:tint="@color/textSecondary" />
 </LinearLayout>

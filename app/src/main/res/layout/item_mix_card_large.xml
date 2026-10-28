@@ -22,7 +22,7 @@
         android:paddingEnd="6dp"
         android:paddingBottom="2dp"
         android:text="DAILY MIX"
-        android:textColor="@color/white_primary"
+        android:textColor="@color/accentPrimary"
         android:textSize="9sp" />
 
     <!-- Mix Title -->
@@ -35,7 +35,7 @@
         android:fontFamily="@font/youtube_sans_bold_font"
         android:maxLines="1"
         android:text="Daily Mix 1"
-        android:textColor="@color/white_primary"
+        android:textColor="@color/textPrimary"
         android:textSize="17sp" />
 
     <!-- Mix Description -->
@@ -49,7 +49,7 @@
         android:fontFamily="sans-serif"
         android:maxLines="3"
         android:text="Personalized session curated from your top listened tracks and favorites."
-        android:textColor="@color/muted_grey"
+        android:textColor="@color/textSecondary"
         android:textSize="11sp" />
 
     <!-- Action Buttons Row (Play & Shuffle) -->
@@ -67,14 +67,14 @@
             android:layout_height="34dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/white_primary"
+            android:backgroundTint="@color/accentPrimary"
             android:fontFamily="sans-serif-medium"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
             android:padding="0dp"
             android:text="▶ Play"
-            android:textColor="@color/deep_black"
+            android:textColor="@color/textPrimary"
             android:textSize="11sp" />
 
         <ImageButton
@@ -85,7 +85,7 @@
             android:contentDescription="Shuffle Mix"
             android:padding="7dp"
             android:src="@drawable/ic_ytm_shuffle"
-            app:tint="@color/white_primary" />
+            app:tint="@color/textPrimary" />
     </LinearLayout>
 
 </LinearLayout>

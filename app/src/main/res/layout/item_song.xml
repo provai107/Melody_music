@@ -15,8 +15,8 @@
     <androidx.cardview.widget.CardView
         android:layout_width="48dp"
         android:layout_height="48dp"
-        app:cardBackgroundColor="@color/ytm_surface_dark"
-        app:cardCornerRadius="4dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="6dp"
         app:cardElevation="0dp">
 
         <ImageView
@@ -45,7 +45,7 @@
             android:fontFamily="@font/youtube_sans_bold_font"
             android:maxLines="1"
             android:text="Song Title"
-            android:textColor="@color/ytm_text_primary"
+            android:textColor="@color/textPrimary"
             android:textSize="15sp" />
 
         <LinearLayout
@@ -67,7 +67,7 @@
                 android:paddingEnd="4dp"
                 android:paddingBottom="1dp"
                 android:text="320K"
-                android:textColor="@color/ytm_text_secondary"
+                android:textColor="@color/textSecondary"
                 android:textSize="8sp" />
 
             <TextView
@@ -78,7 +78,7 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text="Artist Name"
-                android:textColor="@color/ytm_text_secondary"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp" />
 
             <TextView
@@ -89,7 +89,7 @@
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:text=""
-                android:textColor="@color/ytm_text_tertiary"
+                android:textColor="@color/textDisabled"
                 android:textSize="11sp"
                 android:visibility="gone" />
         </LinearLayout>
@@ -103,7 +103,7 @@
         android:layout_marginEnd="6dp"
         android:fontFamily="sans-serif"
         android:text="3:45"
-        android:textColor="@color/ytm_text_secondary"
+        android:textColor="@color/textSecondary"
         android:textSize="12sp" />
 
     <!-- Like Action Button -->
@@ -115,7 +115,7 @@
         android:contentDescription="Like Song"
         android:padding="7dp"
         android:src="@drawable/ic_ytm_thumb_up_outline"
-        app:tint="@color/ytm_icon_inactive" />
+        app:tint="@color/textSecondary" />
 
     <!-- Context Menu / Add to Queue Button -->
     <ImageView
@@ -126,6 +126,6 @@
         android:contentDescription="Song Options"
         android:padding="6dp"
         android:src="@drawable/ic_ytm_overflow"
-        app:tint="@color/ytm_icon_inactive" />
+        app:tint="@color/textSecondary" />
 
 </LinearLayout>
