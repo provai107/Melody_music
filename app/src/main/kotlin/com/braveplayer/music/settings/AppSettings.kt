@@ -18,6 +18,7 @@ class AppSettings(context: Context) {
         private const val KEY_PERSONALIZATION = "personalization_enabled"
         private const val KEY_AVOID_RECENT = "avoid_recently_played"
         private const val KEY_DIVERSITY = "recommendation_diversity"
+        private const val KEY_REDUCED_INTENSITY = "reduced_accent_intensity"
 
         const val DIVERSITY_BALANCED = "BALANCED"
         const val DIVERSITY_FAMILIAR = "FAMILIAR"
@@ -91,6 +92,14 @@ class AppSettings(context: Context) {
 
     fun setRecommendationDiversity(diversity: String) {
         prefs.edit().putString(KEY_DIVERSITY, diversity).apply()
+    }
+
+    fun isReducedIntensityEnabled(): Boolean {
+        return prefs.getBoolean(KEY_REDUCED_INTENSITY, false)
+    }
+
+    fun setReducedIntensityEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_REDUCED_INTENSITY, enabled).apply()
     }
 
     fun resetToDefault(): String {

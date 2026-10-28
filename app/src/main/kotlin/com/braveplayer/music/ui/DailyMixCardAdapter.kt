@@ -53,6 +53,9 @@ class DailyMixCardAdapter(
             tvBadge.text = mix.category.ifBlank { "DAILY MIX" }
             tvTitle.text = mix.title
             tvDescription.text = mix.description
+            itemView.contentDescription = "${mix.title}, ${mix.description}"
+            btnPlay.contentDescription = "Play ${mix.title}"
+            btnShuffle.contentDescription = "Shuffle ${mix.title}"
 
             itemView.setOnClickListener {
                 onMixClicked(mix)

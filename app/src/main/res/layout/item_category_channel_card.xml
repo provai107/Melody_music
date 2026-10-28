@@ -27,6 +27,7 @@
             android:layout_alignParentBottom="true"
             android:alpha="0.80"
             android:rotation="-8"
+            android:importantForAccessibility="no"
             android:text="💖"
             android:textSize="48sp" />
 

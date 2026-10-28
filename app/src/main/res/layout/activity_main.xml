@@ -57,8 +57,8 @@
 
                 <ImageView
                     android:id="@+id/btnTopCast"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Cast"
                     android:padding="8dp"
@@ -67,8 +67,8 @@
 
                 <ImageView
                     android:id="@+id/btnTopSearch"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
                     android:layout_marginStart="4dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Search"
@@ -127,7 +127,8 @@
                     <LinearLayout
                         android:id="@+id/btnHomeQuickSearch"
                         android:layout_width="match_parent"
-                        android:layout_height="42dp"
+                        android:layout_height="46dp"
+                        android:contentDescription="Search music"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/bg_search_input_explore"
                         android:gravity="center_vertical"
@@ -643,8 +644,8 @@
 
                         <FrameLayout
                             android:id="@+id/btnContinuePlay"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
                             android:background="@drawable/bg_play_circle_red"
                             android:clickable="true"
                             android:contentDescription="Resume"
@@ -655,6 +656,7 @@
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
+                                android:importantForAccessibility="no"
                                 android:src="@drawable/ic_play_arrow"
                                 app:tint="@color/textPrimary" />
                         </FrameLayout>
@@ -671,30 +673,43 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <!-- A. TOP SEARCH AREA (Prominent 56dp Bar) -->
+                <!-- A. SEARCH HEADER -->
+                <TextView
+                    android:id="@+id/tvSearchHeader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="4dp"
+                    android:fontFamily="@font/youtube_sans_bold_font"
+                    android:text="Search"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="26sp" />
+
+                <!-- B. TOP SEARCH AREA (Prominent 52dp Bar) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
-                    android:paddingTop="12dp"
+                    android:paddingTop="6dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="10dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="52dp"
                         android:background="@drawable/bg_search_input_explore"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:paddingStart="16dp"
-                        android:paddingEnd="14dp">
+                        android:paddingEnd="12dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:contentDescription="Search Icon"
                             android:src="@drawable/ic_ytm_search"
-                            app:tint="@color/light_grey_inactive" />
+                            app:tint="@color/textSecondary" />
 
                         <EditText
                             android:id="@+id/etSearchQuery"
@@ -711,20 +726,20 @@
                             android:inputType="text"
                             android:maxLines="1"
                             android:singleLine="true"
-                            android:textColor="@color/white_primary"
-                            android:textColorHint="@color/muted_grey"
+                            android:textColor="@color/textPrimary"
+                            android:textColorHint="@color/textSecondary"
                             android:textSize="15sp" />
 
                         <ImageView
                             android:id="@+id/btnSearchClear"
-                            android:layout_width="34dp"
-                            android:layout_height="34dp"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
                             android:background="?android:attr/selectableItemBackgroundBorderless"
                             android:contentDescription="Clear search"
-                            android:padding="7dp"
+                            android:padding="8dp"
                             android:src="@drawable/ic_close"
                             android:visibility="gone"
-                            app:tint="@color/white_primary" />
+                            app:tint="@color/textSecondary" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -769,8 +784,8 @@
                                         android:layout_height="wrap_content"
                                         android:fontFamily="@font/youtube_sans_bold_font"
                                         android:text="Recent Searches"
-                                        android:textColor="@color/white_primary"
-                                        android:textSize="22sp" />
+                                        android:textColor="@color/textPrimary"
+                                        android:textSize="20sp" />
 
                                     <TextView
                                         android:id="@+id/btnClearRecentSearches"
@@ -778,9 +793,11 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
+                                        android:background="?android:attr/selectableItemBackgroundBorderless"
                                         android:fontFamily="sans-serif-medium"
+                                        android:padding="6dp"
                                         android:text="Clear All"
-                                        android:textColor="@color/youtube_red"
+                                        android:textColor="@color/accentPrimary"
                                         android:textSize="13sp" />
                                 </RelativeLayout>
 
@@ -795,7 +812,7 @@
                                     android:layout_height="1dp"
                                     android:layout_marginTop="16dp"
                                     android:layout_marginBottom="16dp"
-                                    android:background="@color/border_grey" />
+                                    android:background="@color/borderSubtle" />
                             </LinearLayout>
 
                             <!-- C. TRENDING SECTION -->
@@ -816,8 +833,8 @@
                                         android:layout_height="wrap_content"
                                         android:fontFamily="@font/youtube_sans_bold_font"
                                         android:text="Trending"
-                                        android:textColor="@color/white_primary"
-                                        android:textSize="22sp" />
+                                        android:textColor="@color/textPrimary"
+                                        android:textSize="20sp" />
 
                                     <TextView
                                         android:id="@+id/btnSeeAllTrendingExplore"
@@ -825,9 +842,11 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
+                                        android:background="?android:attr/selectableItemBackgroundBorderless"
                                         android:fontFamily="sans-serif-bold"
+                                        android:padding="6dp"
                                         android:text="See All"
-                                        android:textColor="@color/youtube_red"
+                                        android:textColor="@color/accentPrimary"
                                         android:textSize="14sp" />
                                 </RelativeLayout>
 
@@ -838,7 +857,7 @@
                                     android:layout_gravity="center_horizontal"
                                     android:layout_marginTop="12dp"
                                     android:layout_marginBottom="12dp"
-                                    android:indeterminateTint="@color/youtube_red"
+                                    android:indeterminateTint="@color/accentPrimary"
                                     android:visibility="gone" />
 
                                 <androidx.recyclerview.widget.RecyclerView
@@ -848,7 +867,7 @@
                                     android:nestedScrollingEnabled="false" />
                             </LinearLayout>
 
-                            <!-- D. MOOD AND GENRE CHANNEL GRID -->
+                            <!-- D. BROWSE ALL CATEGORY GRID -->
                             <LinearLayout
                                 android:id="@+id/layoutCategoryChannelsSection"
                                 android:layout_width="match_parent"
@@ -862,8 +881,8 @@
                                     android:layout_marginBottom="10dp"
                                     android:fontFamily="@font/youtube_sans_bold_font"
                                     android:text="Browse All"
-                                    android:textColor="@color/white_primary"
-                                    android:textSize="22sp" />
+                                    android:textColor="@color/textPrimary"
+                                    android:textSize="20sp" />
 
                                 <androidx.recyclerview.widget.RecyclerView
                                     android:id="@+id/rvCategoryChannels"
@@ -888,22 +907,29 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:indeterminateTint="@color/youtube_red"
+                            android:indeterminateTint="@color/accentPrimary"
                             android:visibility="gone" />
 
                         <!-- Empty Results State -->
-                        <TextView
-                            android:id="@+id/tvEmptyResults"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:fontFamily="sans-serif"
+                        <LinearLayout
+                            android:id="@+id/layoutEmptyResultsContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
                             android:gravity="center"
-                            android:padding="24dp"
-                            android:text="No results found."
-                            android:textColor="@color/muted_grey"
-                            android:textSize="15sp"
-                            android:visibility="gone" />
+                            android:orientation="vertical"
+                            android:padding="32dp">
+
+                            <TextView
+                                android:id="@+id/tvEmptyResults"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif"
+                                android:gravity="center"
+                                android:text="No results found."
+                                android:textColor="@color/textSecondary"
+                                android:textSize="15sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
 
                         <!-- Error State with Retry -->
                         <LinearLayout
@@ -911,6 +937,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
+                            android:layout_marginStart="24dp"
+                            android:layout_marginEnd="24dp"
+                            android:background="@drawable/bg_rounded_card"
                             android:gravity="center"
                             android:orientation="vertical"
                             android:padding="24dp"
@@ -920,9 +949,10 @@
                                 android:id="@+id/tvErrorMessage"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif"
                                 android:gravity="center"
                                 android:text="Network error connecting to backend service."
-                                android:textColor="#FF5252"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="14sp" />
 
                             <Button
@@ -931,9 +961,10 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="40dp"
                                 android:layout_marginTop="14dp"
-                                android:backgroundTint="@color/dark_grey_elevated"
+                                android:backgroundTint="@color/accentPrimary"
+                                android:fontFamily="sans-serif-medium"
                                 android:text="Retry Search"
-                                android:textColor="@color/white_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="13sp" />
                         </LinearLayout>
 
@@ -955,7 +986,9 @@
                 android:id="@+id/containerCollection"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:clipToPadding="false"
                 android:fillViewport="true"
+                android:paddingBottom="140dp"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -966,7 +999,8 @@
 
                     <RelativeLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -974,19 +1008,28 @@
                             android:layout_centerVertical="true"
                             android:fontFamily="@font/youtube_sans_bold_font"
                             android:text="Your Library"
-                            android:textColor="@color/ytm_text_primary"
-                            android:textSize="24sp" />
+                            android:textColor="@color/textPrimary"
+                            android:textSize="26sp" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnCreatePlaylistAction"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            style="@style/Widget.MaterialComponents.Button"
                             android:layout_width="wrap_content"
-                            android:layout_height="36dp"
+                            android:layout_height="40dp"
                             android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:backgroundTint="@color/accentPrimary"
                             android:fontFamily="sans-serif-bold"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minHeight="0dp"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
                             android:text="+ New Playlist"
-                            android:textColor="@color/ytm_text_primary"
-                            android:textSize="12sp" />
+                            android:textAllCaps="false"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="12sp"
+                            app:cornerRadius="18dp" />
                     </RelativeLayout>
 
                     <!-- Liked Songs Collection Row -->
@@ -995,21 +1038,28 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:background="@drawable/bg_mix_card"
+                        android:background="@drawable/bg_rounded_card"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_pill_badge"
-                            android:contentDescription="Liked Songs"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_ytm_thumb_up_fill"
-                            app:tint="@color/ytm_red" />
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="0dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="Liked Songs"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_heart_filled"
+                                app:tint="@color/accentPrimary" />
+                        </androidx.cardview.widget.CardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -1022,8 +1072,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="@font/youtube_sans_bold_font"
-                                android:text="Liked Music"
-                                android:textColor="@color/ytm_text_primary"
+                                android:text="Liked Songs"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="16sp" />
 
                             <TextView
@@ -1032,10 +1082,17 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
-                                android:text="Auto playlist • 0 tracks"
-                                android:textColor="@color/ytm_text_secondary"
+                                android:text="0 tracks"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="Open Liked Songs"
+                            android:src="@drawable/ic_ytm_chevron_right"
+                            app:tint="@color/textDisabled" />
                     </LinearLayout>
 
                     <!-- Downloaded Songs Collection Row -->
@@ -1049,16 +1106,23 @@
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_pill_badge"
-                            android:contentDescription="Downloads"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_download"
-                            app:tint="@color/ytm_icon_active" />
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="0dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="Downloads"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_download"
+                                app:tint="@color/accentViolet" />
+                        </androidx.cardview.widget.CardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -1072,7 +1136,7 @@
                                 android:layout_height="wrap_content"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Downloaded Music"
-                                android:textColor="@color/ytm_text_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="16sp" />
 
                             <TextView
@@ -1082,9 +1146,16 @@
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
                                 android:text="0 offline tracks"
-                                android:textColor="@color/ytm_text_secondary"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="Open Downloads"
+                            android:src="@drawable/ic_ytm_chevron_right"
+                            app:tint="@color/textDisabled" />
                     </LinearLayout>
 
                     <!-- Listening History Collection Row -->
@@ -1098,16 +1169,23 @@
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="16dp">
+                        android:padding="14dp">
 
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_pill_badge"
-                            android:contentDescription="History"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_queue_music"
-                            app:tint="@color/ytm_icon_active" />
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="0dp">
+
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="History"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_queue_music"
+                                app:tint="@color/accentBlue" />
+                        </androidx.cardview.widget.CardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -1121,7 +1199,7 @@
                                 android:layout_height="wrap_content"
                                 android:fontFamily="@font/youtube_sans_bold_font"
                                 android:text="Listening History"
-                                android:textColor="@color/ytm_text_primary"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="16sp" />
 
                             <TextView
@@ -1130,20 +1208,27 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
-                                android:text="Recently played &amp; top tracks"
-                                android:textColor="@color/ytm_text_secondary"
+                                android:text="Recently played tracks"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="Open History"
+                            android:src="@drawable/ic_ytm_chevron_right"
+                            app:tint="@color/textDisabled" />
                     </LinearLayout>
 
                     <!-- User Playlists Header -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="22dp"
+                        android:layout_marginTop="24dp"
                         android:fontFamily="@font/youtube_sans_bold_font"
                         android:text="Your Playlists"
-                        android:textColor="@color/ytm_text_primary"
+                        android:textColor="@color/textPrimary"
                         android:textSize="18sp" />
 
                     <!-- User Playlists RecyclerView -->
@@ -1153,6 +1238,64 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:nestedScrollingEnabled="false" />
+
+                    <!-- Empty State for User Playlists -->
+                    <LinearLayout
+                        android:id="@+id/layoutPlaylistsEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="28dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:contentDescription="No playlists"
+                            android:src="@drawable/ic_library_music"
+                            app:tint="@color/textDisabled" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:fontFamily="@font/youtube_sans_bold_font"
+                            android:text="Create your first playlist"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="sans-serif"
+                            android:gravity="center"
+                            android:text="Save and organize your favorite songs into custom collections."
+                            android:textColor="@color/textSecondary"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnEmptyCreatePlaylist"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:layout_marginTop="16dp"
+                            android:backgroundTint="@color/accentPrimary"
+                            android:fontFamily="sans-serif-bold"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minHeight="0dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="+ Create Playlist"
+                            android:textAllCaps="false"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="12sp"
+                            app:cornerRadius="18dp" />
+                    </LinearLayout>
 
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
@@ -1169,11 +1312,12 @@
             android:id="@+id/bottomNavigation"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="@color/ytm_bottom_nav_bg"
+            android:background="@drawable/bg_bottom_navigation"
             app:elevation="8dp"
             app:itemIconSize="22dp"
             app:itemIconTint="@color/bottom_nav_color_selector"
             app:itemTextColor="@color/bottom_nav_color_selector"
+            app:itemRippleColor="@color/accentPrimary_subtle"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/bottom_nav_menu" />
 

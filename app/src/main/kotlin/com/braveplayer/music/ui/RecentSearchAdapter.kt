@@ -67,6 +67,9 @@ class RecentSearchAdapter(
         fun bind(item: SearchHistoryItem) {
             tvTitle.text = item.title
             tvSubtitle.text = item.subtitle
+            itemView.contentDescription = "Search for ${item.title}"
+            btnRemove.contentDescription = "Remove ${item.title} from search history"
+            ivThumb.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             // Load thumbnail
             ivThumb.setImageResource(R.drawable.ic_music_note)

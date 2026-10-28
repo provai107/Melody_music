@@ -158,4 +158,17 @@ class PlaylistDatabaseHelperTest {
         assertThat(dbHelper.isSongDownloaded("dl_1")).isFalse()
         assertThat(dbHelper.getAllDownloadedSongs()).isEmpty()
     }
+
+    @Test
+    fun testRenamePlaylist() {
+        val playlistId = dbHelper.createPlaylist("Original Playlist Name")
+        assertThat(playlistId).isGreaterThan(0L)
+
+        val renamed = dbHelper.renamePlaylist(playlistId, "Renamed Melody Mix")
+        assertThat(renamed).isTrue()
+
+        val playlists = dbHelper.getAllPlaylists()
+        assertThat(playlists).hasSize(1)
+        assertThat(playlists[0].name).isEqualTo("Renamed Melody Mix")
+    }
 }

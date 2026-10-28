@@ -238,6 +238,11 @@ class QueueAdapter(
             tvTitle.text = title
             tvArtist.text = artist
             ivIndicator.visibility = if (track.isPlaying) View.VISIBLE else View.GONE
+            itemView.contentDescription = if (track.isPlaying) "Currently playing: $title by $artist" else "$title by $artist"
+            btnRemove.contentDescription = "Remove $title from queue"
+            ivDragHandle.contentDescription = "Drag to reorder $title"
+            ivCover.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            ivIndicator.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             if (SongMediaItemMapper.isRecommended(item) || track.origin == SongMediaItemMapper.ORIGIN_RECOMMENDED) {
                 tvBadge.text = "✨ RECOMMENDED"

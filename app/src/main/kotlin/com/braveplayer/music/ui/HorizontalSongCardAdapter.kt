@@ -79,7 +79,12 @@ class HorizontalSongCardAdapter(
 
         fun bind(song: Song, position: Int) {
             tvTitle.text = song.title
-            tvArtist.text = if (song.artists.isNotBlank()) song.artists else song.album
+            val artistStr = if (song.artists.isNotBlank()) song.artists else song.album
+            tvArtist.text = artistStr
+            itemView.contentDescription = "${song.title}, by $artistStr"
+            btnQuickPlay.contentDescription = "Quick play ${song.title}"
+            btnOptions.contentDescription = "Options for ${song.title}"
+            ivCover.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             // Badge display logic
             val count = playCounts[song.id]
