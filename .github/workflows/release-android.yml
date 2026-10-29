@@ -162,7 +162,11 @@ jobs:
           # Determine notes
           if [ "${{ github.event_name }}" = "release" ]; then
             RAW_NOTES="${{ github.event.release.body }}"
-            MANDATORY="false"
+            if echo "$RAW_NOTES" | grep -qiE '\[mandatory\]|mandatory:\s*true'; then
+              MANDATORY="true"
+            else
+              MANDATORY="false"
+            fi
           else
             RAW_NOTES="${{ github.event.inputs.release_notes }}"
             MANDATORY="${{ github.event.inputs.mandatory_update }}"
