@@ -152,7 +152,7 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_SH_ARTISTS = "artists"
         private const val COL_SH_PREVIEW_URL = "preview_url"
 
-        // Recommendation Feedback Table (Spotify-style Like / Not Interested / Hide)
+        // Recommendation Feedback Table (Modern Like / Not Interested / Hide)
         private const val TABLE_RECOMMENDATION_FEEDBACK = "recommendation_feedback"
         private const val COL_RF_ID = "id"
         private const val COL_RF_SONG_ID = "song_id"

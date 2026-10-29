@@ -40,6 +40,8 @@ class SongAdapter(
         private val imageCache = LruCache<String, Bitmap>(100)
     }
 
+    val currentList: List<Song> get() = songs.toList()
+
     fun submitList(newSongs: List<Song>) {
         songs.clear()
         songs.addAll(newSongs)

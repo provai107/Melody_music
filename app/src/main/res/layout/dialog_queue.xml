@@ -178,7 +178,7 @@
             app:tint="@color/accentPrimary" />
     </LinearLayout>
 
-    <!-- Up Next Subheader -->
+    <!-- Up Next Subheader & Playback Controls -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -198,17 +198,53 @@
             android:textColor="@color/textSecondary"
             android:textSize="11sp" />
 
-        <Button
-            android:id="@+id/btnShuffleQueue"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="32dp"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:fontFamily="sans-serif-medium"
-            android:text="Shuffle"
-            android:textColor="@color/textPrimary"
-            android:textSize="11sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Autoplay Quick Toggle Pill -->
+            <TextView
+                android:id="@+id/btnAutoplayQueue"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_pill_badge"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="✨ Autoplay"
+                android:textColor="@color/textPrimary"
+                android:textSize="11sp" />
+
+            <!-- Repeat Mode Button -->
+            <ImageView
+                android:id="@+id/btnRepeatQueue"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Cycle repeat mode"
+                android:padding="6dp"
+                android:src="@drawable/ic_ytm_repeat"
+                app:tint="@color/textSecondary" />
+
+            <!-- Shuffle Mode Button -->
+            <Button
+                android:id="@+id/btnShuffleQueue"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Shuffle"
+                android:textColor="@color/textPrimary"
+                android:textSize="11sp" />
+        </LinearLayout>
     </RelativeLayout>
 
     <!-- Queue List Container -->

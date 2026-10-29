@@ -272,13 +272,15 @@ class MainActivity : AppCompatActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
-    // Spotify-style 3-mode Shuffle
+    // Modern 3-mode Shuffle
     enum class SmartShuffleState {
         NORMAL,
         SHUFFLE,
         SMART_SHUFFLE
     }
     private var smartShuffleState = SmartShuffleState.NORMAL
+    private lateinit var playbackController: com.braveplayer.music.player.CentralizedPlaybackController
+    private var activeQueueDialogUpdater: ((com.braveplayer.music.player.QueueSnapshot) -> Unit)? = null
 
     // Search Job & Tracking
     private var searchJob: Job? = null
@@ -313,6 +315,29 @@ class MainActivity : AppCompatActivity() {
         updateManager = AppUpdateManager(this)
         updateDialogHelper = AppUpdateDialogHelper(this, updateManager, lifecycleScope)
         com.braveplayer.music.util.NetworkUtils.clearAudioStreamingCache(this)
+
+        playbackController = com.braveplayer.music.player.CentralizedPlaybackController.getInstance(
+            context = this,
+            playlistDbHelper = playlistDbHelper,
+            appSettings = appSettings,
+            recommendationEngine = recommendationEngine,
+            queuePersistenceManager = com.braveplayer.music.settings.QueuePersistenceManager(this)
+        )
+        playbackController.addListener(object : com.braveplayer.music.player.CentralizedPlaybackController.Listener {
+            override fun onSongChanged(song: Song?, queueItem: com.braveplayer.music.player.QueueItem?) {
+                syncUiWithPlayer()
+                refreshHomeData()
+                refreshCollectionData()
+            }
+
+            override fun onPlaybackStateChanged(state: com.braveplayer.music.player.PlaybackState) {
+                syncUiWithPlayer()
+            }
+
+            override fun onQueueUpdated(snapshot: com.braveplayer.music.player.QueueSnapshot) {
+                activeQueueDialogUpdater?.invoke(snapshot)
+            }
+        })
 
         initViews()
         setupAdapters()
@@ -524,7 +549,14 @@ class MainActivity : AppCompatActivity() {
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
                 playlistDbHelper.recordSongSearch(song)
-                playSongNow(song)
+                val currentResults = searchAdapter.currentList
+                val query = etSearchQuery.text.toString().trim()
+                val context = com.braveplayer.music.player.PlaybackContext.search(query, currentResults)
+                playbackController.playTrack(
+                    song = song,
+                    context = context,
+                    contextSongs = currentResults
+                )
             },
             onSongAddToQueue = { song -> addSongToQueue(song) },
             onSongOptions = { song -> showSongOptionDialog(song) },
@@ -862,7 +894,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        btnMiniNext.setOnClickListener { mediaController?.seekToNextMediaItem() }
+        btnMiniNext.setOnClickListener { playbackController.skipToNext() }
         btnMiniLike.setOnClickListener {
             val item = mediaController?.currentMediaItem ?: return@setOnClickListener
             val song = SongMediaItemMapper.fromMediaItem(item)
@@ -889,8 +921,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        btnNowPlayingPrev.setOnClickListener { mediaController?.seekToPreviousMediaItem() }
-        btnNowPlayingNext.setOnClickListener { mediaController?.seekToNextMediaItem() }
+        btnNowPlayingPrev.setOnClickListener { playbackController.skipToPrevious() }
+        btnNowPlayingNext.setOnClickListener { playbackController.skipToNext() }
         btnNowPlayingShuffle.setOnClickListener { toggleShuffle() }
         btnNowPlayingRepeat.setOnClickListener { cycleRepeatMode() }
 
@@ -908,12 +940,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         tvNowPlayingAutoplayStatus.setOnClickListener {
-            val newEnabled = !appSettings.isAutoplayEnabled()
-            appSettings.setAutoplayEnabled(newEnabled)
+            val newEnabled = !playbackController.isAutoplayEnabled()
+            playbackController.setAutoplayEnabled(newEnabled)
             updateAutoplayDisplay()
-            if (newEnabled) {
-                triggerAutoplayCheck()
-            }
             val text = if (newEnabled) "Autoplay enabled" else "Autoplay disabled"
             Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
         }
@@ -1021,6 +1050,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val controller = future.get()
                 mediaController = controller
+                playbackController.attachPlayer(controller)
                 setupControllerListener(controller)
                 syncUiWithPlayer()
             } catch (_: Exception) {
@@ -1212,15 +1242,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun cycleRepeatMode() {
-        val controller = mediaController ?: return
-        val nextMode = when (controller.repeatMode) {
-            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-            Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
-            else -> Player.REPEAT_MODE_OFF
+        val newMode = playbackController.cycleRepeatMode()
+        val playerMode = when (newMode) {
+            com.braveplayer.music.player.RepeatMode.OFF -> Player.REPEAT_MODE_OFF
+            com.braveplayer.music.player.RepeatMode.ALL -> Player.REPEAT_MODE_ALL
+            com.braveplayer.music.player.RepeatMode.ONE -> Player.REPEAT_MODE_ONE
         }
-        controller.repeatMode = nextMode
-        updateRepeatControls(nextMode)
+        mediaController?.repeatMode = playerMode
+        updateRepeatControls(playerMode)
     }
 
     private fun updateShuffleControls(state: SmartShuffleState = smartShuffleState) {
@@ -1249,33 +1278,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleShuffle() {
-        val controller = mediaController ?: return
-        when (smartShuffleState) {
-            SmartShuffleState.NORMAL -> {
-                smartShuffleState = SmartShuffleState.SHUFFLE
-                appSettings.setShuffleMode(AppSettings.SHUFFLE_MODE_SHUFFLE)
-                controller.shuffleModeEnabled = true
-                removeInjectedSmartShuffleRecommendations()
-                updateShuffleControls(SmartShuffleState.SHUFFLE)
-                Toast.makeText(this, "🔀 Shuffle On", Toast.LENGTH_SHORT).show()
-            }
-            SmartShuffleState.SHUFFLE -> {
-                smartShuffleState = SmartShuffleState.SMART_SHUFFLE
-                appSettings.setShuffleMode(AppSettings.SHUFFLE_MODE_SMART)
-                controller.shuffleModeEnabled = true
-                updateShuffleControls(SmartShuffleState.SMART_SHUFFLE)
-                Toast.makeText(this, "✨ Smart Shuffle On • Adding recommendations", Toast.LENGTH_SHORT).show()
-                injectSmartShuffleRecommendations()
-            }
-            SmartShuffleState.SMART_SHUFFLE -> {
-                smartShuffleState = SmartShuffleState.NORMAL
-                appSettings.setShuffleMode(AppSettings.SHUFFLE_MODE_NORMAL)
-                controller.shuffleModeEnabled = false
-                removeInjectedSmartShuffleRecommendations()
-                updateShuffleControls(SmartShuffleState.NORMAL)
-                Toast.makeText(this, "Shuffle Off", Toast.LENGTH_SHORT).show()
-            }
-        }
+        val isShuffled = playbackController.toggleShuffle()
+        smartShuffleState = if (isShuffled) SmartShuffleState.SHUFFLE else SmartShuffleState.NORMAL
+        mediaController?.shuffleModeEnabled = isShuffled
+        updateShuffleControls(smartShuffleState)
+        val msg = if (isShuffled) "🔀 Shuffle On" else "Shuffle Off"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 
     private fun removeInjectedSmartShuffleRecommendations() {
@@ -1374,20 +1382,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val mediaItem = SongMediaItemMapper.toMediaItem(
-            song = effectiveSong,
-            origin = SongMediaItemMapper.ORIGIN_CONTEXT,
-            contextName = effectiveSong.album.ifEmpty { "Single" }
-        )
-        mediaController?.let { controller ->
-            controller.stop()
-            controller.setMediaItem(mediaItem)
-            controller.prepare()
-            controller.play()
-            if (appSettings.isAutoplayEnabled()) {
-                triggerAutoplayCheck()
-            }
-        }
+        playbackController.playSingleSong(effectiveSong)
     }
 
     private fun playNext(song: Song) {
@@ -1410,20 +1405,9 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Cannot queue '${effectiveSong.title}': No stream URL", Toast.LENGTH_SHORT).show()
             return
         }
-        val mediaItem = SongMediaItemMapper.toMediaItem(
-            song = effectiveSong,
-            origin = SongMediaItemMapper.ORIGIN_MANUAL,
-            contextName = "Queued"
-        )
-        mediaController?.let { controller ->
-            val curr = controller.currentMediaItemIndex
-            val insertPos = if (curr >= 0) curr + 1 else 0
-            controller.addMediaItem(insertPos, mediaItem)
-            if (controller.playbackState == Player.STATE_IDLE || controller.mediaItemCount == 1) {
-                controller.prepare()
-            }
-            Toast.makeText(this, "Playing next: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
-        }
+
+        playbackController.playNext(effectiveSong)
+        Toast.makeText(this, "Playing next: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
     }
 
     private fun addSongToQueue(song: Song) {
@@ -1446,32 +1430,9 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Cannot queue '${effectiveSong.title}': No stream URL", Toast.LENGTH_SHORT).show()
             return
         }
-        val mediaItem = SongMediaItemMapper.toMediaItem(
-            song = effectiveSong,
-            origin = SongMediaItemMapper.ORIGIN_MANUAL,
-            contextName = "Queued"
-        )
-        mediaController?.let { controller ->
-            val insertPos = findInsertPositionForQueue(controller)
-            controller.addMediaItem(insertPos, mediaItem)
-            if (controller.playbackState == Player.STATE_IDLE || controller.mediaItemCount == 1) {
-                controller.prepare()
-            }
-            Toast.makeText(this, "Added to queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
-        }
-    }
 
-    private fun findInsertPositionForQueue(controller: MediaController): Int {
-        val total = controller.mediaItemCount
-        val curr = controller.currentMediaItemIndex
-        if (total == 0 || curr < 0) return total
-        for (i in (curr + 1) until total) {
-            val item = controller.getMediaItemAt(i)
-            if (SongMediaItemMapper.getQueueOrigin(item) == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
-                return i
-            }
-        }
-        return total
+        playbackController.addToQueue(effectiveSong)
+        Toast.makeText(this, "Added to queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
     }
 
     private fun startRadioForSong(song: Song) {
@@ -1493,19 +1454,11 @@ class MainActivity : AppCompatActivity() {
                 emptyList()
             }
             val queue = listOf(song) + recs
-            val mediaItems = queue.mapIndexed { idx, s ->
-                SongMediaItemMapper.toMediaItem(
-                    song = s,
-                    origin = if (idx == 0) SongMediaItemMapper.ORIGIN_CONTEXT else SongMediaItemMapper.ORIGIN_AUTOPLAY,
-                    contextName = "${song.title} Radio"
-                )
-            }
-            mediaController?.let { controller ->
-                controller.stop()
-                controller.setMediaItems(mediaItems)
-                controller.prepare()
-                controller.play()
-            }
+            playbackController.playTrack(
+                song = song,
+                context = com.braveplayer.music.player.PlaybackContext.radio(song, queue),
+                contextSongs = queue
+            )
             Toast.makeText(this@MainActivity, "Radio: ${queue.size} tracks playing", Toast.LENGTH_SHORT).show()
         }
     }
@@ -2252,6 +2205,20 @@ class MainActivity : AppCompatActivity() {
             btnAddTracks?.visibility = View.GONE
         }
 
+        fun buildCollectionContext(songList: List<Song>): com.braveplayer.music.player.PlaybackContext {
+            return when {
+                isHistory -> com.braveplayer.music.player.PlaybackContext.history(songList)
+                playlist != null -> com.braveplayer.music.player.PlaybackContext.playlist(playlist.id, playlist.name, songList)
+                isDownloaded -> com.braveplayer.music.player.PlaybackContext(
+                    type = com.braveplayer.music.player.PlaybackContextType.PLAYLIST,
+                    id = "downloaded",
+                    title = "Downloaded Songs",
+                    songs = songList
+                )
+                else -> com.braveplayer.music.player.PlaybackContext.favorites(songList)
+            }
+        }
+
         btnPlayAll.setOnClickListener {
             if (songs.isNotEmpty()) {
                 val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
@@ -2266,14 +2233,11 @@ class MainActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.shuffleModeEnabled = false
-                    c.prepare()
-                    c.play()
-                }
+                playbackController.playTrack(
+                    song = playableSongs.first(),
+                    context = buildCollectionContext(playableSongs),
+                    contextSongs = playableSongs
+                )
                 dialog.dismiss()
             }
         }
@@ -2292,13 +2256,14 @@ class MainActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.shuffleModeEnabled = true
-                    c.prepare()
-                    c.play()
+                val shuffled = playableSongs.shuffled()
+                playbackController.playTrack(
+                    song = shuffled.first(),
+                    context = buildCollectionContext(playableSongs),
+                    contextSongs = shuffled
+                )
+                if (!playbackController.isShuffleEnabled()) {
+                    playbackController.toggleShuffle()
                 }
                 dialog.dismiss()
             }
@@ -2353,18 +2318,12 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         songs.map { s -> if (playlistDbHelper.isSongDownloaded(s.id)) playlistDbHelper.getDownloadedSong(s.id) ?: s else s }
                     }
-                    val startIndex = playableSongs.indexOfFirst { it.id == song.id }
-                    if (startIndex >= 0) {
-                        val mediaItems = playableSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                        mediaController?.let { c ->
-                            c.stop()
-                            c.setMediaItems(mediaItems, startIndex, 0L)
-                            c.prepare()
-                            c.play()
-                        }
-                    } else {
-                        playSongNow(song)
-                    }
+                    val targetSong = playableSongs.firstOrNull { it.id == song.id } ?: song
+                    playbackController.playTrack(
+                        song = targetSong,
+                        context = buildCollectionContext(playableSongs),
+                        contextSongs = playableSongs
+                    )
                 },
                 onSongAddToQueue = { song ->
                     addSongToQueue(song)
@@ -2428,11 +2387,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showQueueDialog() {
-        val controller = mediaController ?: run {
-            Toast.makeText(this, "Player not connected", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val dialog = BottomSheetDialog(this)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_queue, null)
         dialog.setContentView(view)
@@ -2448,6 +2402,8 @@ class MainActivity : AppCompatActivity() {
         val ivNowPlayingThumb: ImageView = view.findViewById(R.id.ivNowPlayingQueueThumb)
         val tvNowPlayingTitle: TextView = view.findViewById(R.id.tvNowPlayingQueueTitle)
         val tvNowPlayingArtist: TextView = view.findViewById(R.id.tvNowPlayingQueueArtist)
+        val btnAutoplay: TextView? = view.findViewById(R.id.btnAutoplayQueue)
+        val btnRepeat: ImageView? = view.findViewById(R.id.btnRepeatQueue)
         val btnShuffle: Button = view.findViewById(R.id.btnShuffleQueue)
         val rvQueue: RecyclerView = view.findViewById(R.id.rvQueueList)
         val layoutEmpty: LinearLayout = view.findViewById(R.id.layoutQueueEmpty)
@@ -2456,26 +2412,23 @@ class MainActivity : AppCompatActivity() {
         btnQueueSettings?.setOnClickListener { showPlaybackSettingsDialog() }
         tvQueueCount.setOnClickListener { showPlaybackSettingsDialog() }
 
-        var isDragging = false
-        var dragFromPosition = -1
-        var dragToPosition = -1
         var itemTouchHelper: ItemTouchHelper? = null
 
         val queueAdapter = QueueAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
-            onItemClicked = { index ->
-                if (index in 0 until controller.mediaItemCount) {
-                    controller.seekToDefaultPosition(index)
-                    controller.play()
-                }
+            onTrackClicked = { queueItem ->
+                playbackController.playQueueItem(queueItem)
             },
-            onItemRemoved = { index ->
-                if (index in 0 until controller.mediaItemCount) {
-                    controller.removeMediaItem(index)
-                }
+            onTrackRemoved = { queueItem ->
+                playbackController.removeQueueItem(queueItem.queueEntryId)
             },
-            onItemMoved = { _, _ -> },
+            onTrackPlayNext = { queueItem ->
+                playbackController.moveToPlayNext(queueItem.queueEntryId)
+            },
+            onTrackMoved = { fromUpcomingIndex, toUpcomingIndex ->
+                playbackController.reorderQueue(fromUpcomingIndex, toUpcomingIndex)
+            },
             onStartDrag = { viewHolder ->
                 itemTouchHelper?.startDrag(viewHolder)
             }
@@ -2500,39 +2453,14 @@ class MainActivity : AppCompatActivity() {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
                 if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION &&
-                    queueAdapter.isTrackPosition(fromPos) && queueAdapter.isTrackPosition(toPos)) {
-                    if (dragFromPosition == -1) {
-                        dragFromPosition = fromPos
-                    }
-                    dragToPosition = toPos
+                    queueAdapter.isTrackPosition(fromPos) && queueAdapter.isTrackPosition(toPos)
+                ) {
                     return queueAdapter.onItemMove(fromPos, toPos)
                 }
                 return false
             }
 
-            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
-                super.onSelectedChanged(viewHolder, actionState)
-                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
-                    isDragging = true
-                }
-            }
-
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                isDragging = false
-                val from = dragFromPosition
-                val to = dragToPosition
-                dragFromPosition = -1
-                dragToPosition = -1
-                if (from != -1 && to != -1 && from != to) {
-                    if (from in 0 until controller.mediaItemCount && to in 0 until controller.mediaItemCount) {
-                        controller.moveMediaItem(from, to)
-                    }
-                }
-            }
-
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-
             override fun isLongPressDragEnabled(): Boolean = true
         })
 
@@ -2540,115 +2468,113 @@ class MainActivity : AppCompatActivity() {
         rvQueue.adapter = queueAdapter
         itemTouchHelper.attachToRecyclerView(rvQueue)
 
-        fun updateQueueData() {
-            val totalCount = controller.mediaItemCount
-            val currentIndex = controller.currentMediaItemIndex
-
-            val autoplayText = if (appSettings.isAutoplayEnabled()) "Autoplay On" else "Autoplay Off"
+        fun updateQueueDialogViews(snapshot: com.braveplayer.music.player.QueueSnapshot) {
+            val totalCount = snapshot.totalTrackCount
+            val autoplayText = if (snapshot.autoplayEnabled) "Autoplay On" else "Autoplay Off"
             tvQueueCount.text = "$totalCount tracks • $autoplayText"
 
-            if (totalCount == 0) {
+            if (snapshot.isEmpty) {
                 layoutEmpty.visibility = View.VISIBLE
                 rvQueue.visibility = View.GONE
                 cardNowPlaying.visibility = View.GONE
             } else {
                 layoutEmpty.visibility = View.GONE
                 rvQueue.visibility = View.VISIBLE
-                cardNowPlaying.visibility = View.VISIBLE
 
-                val currentItem = controller.currentMediaItem
-                if (currentItem != null) {
-                    tvNowPlayingTitle.text = currentItem.mediaMetadata.title?.toString() ?: "Unknown Track"
-                    tvNowPlayingArtist.text = currentItem.mediaMetadata.artist?.toString() ?: "Unknown Artist"
-                    val imageUrl = currentItem.mediaMetadata.extras?.getString(SongMediaItemMapper.EXTRA_IMAGE_URL)
-                        ?: currentItem.mediaMetadata.artworkUri?.toString()
-                    loadArtwork(imageUrl, ivNowPlayingThumb)
+                val current = snapshot.current
+                if (current != null) {
+                    cardNowPlaying.visibility = View.VISIBLE
+                    tvNowPlayingTitle.text = current.song.title.ifBlank { "Unknown Track" }
+                    tvNowPlayingArtist.text = current.song.artists.ifBlank { "Unknown Artist" }
+                    loadArtwork(current.song.imageUrl, ivNowPlayingThumb)
                 } else {
                     cardNowPlaying.visibility = View.GONE
                 }
 
-                val allItems = List(totalCount) { i -> controller.getMediaItemAt(i) }
-                queueAdapter.submitQueue(allItems, currentIndex)
+                queueAdapter.submitSnapshot(snapshot)
             }
 
-            val shuffleText = when (smartShuffleState) {
-                SmartShuffleState.SMART_SHUFFLE -> "✨ Smart Shuffle"
-                SmartShuffleState.SHUFFLE -> "🔀 Shuffle ON"
-                SmartShuffleState.NORMAL -> "🔀 Shuffle"
-            }
-            val shuffleColor = when (smartShuffleState) {
-                SmartShuffleState.SMART_SHUFFLE -> R.color.ytm_red
-                SmartShuffleState.SHUFFLE -> R.color.ytm_text_primary
-                SmartShuffleState.NORMAL -> R.color.ytm_text_secondary
-            }
+            // Update Shuffle button
+            val shuffleText = if (snapshot.isShuffle) "🔀 Shuffled" else "Shuffle"
+            val shuffleColor = if (snapshot.isShuffle) R.color.accentPrimary else R.color.textSecondary
             btnShuffle.text = shuffleText
             btnShuffle.setTextColor(ContextCompat.getColor(this, shuffleColor))
+
+            // Update Repeat button
+            when (snapshot.repeatMode) {
+                com.braveplayer.music.player.RepeatMode.ALL -> {
+                    btnRepeat?.setImageResource(R.drawable.ic_ytm_repeat)
+                    btnRepeat?.setColorFilter(ContextCompat.getColor(this, R.color.accentPrimary))
+                }
+                com.braveplayer.music.player.RepeatMode.ONE -> {
+                    btnRepeat?.setImageResource(R.drawable.ic_ytm_repeat_one)
+                    btnRepeat?.setColorFilter(ContextCompat.getColor(this, R.color.accentPrimary))
+                }
+                com.braveplayer.music.player.RepeatMode.OFF -> {
+                    btnRepeat?.setImageResource(R.drawable.ic_ytm_repeat)
+                    btnRepeat?.setColorFilter(ContextCompat.getColor(this, R.color.textSecondary))
+                }
+            }
+
+            // Update Autoplay pill
+            btnAutoplay?.text = if (snapshot.autoplayEnabled) "✨ Autoplay On" else "✨ Autoplay Off"
+            btnAutoplay?.setTextColor(
+                ContextCompat.getColor(
+                    this,
+                    if (snapshot.autoplayEnabled) R.color.accentPrimary else R.color.textSecondary
+                )
+            )
         }
 
         btnShuffle.setOnClickListener {
-            toggleShuffle()
-            updateQueueData()
+            playbackController.toggleShuffle()
+            updateQueueDialogViews(playbackController.queueSnapshot.value)
+        }
+
+        btnRepeat?.setOnClickListener {
+            playbackController.cycleRepeatMode()
+            updateQueueDialogViews(playbackController.queueSnapshot.value)
+        }
+
+        btnAutoplay?.setOnClickListener {
+            val newEnabled = !playbackController.isAutoplayEnabled()
+            playbackController.setAutoplayEnabled(newEnabled)
+            updateAutoplayDisplay()
+            updateQueueDialogViews(playbackController.queueSnapshot.value)
+            Toast.makeText(this, if (newEnabled) "Autoplay enabled" else "Autoplay disabled", Toast.LENGTH_SHORT).show()
         }
 
         cardNowPlaying.setOnClickListener {
-            val curr = controller.currentMediaItemIndex
-            if (curr in 0 until controller.mediaItemCount) {
-                rvQueue.smoothScrollToPosition(curr)
+            if (nowPlayingBehavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+                nowPlayingBehavior.state = BottomSheetBehavior.STATE_EXPANDED
             }
         }
 
         btnClear.setOnClickListener {
-            val total = controller.mediaItemCount
-            if (total == 0) return@setOnClickListener
-            val currentIdx = controller.currentMediaItemIndex
-
-            if (currentIdx in 0 until total - 1) {
+            val snapshot = playbackController.queueSnapshot.value
+            if (snapshot.allUpcoming().isNotEmpty()) {
                 AlertDialog.Builder(this)
                     .setTitle("Clear Queue")
-                    .setMessage("Would you like to clear upcoming tracks or the entire queue?")
+                    .setMessage("Clear all upcoming tracks from queue?")
                     .setPositiveButton("Clear Upcoming") { _, _ ->
-                        controller.removeMediaItems(currentIdx + 1, total)
-                        updateQueueData()
+                        playbackController.clearUpcoming()
+                        updateQueueDialogViews(playbackController.queueSnapshot.value)
                         Toast.makeText(this, "Upcoming queue cleared", Toast.LENGTH_SHORT).show()
                     }
-                    .setNeutralButton("Clear All") { _, _ ->
-                        controller.clearMediaItems()
-                        updateQueueData()
-                        Toast.makeText(this, "Queue cleared", Toast.LENGTH_SHORT).show()
-                    }
-                    .setNegativeButton("Cancel", null)
+                    .setNeutralButton("Cancel", null)
                     .show()
-            } else {
-                controller.clearMediaItems()
-                updateQueueData()
-                Toast.makeText(this, "Queue cleared", Toast.LENGTH_SHORT).show()
             }
         }
 
-        val queueListener = object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                if (!isDragging) {
-                    updateQueueData()
-                }
-            }
-
-            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-                if (!isDragging) {
-                    updateQueueData()
-                }
-            }
-
-            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                updateQueueData()
-            }
+        activeQueueDialogUpdater = { snapshot ->
+            updateQueueDialogViews(snapshot)
         }
 
-        controller.addListener(queueListener)
         dialog.setOnDismissListener {
-            controller.removeListener(queueListener)
+            activeQueueDialogUpdater = null
         }
 
-        updateQueueData()
+        updateQueueDialogViews(playbackController.queueSnapshot.value)
         dialog.show()
     }
 
@@ -2813,7 +2739,7 @@ class MainActivity : AppCompatActivity() {
 
         // Event listeners
         switchAutoplay.setOnCheckedChangeListener { _, isChecked ->
-            appSettings.setAutoplayEnabled(isChecked)
+            playbackController.setAutoplayEnabled(isChecked)
             updateAutoplayDisplay()
             if (isChecked) {
                 triggerAutoplayCheck()
@@ -2973,26 +2899,35 @@ class MainActivity : AppCompatActivity() {
 
         btnPlayAll.setOnClickListener {
             if (loadedSongs.isNotEmpty()) {
-                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.prepare()
-                    c.play()
-                }
+                playbackController.playTrack(
+                    song = loadedSongs.first(),
+                    context = com.braveplayer.music.player.PlaybackContext(
+                        type = com.braveplayer.music.player.PlaybackContextType.PLAYLIST,
+                        id = "category_$title",
+                        title = title,
+                        songs = loadedSongs
+                    ),
+                    contextSongs = loadedSongs
+                )
                 Toast.makeText(this, "Playing all $title (${loadedSongs.size} tracks)", Toast.LENGTH_SHORT).show()
             }
         }
 
         btnShuffleAll.setOnClickListener {
             if (loadedSongs.isNotEmpty()) {
-                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.stop()
-                    c.setMediaItems(mediaItems)
-                    c.shuffleModeEnabled = true
-                    c.prepare()
-                    c.play()
+                val shuffled = loadedSongs.shuffled()
+                playbackController.playTrack(
+                    song = shuffled.first(),
+                    context = com.braveplayer.music.player.PlaybackContext(
+                        type = com.braveplayer.music.player.PlaybackContextType.PLAYLIST,
+                        id = "category_$title",
+                        title = title,
+                        songs = loadedSongs
+                    ),
+                    contextSongs = shuffled
+                )
+                if (!playbackController.isShuffleEnabled()) {
+                    playbackController.toggleShuffle()
                 }
                 Toast.makeText(this, "Shuffling $title", Toast.LENGTH_SHORT).show()
             }
@@ -3000,13 +2935,7 @@ class MainActivity : AppCompatActivity() {
 
         btnQueueAll.setOnClickListener {
             if (loadedSongs.isNotEmpty()) {
-                val mediaItems = loadedSongs.map { SongMediaItemMapper.toMediaItem(it) }
-                mediaController?.let { c ->
-                    c.addMediaItems(mediaItems)
-                    if (c.playbackState == Player.STATE_IDLE || c.mediaItemCount == mediaItems.size) {
-                        c.prepare()
-                    }
-                }
+                loadedSongs.forEach { playbackController.addToQueue(it) }
                 Toast.makeText(this, "Added ${loadedSongs.size} tracks to queue", Toast.LENGTH_SHORT).show()
             }
         }

@@ -1,6 +1,6 @@
 # Melody — Smart Music Player for Android
 
-Melody is an intelligent, high-performance music streaming application for Android featuring Spotify-inspired recommendations, continuous autoplay, 3-mode Smart Shuffle, synced lyrics, and an automated zero-budget update pipeline.
+Melody is an intelligent, high-performance music streaming application for Android featuring premium personalized recommendations, continuous autoplay, 3-mode Smart Shuffle, synced lyrics, and an automated zero-budget update pipeline.
 
 ---
 

@@ -109,6 +109,17 @@
         android:visibility="gone"
         app:tint="@color/ytm_red" />
 
+    <!-- Overflow Options Menu Button -->
+    <ImageView
+        android:id="@+id/btnQueueMore"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Track Options"
+        android:padding="6dp"
+        android:src="@drawable/ic_more_vert"
+        app:tint="@color/ytm_icon_inactive" />
+
     <!-- Remove from Queue Button -->
     <ImageView
         android:id="@+id/btnQueueRemove"

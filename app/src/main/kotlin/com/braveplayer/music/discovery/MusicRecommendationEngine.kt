@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Spotify-inspired local recommendation engine computing candidate relevance
+ * Multi-signal local recommendation engine computing candidate relevance
  * using multi-signal scoring: content similarity, user listening history, liked songs,
  * search interactions, completion rates, skip penalties, not-interested feedback,
  * hidden song filtering, and selectable recommendation diversity.

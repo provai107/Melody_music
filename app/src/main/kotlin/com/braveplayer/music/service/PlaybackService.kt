@@ -60,6 +60,7 @@ class PlaybackService : MediaSessionService() {
     private lateinit var appSettings: AppSettings
     private lateinit var playlistDbHelper: PlaylistDatabaseHelper
     private lateinit var recommendationEngine: MusicRecommendationEngine
+    private lateinit var playbackController: com.braveplayer.music.player.CentralizedPlaybackController
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -205,6 +206,15 @@ class PlaybackService : MediaSessionService() {
 
         this.player = exoPlayer
         this.mediaSession = session
+
+        playbackController = com.braveplayer.music.player.CentralizedPlaybackController.getInstance(
+            context = this,
+            playlistDbHelper = playlistDbHelper,
+            appSettings = appSettings,
+            recommendationEngine = recommendationEngine,
+            queuePersistenceManager = queuePersistenceManager
+        )
+        playbackController.attachPlayer(exoPlayer)
 
         // Restore persisted queue state without auto-playing loudly
         restorePersistedQueue(exoPlayer)
@@ -527,6 +537,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        playbackController.detachPlayer()
         recordCurrentTrackHistory(isPlaybackEnded = false)
         autoplayWatchdogJob?.cancel()
         autoplayWatchdogJob = null

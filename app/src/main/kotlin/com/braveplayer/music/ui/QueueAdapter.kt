@@ -1,5 +1,6 @@
 package com.braveplayer.music.ui
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
@@ -9,10 +10,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.media3.common.MediaItem
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
-import com.braveplayer.music.media.SongMediaItemMapper
+import com.braveplayer.music.player.QueueItem
+import com.braveplayer.music.player.QueueOrigin
+import com.braveplayer.music.player.QueueSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,108 +25,131 @@ import okhttp3.Request
 import java.util.Collections
 
 sealed class QueueRow {
-    data class Header(val title: String, val subtitle: String? = null) : QueueRow()
+    data class Header(
+        val title: String,
+        val subtitle: String? = null,
+        val sectionType: QueueOrigin? = null
+    ) : QueueRow()
+
     data class Track(
-        val mediaItem: MediaItem,
-        val timelineIndex: Int,
-        val isPlaying: Boolean = false,
-        val origin: String,
-        val contextName: String?
+        val queueItem: QueueItem,
+        val upcomingIndex: Int,
+        val isPlaying: Boolean = false
     ) : QueueRow()
 }
 
+/**
+ * Modern, dark, premium queue adapter supporting distinct Play Next,
+ * In Queue, Context tracks, and Autoplay recommendation sections,
+ * drag-and-drop reordering, and per-track overflow actions.
+ */
 class QueueAdapter(
     private val scope: CoroutineScope,
     private val httpClient: OkHttpClient,
-    private val onItemClicked: (timelineIndex: Int) -> Unit,
-    private val onItemRemoved: (timelineIndex: Int) -> Unit,
-    private val onItemMoved: (fromTimeline: Int, toTimeline: Int) -> Unit,
+    private val onTrackClicked: (queueItem: QueueItem) -> Unit,
+    private val onTrackRemoved: (queueItem: QueueItem) -> Unit,
+    private val onTrackPlayNext: (queueItem: QueueItem) -> Unit,
+    private val onTrackMoved: (fromUpcomingIndex: Int, toUpcomingIndex: Int) -> Unit,
     private val onStartDrag: ((viewHolder: RecyclerView.ViewHolder) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         const val VIEW_TYPE_HEADER = 0
         const val VIEW_TYPE_TRACK = 1
-        private val queueThumbCache = LruCache<String, Bitmap>(60)
+        private val queueThumbCache = LruCache<String, Bitmap>(80)
     }
 
     private val rows = mutableListOf<QueueRow>()
 
-    fun submitQueue(newItems: List<MediaItem>, currentIndex: Int) {
+    fun submitSnapshot(snapshot: QueueSnapshot) {
         rows.clear()
-        val totalCount = newItems.size
-        if (totalCount == 0) {
-            notifyDataSetChanged()
-            return
-        }
 
-        // Partition upcoming items (from currentIndex + 1 until end)
-        val upcomingManual = mutableListOf<QueueRow.Track>()
-        val upcomingContext = mutableListOf<QueueRow.Track>()
-        val upcomingRecommended = mutableListOf<QueueRow.Track>()
+        var runningUpcomingIndex = 0
 
-        val startIndex = (currentIndex + 1).coerceAtLeast(0)
-        for (i in startIndex until totalCount) {
-            val item = newItems[i]
-            val origin = SongMediaItemMapper.getQueueOrigin(item)
-            val isRec = SongMediaItemMapper.isRecommended(item)
-            val ctxName = SongMediaItemMapper.getContextName(item)
-            val trackRow = QueueRow.Track(
-                mediaItem = item,
-                timelineIndex = i,
-                isPlaying = false,
-                origin = origin,
-                contextName = ctxName
+        // Section 1: Play Next (Highest upcoming priority)
+        if (snapshot.playNext.isNotEmpty()) {
+            val count = snapshot.playNext.size
+            rows.add(
+                QueueRow.Header(
+                    title = "PLAY NEXT",
+                    subtitle = "$count track${if (count > 1) "s" else ""} • Plays next in order",
+                    sectionType = QueueOrigin.PLAY_NEXT
+                )
             )
-
-            if (isRec || origin == SongMediaItemMapper.ORIGIN_RECOMMENDED || origin == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
-                upcomingRecommended.add(trackRow)
-            } else if (origin == SongMediaItemMapper.ORIGIN_MANUAL) {
-                upcomingManual.add(trackRow)
-            } else {
-                upcomingContext.add(trackRow)
+            for (item in snapshot.playNext) {
+                rows.add(
+                    QueueRow.Track(
+                        queueItem = item,
+                        upcomingIndex = runningUpcomingIndex++,
+                        isPlaying = false
+                    )
+                )
             }
         }
 
-        // Section 1: Manually Queued Priority Tracks ("Up Next")
-        if (upcomingManual.isNotEmpty()) {
+        // Section 2: Manually Queued Tracks ("In Queue")
+        if (snapshot.manualQueue.isNotEmpty()) {
+            val count = snapshot.manualQueue.size
             rows.add(
                 QueueRow.Header(
-                    title = "UP NEXT",
-                    subtitle = "${upcomingManual.size} track${if (upcomingManual.size > 1) "s" else ""} queued by you"
+                    title = "IN QUEUE",
+                    subtitle = "$count track${if (count > 1) "s" else ""} queued by you",
+                    sectionType = QueueOrigin.ADD_TO_QUEUE
                 )
             )
-            rows.addAll(upcomingManual)
-        }
-
-        // Section 2: Remaining Tracks ("From Your Playlist / Album")
-        if (upcomingContext.isNotEmpty()) {
-            val firstCtx = upcomingContext.first().contextName
-            val headerTitle = if (!firstCtx.isNullOrBlank()) {
-                "FROM YOUR PLAYLIST: ${firstCtx.uppercase()}"
-            } else {
-                "FROM YOUR PLAYLIST / ALBUM"
+            for (item in snapshot.manualQueue) {
+                rows.add(
+                    QueueRow.Track(
+                        queueItem = item,
+                        upcomingIndex = runningUpcomingIndex++,
+                        isPlaying = false
+                    )
+                )
             }
-            rows.add(
-                QueueRow.Header(
-                    title = headerTitle,
-                    subtitle = "${upcomingContext.size} track${if (upcomingContext.size > 1) "s" else ""} remaining"
-                )
-            )
-            rows.addAll(upcomingContext)
         }
 
-        // Section 3: Recommended Next ("Recommended Next" with ✨ badge)
-        if (upcomingRecommended.isNotEmpty()) {
-            val firstSeed = upcomingRecommended.first().contextName
-            val sub = if (!firstSeed.isNullOrBlank()) "✨ $firstSeed • Smart Next Play" else "✨ Tailored to your taste"
+        // Section 3: Active Context Tracks (Playlist, Album, Search, History)
+        if (snapshot.contextTracks.isNotEmpty()) {
+            val contextTitle = snapshot.playbackContext?.title ?: "YOUR PLAYLIST"
+            val count = snapshot.contextTracks.size
+            val prefix = if (snapshot.isShuffle) "NEXT FROM (SHUFFLED): " else "NEXT FROM: "
             rows.add(
                 QueueRow.Header(
-                    title = "RECOMMENDED NEXT",
-                    subtitle = sub
+                    title = "$prefix${contextTitle.uppercase()}",
+                    subtitle = "$count track${if (count > 1) "s" else ""} remaining",
+                    sectionType = QueueOrigin.CONTEXT
                 )
             )
-            rows.addAll(upcomingRecommended)
+            for (item in snapshot.contextTracks) {
+                rows.add(
+                    QueueRow.Track(
+                        queueItem = item,
+                        upcomingIndex = runningUpcomingIndex++,
+                        isPlaying = false
+                    )
+                )
+            }
+        }
+
+        // Section 4: Autoplay Recommendations
+        if (snapshot.autoplayEnabled && snapshot.autoplayQueue.isNotEmpty()) {
+            val count = snapshot.autoplayQueue.size
+            rows.add(
+                QueueRow.Header(
+                    title = "AUTOPLAY RECOMMENDATIONS",
+                    subtitle = "✨ Tailored continuous music • $count track${if (count > 1) "s" else ""}",
+                    sectionType = QueueOrigin.AUTOPLAY
+                )
+            )
+            for (item in snapshot.autoplayQueue) {
+                rows.add(
+                    QueueRow.Track(
+                        queueItem = item,
+                        upcomingIndex = runningUpcomingIndex++,
+                        isPlaying = false
+                    )
+                )
+            }
         }
 
         notifyDataSetChanged()
@@ -175,20 +201,19 @@ class QueueAdapter(
             }
         }
         notifyItemMoved(fromPosition, toPosition)
-        onItemMoved(fromTrack.timelineIndex, toTrack.timelineIndex)
+        onTrackMoved(fromTrack.upcomingIndex, toTrack.upcomingIndex)
         return true
     }
 
-    fun removeItem(position: Int) {
+    fun removeItemAtPosition(position: Int) {
         if (!isTrackPosition(position)) return
         val track = rows[position] as QueueRow.Track
         rows.removeAt(position)
         notifyItemRemoved(position)
 
-        // If the preceding header is now empty of tracks, remove the header too
+        // Clean up empty headers
         checkAndRemoveEmptyHeaders()
-
-        onItemRemoved(track.timelineIndex)
+        onTrackRemoved(track.queueItem)
     }
 
     private fun checkAndRemoveEmptyHeaders() {
@@ -227,48 +252,60 @@ class QueueAdapter(
         private val tvArtist: TextView = itemView.findViewById(R.id.tvQueueArtist)
         private val tvBadge: TextView = itemView.findViewById(R.id.tvQueueOriginBadge)
         private val ivIndicator: ImageView = itemView.findViewById(R.id.ivQueuePlayingIndicator)
+        private val btnMore: ImageView? = itemView.findViewById(R.id.btnQueueMore)
         private val btnRemove: ImageView = itemView.findViewById(R.id.btnQueueRemove)
         private val ivDragHandle: ImageView = itemView.findViewById(R.id.ivQueueDragHandle)
 
         fun bind(track: QueueRow.Track) {
-            val item = track.mediaItem
-            val title = item.mediaMetadata.title?.toString() ?: "Unknown Track"
-            val artist = item.mediaMetadata.artist?.toString() ?: "Unknown Artist"
+            val item = track.queueItem
+            val song = item.song
 
-            tvTitle.text = title
-            tvArtist.text = artist
+            tvTitle.text = song.title.ifEmpty { "Unknown Title" }
+            tvArtist.text = song.artists.ifEmpty { "Unknown Artist" }
             ivIndicator.visibility = if (track.isPlaying) View.VISIBLE else View.GONE
-            itemView.contentDescription = if (track.isPlaying) "Currently playing: $title by $artist" else "$title by $artist"
-            btnRemove.contentDescription = "Remove $title from queue"
-            ivDragHandle.contentDescription = "Drag to reorder $title"
-            ivCover.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            ivIndicator.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
-            if (SongMediaItemMapper.isRecommended(item) || track.origin == SongMediaItemMapper.ORIGIN_RECOMMENDED) {
-                tvBadge.text = "✨ RECOMMENDED"
-                tvBadge.visibility = View.VISIBLE
-            } else if (track.origin == SongMediaItemMapper.ORIGIN_AUTOPLAY) {
-                tvBadge.text = "AUTOPLAY"
-                tvBadge.visibility = View.VISIBLE
-            } else if (track.origin == SongMediaItemMapper.ORIGIN_MANUAL) {
-                tvBadge.text = "QUEUED"
-                tvBadge.visibility = View.VISIBLE
+            itemView.contentDescription = if (track.isPlaying) {
+                "Currently playing: ${song.title} by ${song.artists}"
             } else {
-                tvBadge.visibility = View.GONE
+                "${song.title} by ${song.artists}"
+            }
+            btnRemove.contentDescription = "Remove ${song.title} from queue"
+            ivDragHandle.contentDescription = "Drag to reorder ${song.title}"
+
+            // Section badge styling
+            when (item.origin) {
+                QueueOrigin.PLAY_NEXT -> {
+                    tvBadge.text = "PLAY NEXT"
+                    tvBadge.visibility = View.VISIBLE
+                }
+                QueueOrigin.ADD_TO_QUEUE -> {
+                    tvBadge.text = "QUEUED"
+                    tvBadge.visibility = View.VISIBLE
+                }
+                QueueOrigin.AUTOPLAY -> {
+                    tvBadge.text = "✨ AUTOPLAY"
+                    tvBadge.visibility = View.VISIBLE
+                }
+                QueueOrigin.CONTEXT -> {
+                    tvBadge.visibility = View.GONE
+                }
             }
 
-            val imageUrl = item.mediaMetadata.extras?.getString(SongMediaItemMapper.EXTRA_IMAGE_URL)
-            loadThumbnail(imageUrl)
+            loadThumbnail(song.imageUrl)
 
             itemView.setOnClickListener {
-                onItemClicked(track.timelineIndex)
+                onTrackClicked(item)
             }
 
             btnRemove.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    removeItem(pos)
+                    removeItemAtPosition(pos)
                 }
+            }
+
+            btnMore?.setOnClickListener { v ->
+                showTrackPopupMenu(v.context, v, item)
             }
 
             ivDragHandle.setOnTouchListener { _, event ->
@@ -277,6 +314,39 @@ class QueueAdapter(
                 }
                 false
             }
+        }
+
+        private fun showTrackPopupMenu(context: Context, anchor: View, item: QueueItem) {
+            val popup = PopupMenu(context, anchor)
+            val menu = popup.menu
+
+            menu.add(0, 1, 0, "▶ Play Now")
+            if (item.origin != QueueOrigin.PLAY_NEXT) {
+                menu.add(0, 2, 1, "⏭ Play Next")
+            }
+            menu.add(0, 3, 2, "❌ Remove from Queue")
+
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    1 -> {
+                        onTrackClicked(item)
+                        true
+                    }
+                    2 -> {
+                        onTrackPlayNext(item)
+                        true
+                    }
+                    3 -> {
+                        val pos = bindingAdapterPosition
+                        if (pos != RecyclerView.NO_POSITION) {
+                            removeItemAtPosition(pos)
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
+            popup.show()
         }
 
         private fun loadThumbnail(url: String?) {
