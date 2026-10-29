@@ -638,7 +638,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
-                        android:text="Version 1.1.1 (Build 4)"
+                        android:text="Version 1.1.2 (Build 5)"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>
