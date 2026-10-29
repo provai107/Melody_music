@@ -116,7 +116,9 @@ class CentralizedPlaybackController(
             listeners.add(listener)
             listener.onQueueUpdated(buildSnapshot())
             listener.onPlaybackStateChanged(currentPlaybackState)
-            listener.onSongChanged(currentItem?.song, currentItem)
+            if (currentItem != null) {
+                listener.onSongChanged(currentItem?.song, currentItem)
+            }
         }
     }
 

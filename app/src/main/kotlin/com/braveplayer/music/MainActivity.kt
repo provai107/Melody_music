@@ -357,6 +357,12 @@ class MainActivity : AppCompatActivity() {
         updateDialogHelper = AppUpdateDialogHelper(this, updateManager, lifecycleScope)
         com.braveplayer.music.util.NetworkUtils.clearAudioStreamingCache(this)
 
+        initViews()
+        setupAdapters()
+        setupBottomNavigation()
+        setupNowPlayingSheet()
+        setupListeners()
+
         playbackController = com.braveplayer.music.player.CentralizedPlaybackController.getInstance(
             context = this,
             playlistDbHelper = playlistDbHelper,
@@ -366,12 +372,14 @@ class MainActivity : AppCompatActivity() {
         )
         playbackController.addListener(object : com.braveplayer.music.player.CentralizedPlaybackController.Listener {
             override fun onSongChanged(song: Song?, queueItem: com.braveplayer.music.player.QueueItem?) {
+                if (!::tvHomeGreeting.isInitialized) return
                 syncUiWithPlayer()
                 refreshHomeData()
                 refreshCollectionData()
             }
 
             override fun onPlaybackStateChanged(state: com.braveplayer.music.player.PlaybackState) {
+                if (!::tvHomeGreeting.isInitialized) return
                 syncUiWithPlayer()
             }
 
@@ -380,11 +388,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        initViews()
-        setupAdapters()
-        setupBottomNavigation()
-        setupNowPlayingSheet()
-        setupListeners()
         requestNotificationPermissionIfNeeded()
         connectToPlaybackService()
 
@@ -1208,6 +1211,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun syncUiWithPlayer() {
+        if (!::layoutMiniPlayer.isInitialized) return
         val controller = mediaController ?: return
         val currentItem = controller.currentMediaItem
 
@@ -1755,6 +1759,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshHomeData() {
+        if (!::tvHomeGreeting.isInitialized) return
         // 1. Personalized Greeting
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         tvHomeGreeting.text = when (hour) {
@@ -2003,6 +2008,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshCollectionData() {
+        if (!::tvCollectionLikedCount.isInitialized) return
         val likedCount = playlistDbHelper.getAllLikedSongs().size
         tvCollectionLikedCount.text = "$likedCount tracks"
         cardCollectionLiked.contentDescription = "Liked songs collection, $likedCount tracks"
