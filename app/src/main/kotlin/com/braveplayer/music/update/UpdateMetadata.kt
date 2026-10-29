@@ -12,7 +12,7 @@ import java.util.Locale
  *   "versionName": "1.0.1",
  *   "versionCode": 2,
  *   "releaseNotes": "Bug fixes and performance improvements",
- *   "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk",
+ *   "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk",
  *   "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
  *   "mandatory": false
  * }
@@ -26,8 +26,8 @@ data class UpdateMetadata(
     val mandatory: Boolean
 ) {
     companion object {
-        const val DEFAULT_OWNER = "hernos5"
-        const val DEFAULT_REPO = "melody"
+        const val DEFAULT_OWNER = "provai107"
+        const val DEFAULT_REPO = "Melody_music"
 
         private val SHA256_REGEX = Regex("^[a-fA-F0-9]{64}$")
         private val VERSION_NAME_REGEX = Regex("^[a-zA-Z0-9._\\-+ ]{1,32}$")

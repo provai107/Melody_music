@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity() {
 
         // Verified official direct Melody APK download URL from GitHub Releases
         const val OFFICIAL_APK_DOWNLOAD_URL =
-            "https://github.com/hernos5/melody/releases/latest/download/Melody.apk"
+            "https://github.com/provai107/Melody_music/releases/latest/download/Melody.apk"
 
         fun buildShareMessage(song: Song?): String {
             return if (song != null && song.title.isNotBlank()) {

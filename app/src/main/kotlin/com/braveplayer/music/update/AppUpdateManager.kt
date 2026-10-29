@@ -51,7 +51,7 @@ class AppUpdateManager(
 
         // Primary public direct release asset URL (avoids GitHub API 60 req/hr rate limits)
         const val DEFAULT_METADATA_URL =
-            "https://github.com/hernos5/melody/releases/latest/download/latest.json"
+            "https://github.com/provai107/Melody_music/releases/latest/download/latest.json"
 
         private fun defaultClient(): OkHttpClient {
             return OkHttpClient.Builder()

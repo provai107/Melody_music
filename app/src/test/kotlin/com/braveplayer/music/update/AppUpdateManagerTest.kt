@@ -62,7 +62,7 @@ class AppUpdateManagerTest {
               "versionName": "1.0.1",
               "versionCode": 2,
               "releaseNotes": "Enhanced music recommendations and instant search.",
-              "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk",
+              "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk",
               "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
               "mandatory": false
             }
@@ -75,7 +75,7 @@ class AppUpdateManagerTest {
         assertThat(meta.versionName).isEqualTo("1.0.1")
         assertThat(meta.versionCode).isEqualTo(2)
         assertThat(meta.releaseNotes).isEqualTo("Enhanced music recommendations and instant search.")
-        assertThat(meta.apkUrl).isEqualTo("https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk")
+        assertThat(meta.apkUrl).isEqualTo("https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk")
         assertThat(meta.sha256).isEqualTo("511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56")
         assertThat(meta.mandatory).isFalse()
     }
@@ -87,7 +87,7 @@ class AppUpdateManagerTest {
               "versionName": "2.0.0",
               "versionCode": 10,
               "releaseNotes": "Critical security and streaming protocol upgrade.",
-              "apkUrl": "https://github.com/hernos5/melody/releases/download/v2.0.0/Melody.apk",
+              "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v2.0.0/Melody.apk",
               "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
               "mandatory": true
             }
@@ -110,7 +110,7 @@ class AppUpdateManagerTest {
         val missingVersionCode = """
             {
               "versionName": "1.1.0",
-              "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.1.0/Melody.apk",
+              "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.1.0/Melody.apk",
               "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56"
             }
         """.trimIndent()
@@ -126,7 +126,7 @@ class AppUpdateManagerTest {
             {
               "versionName": "1.0.1",
               "versionCode": 2,
-              "apkUrl": "http://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk",
+              "apkUrl": "http://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk",
               "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56"
             }
         """.trimIndent()
@@ -158,7 +158,7 @@ class AppUpdateManagerTest {
             {
               "versionName": "1.0.1",
               "versionCode": 2,
-              "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk",
+              "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk",
               "sha256": "tooshort"
             }
         """.trimIndent()
@@ -174,7 +174,7 @@ class AppUpdateManagerTest {
             {
               "versionName": "1.0.1",
               "versionCode": 2,
-              "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.zip",
+              "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.zip",
               "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56"
             }
         """.trimIndent()
@@ -193,7 +193,7 @@ class AppUpdateManagerTest {
                   "versionName": "1.0.0",
                   "versionCode": 1,
                   "releaseNotes": "Current release",
-                  "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.0.0/Melody.apk",
+                  "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.0.0/Melody.apk",
                   "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
                   "mandatory": false
                 }
@@ -215,7 +215,7 @@ class AppUpdateManagerTest {
                   "versionName": "1.1.0",
                   "versionCode": 999,
                   "releaseNotes": "Major update with smart autoplay enhancements.",
-                  "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.1.0/Melody.apk",
+                  "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.1.0/Melody.apk",
                   "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
                   "mandatory": false
                 }
@@ -238,7 +238,7 @@ class AppUpdateManagerTest {
                   "versionName": "1.1.0",
                   "versionCode": 999,
                   "releaseNotes": "Optional UI update.",
-                  "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.1.0/Melody.apk",
+                  "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.1.0/Melody.apk",
                   "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
                   "mandatory": false
                 }
@@ -266,7 +266,7 @@ class AppUpdateManagerTest {
                   "versionName": "1.1.0",
                   "versionCode": 999,
                   "releaseNotes": "Critical patch.",
-                  "apkUrl": "https://github.com/hernos5/melody/releases/download/v1.1.0/Melody.apk",
+                  "apkUrl": "https://github.com/provai107/Melody_music/releases/download/v1.1.0/Melody.apk",
                   "sha256": "511b4e728ee0f2ef90db07ad4a7b8fa9d854c9d12af8813e6963ffd9a8cc5f56",
                   "mandatory": true
                 }
@@ -327,7 +327,7 @@ class AppUpdateManagerTest {
                 versionName = "1.0.1",
                 versionCode = 2,
                 releaseNotes = "Notes",
-                apkUrl = "https://github.com/hernos5/melody/releases/download/v1.0.1/Melody.apk",
+                apkUrl = "https://github.com/provai107/Melody_music/releases/download/v1.0.1/Melody.apk",
                 sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
                 mandatory = false
             )

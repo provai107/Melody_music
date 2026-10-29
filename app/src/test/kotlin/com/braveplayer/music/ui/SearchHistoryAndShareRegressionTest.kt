@@ -215,12 +215,12 @@ class SearchHistoryAndShareRegressionTest {
         val message = MainActivity.buildShareMessage(song)
 
         assertThat(message).contains("Listening to \"Shape of You\" by Ed Sheeran on Melody 🎵")
-        assertThat(message).contains("https://github.com/hernos5/melody/releases/latest/download/Melody.apk")
-        assertThat(MainActivity.OFFICIAL_APK_DOWNLOAD_URL).isEqualTo("https://github.com/hernos5/melody/releases/latest/download/Melody.apk")
+        assertThat(message).contains("https://github.com/provai107/Melody_music/releases/latest/download/Melody.apk")
+        assertThat(MainActivity.OFFICIAL_APK_DOWNLOAD_URL).isEqualTo("https://github.com/provai107/Melody_music/releases/latest/download/Melody.apk")
 
         // Generic fallback when no song is playing
         val genericMessage = MainActivity.buildShareMessage(null)
-        assertThat(genericMessage).isEqualTo("Listen with Melody 🎵 Download the latest version here: https://github.com/hernos5/melody/releases/latest/download/Melody.apk")
+        assertThat(genericMessage).isEqualTo("Listen with Melody 🎵 Download the latest version here: https://github.com/provai107/Melody_music/releases/latest/download/Melody.apk")
 
         // Ensure recipients receive a direct APK download link on https://
         assertThat(MainActivity.OFFICIAL_APK_DOWNLOAD_URL).startsWith("https://")
