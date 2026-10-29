@@ -28,7 +28,8 @@ class TrendingRowAdapter(
     private val httpClient: OkHttpClient,
     private val onSongClicked: (Song) -> Unit,
     private val onPlayClicked: (Song) -> Unit,
-    private val onOptionClicked: (Song) -> Unit
+    private val onOptionClicked: (Song) -> Unit,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<TrendingRowAdapter.ViewHolder>() {
 
     companion object {
@@ -71,7 +72,16 @@ class TrendingRowAdapter(
             tvRankBadge.text = "#$rank"
             tvTitle.text = song.title
             val artistStr = if (song.artists.isNotBlank()) song.artists else "Trending Artist"
-            tvSubtitle.text = "Song • $artistStr"
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvSubtitle,
+                    rawArtists = artistStr,
+                    onArtistClicked = onArtistClicked
+                )
+            } else {
+                tvSubtitle.text = "Song • $artistStr"
+                tvSubtitle.movementMethod = null
+            }
             itemView.contentDescription = "Trending rank #$rank, ${song.title}, by $artistStr"
             btnPlay.contentDescription = "Play ${song.title}"
             btnOptions.contentDescription = "Options for ${song.title}"

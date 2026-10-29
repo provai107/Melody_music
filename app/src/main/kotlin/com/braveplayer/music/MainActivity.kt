@@ -88,7 +88,17 @@ import com.braveplayer.music.ui.HorizontalSongCardAdapter
 import com.braveplayer.music.ui.DailyMixCardAdapter
 import com.braveplayer.music.ui.CuratedPlaylistCardAdapter
 import com.braveplayer.music.ui.HomeCollectionItem
+import com.braveplayer.music.model.ArtistProfile
+import com.braveplayer.music.model.ArtistSearchResult
+import com.braveplayer.music.model.ArtistSortOption
+import com.braveplayer.music.model.ArtistSongSorter
+import com.braveplayer.music.ui.ArtistSearchAdapter
+import com.braveplayer.music.ui.ArtistSongAdapter
+import com.braveplayer.music.ui.ArtistAlbumAdapter
+import com.braveplayer.music.util.ArtistClickHelper
+import kotlinx.coroutines.async
 import java.util.Calendar
+import java.util.Locale
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -154,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var containerHome: View
     private lateinit var containerSearch: View
     private lateinit var containerCollection: View
-    private lateinit var btnTopSearch: ImageView
+    private lateinit var btnTopSettings: ImageView
     private lateinit var btnHomeQuickSearch: View
 
     // Home Tab UI & Modern Carousels
@@ -222,6 +232,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvErrorMessage: TextView
     private lateinit var btnRetrySearch: Button
     private lateinit var rvSearchResults: RecyclerView
+    private lateinit var layoutSearchResultsContent: View
+    private lateinit var layoutSearchArtistsSection: View
+    private lateinit var rvSearchArtists: RecyclerView
+    private lateinit var artistSearchAdapter: ArtistSearchAdapter
 
     // Explore: Recent Searches
     private lateinit var layoutRecentSearchesSection: View
@@ -408,7 +422,7 @@ class MainActivity : AppCompatActivity() {
         containerHome = findViewById(R.id.containerHome)
         containerSearch = findViewById(R.id.containerSearch)
         containerCollection = findViewById(R.id.containerCollection)
-        btnTopSearch = findViewById(R.id.btnTopSearch)
+        btnTopSettings = findViewById(R.id.btnTopSettings)
         btnHomeQuickSearch = findViewById(R.id.btnHomeQuickSearch)
 
         // Home UI & Modern Carousels
@@ -462,6 +476,9 @@ class MainActivity : AppCompatActivity() {
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetrySearch = findViewById(R.id.btnRetrySearch)
         rvSearchResults = findViewById(R.id.rvSearchResults)
+        layoutSearchResultsContent = findViewById(R.id.layoutSearchResultsContent)
+        layoutSearchArtistsSection = findViewById(R.id.layoutSearchArtistsSection)
+        rvSearchArtists = findViewById(R.id.rvSearchArtists)
 
         // Explore: Recent Searches
         layoutRecentSearchesSection = findViewById(R.id.layoutRecentSearchesSection)
@@ -568,7 +585,8 @@ class MainActivity : AppCompatActivity() {
                 playlistDbHelper.recordSongSearch(song)
                 playSongNow(song)
             },
-            onOptionClicked = { song -> showSongOptionDialog(song) }
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvTrendingExplore.layoutManager = LinearLayoutManager(this)
         rvTrendingExplore.adapter = trendingExploreAdapter
@@ -580,7 +598,16 @@ class MainActivity : AppCompatActivity() {
         rvCategoryChannels.layoutManager = GridLayoutManager(this, 2)
         rvCategoryChannels.adapter = categoryChannelAdapter
 
-        // Live Search Results List
+        // Explore: Artist Search Results Carousel
+        artistSearchAdapter = ArtistSearchAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onArtistClicked = { artist -> openArtistPage(artist.id, artist.name) }
+        )
+        rvSearchArtists.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvSearchArtists.adapter = artistSearchAdapter
+
+        // Live Search Results List (Songs)
         searchAdapter = SongAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
@@ -600,7 +627,8 @@ class MainActivity : AppCompatActivity() {
             onSongAddToQueue = { song -> addSongToQueue(song) },
             onSongOptions = { song -> showSongOptionDialog(song) },
             onSongLikeToggled = { song -> toggleLikeSong(song) },
-            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvSearchResults.layoutManager = LinearLayoutManager(this)
         rvSearchResults.adapter = searchAdapter
@@ -619,7 +647,8 @@ class MainActivity : AppCompatActivity() {
             httpClient = metadataService.httpClient,
             onSongClicked = { song -> playSongNow(song) },
             onPlayClicked = { song -> playSongNow(song) },
-            onOptionClicked = { song -> showSongOptionDialog(song) }
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvRecentlyPlayedHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvRecentlyPlayedHome.adapter = homeRecentCardAdapter
@@ -629,7 +658,8 @@ class MainActivity : AppCompatActivity() {
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
             onReleaseClicked = { release -> playRelease(release) },
-            onPlayClicked = { release -> playRelease(release) }
+            onPlayClicked = { release -> playRelease(release) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvLatestReleases.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvLatestReleases.adapter = latestReleasesAdapter
@@ -641,7 +671,8 @@ class MainActivity : AppCompatActivity() {
             httpClient = metadataService.httpClient,
             onSongClicked = { song -> playSongNow(song) },
             onPlayClicked = { song -> playSongNow(song) },
-            onOptionClicked = { song -> showSongOptionDialog(song) }
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvNewMusicForYou.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvNewMusicForYou.adapter = newMusicForYouAdapter
@@ -680,7 +711,8 @@ class MainActivity : AppCompatActivity() {
             onSongClicked = { song -> playSongNow(song) },
             onPlayClicked = { song -> playSongNow(song) },
             onOptionClicked = { song -> showSongOptionDialog(song) },
-            showRankBadge = true
+            showRankBadge = true,
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvTrendingCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvTrendingCarousel.adapter = trendingCardAdapter
@@ -719,7 +751,8 @@ class MainActivity : AppCompatActivity() {
             onSongClicked = { song -> playSongNow(song) },
             onPlayClicked = { song -> playSongNow(song) },
             onOptionClicked = { song -> showSongOptionDialog(song) },
-            showRankBadge = true
+            showRankBadge = true,
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvMostPlayedCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvMostPlayedCarousel.adapter = mostPlayedCardAdapter
@@ -818,7 +851,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        btnTopSearch.setOnClickListener { openExploreSearch() }
+        btnTopSettings.setOnClickListener { showPlaybackSettingsDialog() }
         btnHomeQuickSearch.setOnClickListener { openExploreSearch() }
 
         // Home Actions
@@ -949,6 +982,7 @@ class MainActivity : AppCompatActivity() {
 
         // Collection Actions
         btnCreatePlaylistAction.setOnClickListener { showCreatePlaylistDialog() }
+        findViewById<View?>(R.id.btnQuickAddPlaylist)?.setOnClickListener { showCreatePlaylistDialog() }
         cardCollectionLiked.setOnClickListener { showLikedSongsDialog() }
         cardCollectionHistory.setOnClickListener { showHistoryDialog() }
         cardCollectionDownloads.setOnClickListener { showDownloadedSongsDialog() }
@@ -1186,7 +1220,12 @@ class MainActivity : AppCompatActivity() {
             // Update Mini Player
             layoutMiniPlayer.visibility = View.VISIBLE
             tvMiniTitle.text = title
-            tvMiniArtist.text = if (album.isNotBlank()) "$artist • $album" else artist
+            ArtistClickHelper.attachClickableArtists(
+                textView = tvMiniArtist,
+                rawArtists = artist,
+                album = album.takeIf { it.isNotBlank() },
+                onArtistClicked = { name -> openArtistPage(null, name) }
+            )
             loadArtwork(song.imageUrl, ivMiniCover)
 
             val isLiked = playlistDbHelper.isSongLiked(song.id)
@@ -1205,7 +1244,12 @@ class MainActivity : AppCompatActivity() {
 
             // Update Now Playing Sheet
             tvNowPlayingTitle.text = title
-            tvNowPlayingArtist.text = if (album.isNotBlank()) "$artist • $album" else artist
+            ArtistClickHelper.attachClickableArtists(
+                textView = tvNowPlayingArtist,
+                rawArtists = artist,
+                album = album.takeIf { it.isNotBlank() },
+                onArtistClicked = { name -> openArtistPage(null, name) }
+            )
             loadArtwork(song.imageUrl, ivNowPlayingCover)
 
             btnNowPlayingLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
@@ -1575,8 +1619,21 @@ class MainActivity : AppCompatActivity() {
         val baseUrl = appSettings.getBaseUrl()
 
         liveSearchJob = lifecycleScope.launch {
-            val result = metadataService.searchSongs(baseUrl, trimmed)
+            val artistDeferred = async { metadataService.searchArtists(baseUrl, trimmed) }
+            val songDeferred = async { metadataService.searchSongs(baseUrl, trimmed) }
+
+            val artists = try { artistDeferred.await() } catch (_: Exception) { emptyList() }
+            val result = try { songDeferred.await() } catch (e: Exception) { SearchResult.Error(e.message ?: "Network error") }
+
             if (genId != searchGenerationId) return@launch
+
+            val hasArtists = artists.isNotEmpty()
+            if (hasArtists) {
+                artistSearchAdapter.submitList(artists)
+                layoutSearchArtistsSection.visibility = View.VISIBLE
+            } else {
+                layoutSearchArtistsSection.visibility = View.GONE
+            }
 
             when (result) {
                 is SearchResult.Success -> {
@@ -1584,12 +1641,22 @@ class MainActivity : AppCompatActivity() {
                     showSearchState(SearchState.RESULTS)
                 }
                 is SearchResult.Empty -> {
-                    tvEmptyResults.text = "No results found for \"$trimmed\""
-                    showSearchState(SearchState.EMPTY)
+                    searchAdapter.submitList(emptyList())
+                    if (hasArtists) {
+                        showSearchState(SearchState.RESULTS)
+                    } else {
+                        tvEmptyResults.text = "No results found for \"$trimmed\""
+                        showSearchState(SearchState.EMPTY)
+                    }
                 }
                 is SearchResult.Error -> {
-                    tvErrorMessage.text = result.message
-                    showSearchState(SearchState.ERROR)
+                    searchAdapter.submitList(emptyList())
+                    if (hasArtists) {
+                        showSearchState(SearchState.RESULTS)
+                    } else {
+                        tvErrorMessage.text = result.message
+                        showSearchState(SearchState.ERROR)
+                    }
                 }
             }
         }
@@ -1674,6 +1741,7 @@ class MainActivity : AppCompatActivity() {
             pbSearchLoading.visibility = View.GONE
             tvEmptyResults.visibility = View.GONE
             layoutError.visibility = View.GONE
+            layoutSearchResultsContent.visibility = View.GONE
             rvSearchResults.visibility = View.GONE
         } else {
             layoutExploreDiscovery.visibility = View.GONE
@@ -1681,6 +1749,7 @@ class MainActivity : AppCompatActivity() {
             pbSearchLoading.visibility = if (state == SearchState.LOADING) View.VISIBLE else View.GONE
             tvEmptyResults.visibility = if (state == SearchState.EMPTY) View.VISIBLE else View.GONE
             layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
+            layoutSearchResultsContent.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
             rvSearchResults.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
         }
     }
@@ -1947,6 +2016,7 @@ class MainActivity : AppCompatActivity() {
         cardCollectionDownloads.contentDescription = "Downloaded offline music, $downloadedCount tracks"
 
         val playlists = playlistDbHelper.getAllPlaylists()
+        findViewById<TextView?>(R.id.tvPlaylistsCountSubtitle)?.text = "${playlists.size} playlists saved"
         collectionPlaylistAdapter.submitList(playlists)
         layoutPlaylistsEmpty?.visibility = if (playlists.isEmpty()) View.VISIBLE else View.GONE
         rvPlaylistsCollection.visibility = if (playlists.isEmpty()) View.GONE else View.VISIBLE
@@ -2052,7 +2122,8 @@ class MainActivity : AppCompatActivity() {
             onSongAddToQueue = { song -> addSongToQueue(song) },
             onSongOptions = { song -> showSongOptionDialog(song) },
             onSongLikeToggled = { song -> toggleLikeSong(song) },
-            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvTracks.layoutManager = LinearLayoutManager(this)
         rvTracks.adapter = mixSongAdapter
@@ -2176,7 +2247,8 @@ class MainActivity : AppCompatActivity() {
                 playSongNow(song)
                 dialog.dismiss()
             },
-            onOptionClicked = { song -> showSongOptionDialog(song) }
+            onOptionClicked = { song -> showSongOptionDialog(song) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
@@ -2451,7 +2523,8 @@ class MainActivity : AppCompatActivity() {
                 },
                 isSongLiked = { id ->
                     playlistDbHelper.isSongLiked(id)
-                }
+                },
+                onArtistClicked = { name -> openArtistPage(null, name) }
             )
             rvSongs.adapter = adapter
             adapter.submitList(songs)
@@ -2546,7 +2619,8 @@ class MainActivity : AppCompatActivity() {
             },
             onStartDrag = { viewHolder ->
                 itemTouchHelper?.startDrag(viewHolder)
-            }
+            },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
 
         itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
@@ -2709,10 +2783,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCreatePlaylistDialog(songToAdd: Song? = null) {
-        val dialog = Dialog(this)
+        val dialog = BottomSheetDialog(this)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_playlist, null)
         dialog.setContentView(view)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
 
         val etName = view.findViewById<EditText>(R.id.etPlaylistNameInput)
         val btnCancel = view.findViewById<Button>(R.id.btnCancelCreatePlaylist)
@@ -2753,34 +2828,141 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSongOptionDialog(song: Song, fromPlaylist: Playlist? = null) {
-        val isLiked = playlistDbHelper.isSongLiked(song.id)
-        val likeText = if (isLiked) "Unlike Track" else "Like Track ♥"
-        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
-        val downloadText = if (isDownloaded) "Downloaded ✓" else "⬇ Download Track"
-        val isHidden = playlistDbHelper.isSongHidden(song.id)
-        val hideText = if (isHidden) "Unhide Track" else "🚫 Hide This Song"
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_song_options, null)
+        dialog.setContentView(view)
 
-        val options = mutableListOf<Pair<String, () -> Unit>>()
-        options.add("▶ Play Now" to { playSongNow(song) })
-        options.add("⏭ Play Next" to { playNext(song) })
-        options.add("➕ Add to Queue" to { addSongToQueue(song) })
-        options.add("✨ More Like This (Radio)" to { startRadioForSong(song) })
-        options.add("📜 View Lyrics" to { showLyricsDialog(song) })
-        options.add(downloadText to {
+        val ivArtwork: ImageView = view.findViewById(R.id.ivSongOptionArtwork)
+        val tvTitle: TextView = view.findViewById(R.id.tvSongOptionTitle)
+        val tvArtists: TextView = view.findViewById(R.id.tvSongOptionArtists)
+        val btnLike: ImageView = view.findViewById(R.id.btnSongOptionLike)
+
+        tvTitle.text = song.title
+        val durationText = if (song.durationSec > 0) {
+            val min = song.durationSec / 60
+            val sec = song.durationSec % 60
+            String.format("%d:%02d", min, sec)
+        } else ""
+        tvArtists.text = if (durationText.isNotEmpty()) {
+            "${song.artists} • $durationText"
+        } else {
+            song.artists
+        }
+        loadArtwork(song.imageUrl, ivArtwork)
+
+        fun updateLikeButton() {
+            val isLiked = playlistDbHelper.isSongLiked(song.id)
+            btnLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+            btnLike.setColorFilter(
+                ContextCompat.getColor(this, if (isLiked) R.color.accentPrimary else R.color.textSecondary)
+            )
+        }
+        updateLikeButton()
+        btnLike.setOnClickListener {
+            toggleLikeSong(song)
+            updateLikeButton()
+        }
+
+        view.findViewById<View>(R.id.optPlayNow).setOnClickListener {
+            dialog.dismiss()
+            playSongNow(song)
+        }
+        view.findViewById<View>(R.id.optPlayNext).setOnClickListener {
+            dialog.dismiss()
+            playNext(song)
+        }
+        view.findViewById<View>(R.id.optAddToQueue).setOnClickListener {
+            dialog.dismiss()
+            addSongToQueue(song)
+        }
+        view.findViewById<View>(R.id.optStartRadio).setOnClickListener {
+            dialog.dismiss()
+            startRadioForSong(song)
+        }
+        view.findViewById<View>(R.id.optLyrics).setOnClickListener {
+            dialog.dismiss()
+            showLyricsDialog(song)
+        }
+
+        // Dynamic artist links
+        val layoutArtists: LinearLayout = view.findViewById(R.id.layoutSongOptionArtists)
+        val artistNames = ArtistClickHelper.splitArtistNames(song.artists)
+        for (artistName in artistNames) {
+            val artistRow = LayoutInflater.from(this).inflate(R.layout.item_song_option_action, layoutArtists, false)
+            val ivIcon: ImageView = artistRow.findViewById(R.id.ivActionIcon)
+            val tvText: TextView = artistRow.findViewById(R.id.tvActionText)
+            ivIcon.setImageResource(R.drawable.ic_artist_person)
+            tvText.text = "Go to $artistName"
+            artistRow.setOnClickListener {
+                dialog.dismiss()
+                openArtistPage(null, artistName)
+            }
+            layoutArtists.addView(artistRow)
+        }
+
+        view.findViewById<View>(R.id.optAddToPlaylist).setOnClickListener {
+            dialog.dismiss()
+            showAddToPlaylistDialog(song)
+        }
+
+        val tvDownloadText: TextView = view.findViewById(R.id.tvDownloadText)
+        val ivDownloadIcon: ImageView = view.findViewById(R.id.ivDownloadIcon)
+        val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+        if (isDownloaded) {
+            tvDownloadText.text = "Downloaded ✓"
+            ivDownloadIcon.setColorFilter(ContextCompat.getColor(this, R.color.accentPrimary))
+        } else {
+            tvDownloadText.text = "Download Track"
+            ivDownloadIcon.setColorFilter(ContextCompat.getColor(this, R.color.textPrimary))
+        }
+        view.findViewById<View>(R.id.optDownload).setOnClickListener {
+            dialog.dismiss()
             songDownloadHelper.downloadSong(song) {
                 refreshCollectionData()
             }
-        })
-        options.add(likeText to { toggleLikeSong(song) })
-        options.add("👎 Not Interested in this track" to {
+        }
+
+        view.findViewById<View>(R.id.optShare).setOnClickListener {
+            dialog.dismiss()
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Listen to \"${song.title}\" on Melody")
+                putExtra(Intent.EXTRA_TEXT, buildShareMessage(song))
+            }
+            startActivity(Intent.createChooser(shareIntent, "Share Track"))
+        }
+
+        val optRemoveFromPlaylist: View = view.findViewById(R.id.optRemoveFromPlaylist)
+        val tvRemoveFromPlaylistText: TextView = view.findViewById(R.id.tvRemoveFromPlaylistText)
+        if (fromPlaylist != null) {
+            optRemoveFromPlaylist.visibility = View.VISIBLE
+            tvRemoveFromPlaylistText.text = "Remove from '${fromPlaylist.name}'"
+            optRemoveFromPlaylist.setOnClickListener {
+                dialog.dismiss()
+                playlistDbHelper.removeSongFromPlaylist(fromPlaylist.id, song.id)
+                refreshCollectionData()
+                Toast.makeText(this, "Removed from '${fromPlaylist.name}'", Toast.LENGTH_SHORT).show()
+                showPlaylistDetailDialog(fromPlaylist)
+            }
+        } else {
+            optRemoveFromPlaylist.visibility = View.GONE
+        }
+
+        view.findViewById<View>(R.id.optNotInterested).setOnClickListener {
+            dialog.dismiss()
             playlistDbHelper.recordNotInterested(song)
             Toast.makeText(this, "Deprioritized. We won't recommend this track often.", Toast.LENGTH_SHORT).show()
             val controller = mediaController
             if (controller?.currentMediaItem?.mediaId == song.id) {
                 controller.seekToNextMediaItem()
             }
-        })
-        options.add(hideText to {
+        }
+
+        val tvHideSongText: TextView = view.findViewById(R.id.tvHideSongText)
+        val isHidden = playlistDbHelper.isSongHidden(song.id)
+        tvHideSongText.text = if (isHidden) "Unhide this song" else "Hide this song"
+        view.findViewById<View>(R.id.optHideSong).setOnClickListener {
+            dialog.dismiss()
             if (isHidden) {
                 playlistDbHelper.unhideSong(song.id)
                 Toast.makeText(this, "Track unhidden", Toast.LENGTH_SHORT).show()
@@ -2792,34 +2974,22 @@ class MainActivity : AppCompatActivity() {
                     controller.seekToNextMediaItem()
                 }
             }
-        })
-        options.add("📁 Add to Playlist..." to { showAddToPlaylistDialog(song) })
-        if (fromPlaylist != null) {
-            options.add("❌ Remove from '${fromPlaylist.name}'" to {
-                playlistDbHelper.removeSongFromPlaylist(fromPlaylist.id, song.id)
-                refreshCollectionData()
-                Toast.makeText(this, "Removed from '${fromPlaylist.name}'", Toast.LENGTH_SHORT).show()
-                showPlaylistDetailDialog(fromPlaylist)
-            })
         }
-        options.add("⚙ Playback & Recommendations Settings" to { showPlaybackSettingsDialog() })
 
-        val labels = options.map { it.first }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(song.title)
-            .setItems(labels) { _, which ->
-                if (which in options.indices) {
-                    options[which].second.invoke()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        view.findViewById<View>(R.id.optSettings).setOnClickListener {
+            dialog.dismiss()
+            showPlaybackSettingsDialog()
+        }
+
+        dialog.show()
     }
 
     private fun showPlaybackSettingsDialog() {
         val dialog = BottomSheetDialog(this)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_playback_settings, null)
         dialog.setContentView(view)
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
 
         val ivClose: ImageView = view.findViewById(R.id.ivClosePlaybackSettings)
         val switchAutoplay: SwitchCompat = view.findViewById(R.id.switchAutoplay)
@@ -2831,6 +3001,17 @@ class MainActivity : AppCompatActivity() {
         val rbBalanced: RadioButton = view.findViewById(R.id.rbBalanced)
         val rbFamiliar: RadioButton = view.findViewById(R.id.rbFamiliar)
         val rbDiscovery: RadioButton = view.findViewById(R.id.rbDiscovery)
+
+        val switchGaplessPlayback: SwitchCompat? = view.findViewById(R.id.switchGaplessPlayback)
+        val switchClearQueueOnPlay: SwitchCompat? = view.findViewById(R.id.switchClearQueueOnPlay)
+        val rgAudioQuality: RadioGroup? = view.findViewById(R.id.rgAudioQuality)
+        val rbQualityHigh: RadioButton? = view.findViewById(R.id.rbQualityHigh)
+        val rbQualityStandard: RadioButton? = view.findViewById(R.id.rbQualityStandard)
+        val rbQualitySaver: RadioButton? = view.findViewById(R.id.rbQualitySaver)
+
+        val cardFollowedArtistsStatus: View? = view.findViewById(R.id.cardFollowedArtistsStatus)
+        val tvFollowedArtistsCount: TextView? = view.findViewById(R.id.tvFollowedArtistsCount)
+        val btnClearArtworkCache: Button? = view.findViewById(R.id.btnClearArtworkCache)
         val btnResetPreferences: Button = view.findViewById(R.id.btnResetPreferences)
 
         ivClose.setOnClickListener { dialog.dismiss() }
@@ -2850,6 +3031,53 @@ class MainActivity : AppCompatActivity() {
             AppSettings.DIVERSITY_FAMILIAR -> rbFamiliar.isChecked = true
             AppSettings.DIVERSITY_DISCOVERY -> rbDiscovery.isChecked = true
             else -> rbBalanced.isChecked = true
+        }
+
+        // Section 2: Audio playback & streaming
+        switchGaplessPlayback?.isChecked = appSettings.isGaplessPlaybackEnabled()
+        switchGaplessPlayback?.setOnCheckedChangeListener { _, isChecked ->
+            appSettings.setGaplessPlaybackEnabled(isChecked)
+            Toast.makeText(this, if (isChecked) "Gapless playback enabled" else "Gapless playback disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        switchClearQueueOnPlay?.isChecked = appSettings.shouldClearQueueOnPlay()
+        switchClearQueueOnPlay?.setOnCheckedChangeListener { _, isChecked ->
+            appSettings.setClearQueueOnPlay(isChecked)
+            Toast.makeText(this, if (isChecked) "Clear queue on new play enabled" else "Clear queue on new play disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        when (appSettings.getAudioQuality()) {
+            AppSettings.QUALITY_HIGH -> rbQualityHigh?.isChecked = true
+            AppSettings.QUALITY_SAVER -> rbQualitySaver?.isChecked = true
+            else -> rbQualityStandard?.isChecked = true
+        }
+        rgAudioQuality?.setOnCheckedChangeListener { _, checkedId ->
+            val quality = when (checkedId) {
+                R.id.rbQualityHigh -> AppSettings.QUALITY_HIGH
+                R.id.rbQualitySaver -> AppSettings.QUALITY_SAVER
+                else -> AppSettings.QUALITY_STANDARD
+            }
+            appSettings.setAudioQuality(quality)
+            Toast.makeText(this, "Streaming quality set to $quality", Toast.LENGTH_SHORT).show()
+        }
+
+        // Section 3: Followed Artists
+        val followedCount = playlistDbHelper.getFollowedArtistCount()
+        tvFollowedArtistsCount?.text = "$followedCount artist${if (followedCount == 1) "" else "s"} followed"
+        cardFollowedArtistsStatus?.setOnClickListener {
+            val followed = playlistDbHelper.getAllFollowedArtists()
+            if (followed.isNotEmpty()) {
+                val names = followed.joinToString(", ") { it.name }
+                Toast.makeText(this, "Followed: $names", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "You haven't followed any artists yet. Tap any artist name to follow them!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Section 4: Cache & Preferences
+        btnClearArtworkCache?.setOnClickListener {
+            coverImageCache.evictAll()
+            Toast.makeText(this, "Artwork image cache cleared", Toast.LENGTH_SHORT).show()
         }
 
         // Event listeners
@@ -2999,7 +3227,8 @@ class MainActivity : AppCompatActivity() {
             onPlayClicked = { release ->
                 playRelease(release)
                 dialog.dismiss()
-            }
+            },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvAllReleases.layoutManager = LinearLayoutManager(this)
         rvAllReleases.adapter = sheetAdapter
@@ -3028,11 +3257,378 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openArtistTracks(artist: PopularArtistItem) {
-        openCategorySheet(
-            title = artist.name,
-            subtitle = if (artist.role.isNotBlank()) artist.role else "Artist",
-            query = artist.query
+        openArtistPage(artist.id.ifBlank { null }, artist.name)
+    }
+
+    private fun openArtistPage(artistId: String?, artistName: String) {
+        if (artistName.isBlank()) return
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_artist_detail, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
+
+        val stableArtistId = artistId?.takeIf { it.isNotBlank() } ?: artistName.trim().lowercase(Locale.ROOT)
+
+        // View bindings
+        val btnArtistBack: ImageView = view.findViewById(R.id.btnArtistBack)
+        val tvArtistHeaderTitle: TextView = view.findViewById(R.id.tvArtistHeaderTitle)
+        val btnArtistHeaderShare: ImageView = view.findViewById(R.id.btnArtistHeaderShare)
+        val scrollArtistContent: NestedScrollView = view.findViewById(R.id.scrollArtistContent)
+
+        val ivArtistPortrait: ImageView = view.findViewById(R.id.ivArtistPortrait)
+        val layoutArtistVerifiedBadge: LinearLayout = view.findViewById(R.id.layoutArtistVerifiedBadge)
+        val tvArtistName: TextView = view.findViewById(R.id.tvArtistName)
+        val tvArtistMetrics: TextView = view.findViewById(R.id.tvArtistMetrics)
+        val btnArtistFollow: Button = view.findViewById(R.id.btnArtistFollow)
+        val btnArtistPlay: Button = view.findViewById(R.id.btnArtistPlay)
+        val btnArtistShuffle: Button = view.findViewById(R.id.btnArtistShuffle)
+
+        val layoutArtistBio: LinearLayout = view.findViewById(R.id.layoutArtistBio)
+        val tvArtistBio: TextView = view.findViewById(R.id.tvArtistBio)
+        val tvArtistBioToggle: TextView = view.findViewById(R.id.tvArtistBioToggle)
+
+        val layoutArtistPopularSection: LinearLayout = view.findViewById(R.id.layoutArtistPopularSection)
+        val rvArtistPopularSongs: RecyclerView = view.findViewById(R.id.rvArtistPopularSongs)
+
+        val layoutArtistAllSongsSection: LinearLayout = view.findViewById(R.id.layoutArtistAllSongsSection)
+        val tvDiscographyTitle: TextView = view.findViewById(R.id.tvDiscographyTitle)
+        val btnArtistSort: Button = view.findViewById(R.id.btnArtistSort)
+        val rvArtistAllSongs: RecyclerView = view.findViewById(R.id.rvArtistAllSongs)
+
+        val layoutArtistAlbumsSection: LinearLayout = view.findViewById(R.id.layoutArtistAlbumsSection)
+        val rvArtistAlbums: RecyclerView = view.findViewById(R.id.rvArtistAlbums)
+
+        val layoutArtistRelatedSection: LinearLayout = view.findViewById(R.id.layoutArtistRelatedSection)
+        val rvArtistRelated: RecyclerView = view.findViewById(R.id.rvArtistRelated)
+
+        val pbArtistLoading: ProgressBar = view.findViewById(R.id.pbArtistLoading)
+        val layoutArtistError: LinearLayout = view.findViewById(R.id.layoutArtistError)
+        val tvArtistError: TextView = view.findViewById(R.id.tvArtistError)
+        val btnArtistRetry: Button = view.findViewById(R.id.btnArtistRetry)
+        val tvArtistEmpty: TextView = view.findViewById(R.id.tvArtistEmpty)
+
+        tvArtistName.text = artistName
+        tvArtistHeaderTitle.text = artistName
+
+        btnArtistBack.setOnClickListener { dialog.dismiss() }
+
+        btnArtistHeaderShare.setOnClickListener {
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Listen to $artistName on Melody")
+                putExtra(Intent.EXTRA_TEXT, "Listen to $artistName on Melody 🎵\n$OFFICIAL_APK_DOWNLOAD_URL")
+            }
+            startActivity(Intent.createChooser(shareIntent, "Share Artist"))
+        }
+
+        scrollArtistContent.setOnScrollChangeListener { _: NestedScrollView, _: Int, scrollY: Int, _: Int, _: Int ->
+            tvArtistHeaderTitle.visibility = if (scrollY > 160) View.VISIBLE else View.GONE
+        }
+
+        // State variables
+        var currentProfile: ArtistProfile? = null
+        val rawSongs = mutableListOf<Song>()
+        val popularSongs = mutableListOf<Song>()
+        var currentSortOption = ArtistSortOption.POPULARITY
+
+        // Follow state
+        var isFollowed = playlistDbHelper.isArtistFollowed(stableArtistId)
+        fun updateFollowButtonUi(followed: Boolean) {
+            if (followed) {
+                btnArtistFollow.text = "Following"
+                btnArtistFollow.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accentPrimary))
+            } else {
+                btnArtistFollow.text = "Follow"
+                btnArtistFollow.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.textPrimary))
+            }
+        }
+        updateFollowButtonUi(isFollowed)
+
+        btnArtistFollow.setOnClickListener {
+            isFollowed = !isFollowed
+            if (isFollowed) {
+                playlistDbHelper.followArtist(
+                    artistId = stableArtistId,
+                    name = artistName,
+                    imageUrl = currentProfile?.imageUrl
+                )
+                Toast.makeText(this@MainActivity, "Following $artistName", Toast.LENGTH_SHORT).show()
+            } else {
+                playlistDbHelper.unfollowArtist(stableArtistId)
+                Toast.makeText(this@MainActivity, "Unfollowed $artistName", Toast.LENGTH_SHORT).show()
+            }
+            updateFollowButtonUi(isFollowed)
+        }
+
+        // Bio toggle
+        var isBioExpanded = false
+        tvArtistBioToggle.setOnClickListener {
+            isBioExpanded = !isBioExpanded
+            tvArtistBio.maxLines = if (isBioExpanded) Int.MAX_VALUE else 3
+            tvArtistBioToggle.text = if (isBioExpanded) "Show Less" else "Read More"
+        }
+
+        // Helper to get active playback catalog
+        fun getPlaybackCatalog(): List<Song> {
+            val sorted = ArtistSongSorter.sort(rawSongs, currentSortOption)
+            return if (sorted.isNotEmpty()) sorted else popularSongs
+        }
+
+        // Adapters
+        val popularAdapter = ArtistSongAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            showRank = true,
+            onSongSelected = { song ->
+                val catalog = getPlaybackCatalog()
+                playbackController.playTrack(
+                    song = song,
+                    context = com.braveplayer.music.player.PlaybackContext.artist(
+                        artistId = stableArtistId,
+                        artistName = artistName,
+                        songs = catalog
+                    ),
+                    contextSongs = catalog,
+                    playImmediately = true
+                )
+            },
+            onArtistClicked = { clickedName ->
+                if (!clickedName.equals(artistName, ignoreCase = true)) {
+                    openArtistPage(null, clickedName)
+                }
+            },
+            onSongOverflow = { song -> showSongOptionDialog(song) },
+            onSongLikeToggled = { song -> toggleLikeSong(song) },
+            isSongLiked = { id -> playlistDbHelper.isSongLiked(id) }
         )
+        rvArtistPopularSongs.layoutManager = LinearLayoutManager(this)
+        rvArtistPopularSongs.adapter = popularAdapter
+
+        val allSongsAdapter = ArtistSongAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            showRank = false,
+            onSongSelected = { song ->
+                val catalog = getPlaybackCatalog()
+                playbackController.playTrack(
+                    song = song,
+                    context = com.braveplayer.music.player.PlaybackContext.artist(
+                        artistId = stableArtistId,
+                        artistName = artistName,
+                        songs = catalog
+                    ),
+                    contextSongs = catalog,
+                    playImmediately = true
+                )
+            },
+            onArtistClicked = { clickedName ->
+                if (!clickedName.equals(artistName, ignoreCase = true)) {
+                    openArtistPage(null, clickedName)
+                }
+            },
+            onSongOverflow = { song -> showSongOptionDialog(song) },
+            onSongLikeToggled = { song -> toggleLikeSong(song) },
+            isSongLiked = { id -> playlistDbHelper.isSongLiked(id) }
+        )
+        rvArtistAllSongs.layoutManager = LinearLayoutManager(this)
+        rvArtistAllSongs.adapter = allSongsAdapter
+
+        val albumsAdapter = ArtistAlbumAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onAlbumClicked = { album ->
+                openCategorySheet(
+                    title = album.title,
+                    subtitle = "Album • ${album.year?.takeIf { it.isNotBlank() } ?: artistName}",
+                    query = album.title
+                )
+            }
+        )
+        rvArtistAlbums.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvArtistAlbums.adapter = albumsAdapter
+
+        val relatedAdapter = PopularArtistAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onArtistClicked = { related ->
+                openArtistPage(related.id.ifBlank { null }, related.name)
+            }
+        )
+        rvArtistRelated.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvArtistRelated.adapter = relatedAdapter
+
+        // Sort controls
+        fun applySort(option: ArtistSortOption) {
+            currentSortOption = option
+            btnArtistSort.text = "${option.displayName} ▼"
+            val sorted = ArtistSongSorter.sort(rawSongs, option)
+            allSongsAdapter.submitList(sorted)
+        }
+
+        btnArtistSort.setOnClickListener {
+            val popup = androidx.appcompat.widget.PopupMenu(this@MainActivity, btnArtistSort)
+            popup.menu.add(0, 1, 0, "Popularity")
+            popup.menu.add(0, 2, 1, "Release Date (Newest first)")
+            popup.menu.add(0, 3, 2, "Alphabetical (A - Z)")
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    1 -> applySort(ArtistSortOption.POPULARITY)
+                    2 -> applySort(ArtistSortOption.RELEASE_DATE)
+                    3 -> applySort(ArtistSortOption.ALPHABETICAL)
+                }
+                true
+            }
+            popup.show()
+        }
+
+        // Play and Shuffle buttons
+        btnArtistPlay.setOnClickListener {
+            val catalog = getPlaybackCatalog()
+            if (catalog.isNotEmpty()) {
+                playbackController.playTrack(
+                    song = catalog.first(),
+                    context = com.braveplayer.music.player.PlaybackContext.artist(
+                        artistId = stableArtistId,
+                        artistName = artistName,
+                        songs = catalog
+                    ),
+                    contextSongs = catalog,
+                    playImmediately = true
+                )
+            } else {
+                Toast.makeText(this@MainActivity, "No playable tracks available", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnArtistShuffle.setOnClickListener {
+            val catalog = getPlaybackCatalog()
+            if (catalog.isNotEmpty()) {
+                val shuffled = catalog.shuffled()
+                playbackController.playTrack(
+                    song = shuffled.first(),
+                    context = com.braveplayer.music.player.PlaybackContext.artist(
+                        artistId = stableArtistId,
+                        artistName = artistName,
+                        songs = shuffled
+                    ),
+                    contextSongs = shuffled,
+                    playImmediately = true
+                )
+            } else {
+                Toast.makeText(this@MainActivity, "No playable tracks available", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Data loading function
+        fun loadData() {
+            pbArtistLoading.visibility = View.VISIBLE
+            layoutArtistError.visibility = View.GONE
+            tvArtistEmpty.visibility = View.GONE
+
+            lifecycleScope.launch {
+                try {
+                    val profileDeferred = async(Dispatchers.IO) {
+                        metadataService.getArtistProfile(artistId ?: "", artistName)
+                    }
+                    val songsDeferred = async(Dispatchers.IO) {
+                        metadataService.getArtistTracks(appSettings.getBaseUrl(), artistId ?: "", artistName, currentSortOption)
+                    }
+
+                    val profile = profileDeferred.await()
+                    val tracks = songsDeferred.await()
+
+                    pbArtistLoading.visibility = View.GONE
+                    currentProfile = profile
+
+                    if (profile == null && tracks.isEmpty()) {
+                        layoutArtistError.visibility = View.VISIBLE
+                        tvArtistError.text = "Unable to load artist details."
+                        return@launch
+                    }
+
+                    // Populate Profile info
+                    if (profile != null) {
+                        if (!profile.imageUrl.isNullOrBlank()) {
+                            loadArtwork(profile.imageUrl, ivArtistPortrait)
+                        }
+                        layoutArtistVerifiedBadge.visibility = if (profile.isVerified) View.VISIBLE else View.GONE
+
+                        val metric = profile.formattedFollowerCount
+                        if (!metric.isNullOrBlank()) {
+                            tvArtistMetrics.text = metric
+                            tvArtistMetrics.visibility = View.VISIBLE
+                        } else {
+                            tvArtistMetrics.visibility = View.GONE
+                        }
+
+                        if (!profile.bio.isNullOrBlank()) {
+                            tvArtistBio.text = profile.bio
+                            layoutArtistBio.visibility = View.VISIBLE
+                        } else {
+                            layoutArtistBio.visibility = View.GONE
+                        }
+
+                        if (profile.topSongs.isNotEmpty()) {
+                            popularSongs.clear()
+                            popularSongs.addAll(profile.topSongs.take(5))
+                            popularAdapter.submitList(popularSongs)
+                            layoutArtistPopularSection.visibility = View.VISIBLE
+                        } else {
+                            layoutArtistPopularSection.visibility = View.GONE
+                        }
+
+                        if (profile.topAlbums.isNotEmpty()) {
+                            albumsAdapter.submitList(profile.topAlbums)
+                            layoutArtistAlbumsSection.visibility = View.VISIBLE
+                        } else {
+                            layoutArtistAlbumsSection.visibility = View.GONE
+                        }
+
+                        if (profile.similarArtists.isNotEmpty()) {
+                            val items = profile.similarArtists.map {
+                                PopularArtistItem(
+                                    id = it.id,
+                                    name = it.name,
+                                    role = it.role,
+                                    imageUrl = it.imageUrl ?: "",
+                                    query = it.name
+                                )
+                            }
+                            relatedAdapter.submitData(items)
+                            layoutArtistRelatedSection.visibility = View.VISIBLE
+                        } else {
+                            layoutArtistRelatedSection.visibility = View.GONE
+                        }
+                    }
+
+                    // Populate Discography (All Songs)
+                    rawSongs.clear()
+                    rawSongs.addAll(tracks)
+
+                    if (rawSongs.isNotEmpty()) {
+                        layoutArtistAllSongsSection.visibility = View.VISIBLE
+                        tvDiscographyTitle.text = "All Songs (${rawSongs.size})"
+                        applySort(currentSortOption)
+                    } else {
+                        if (popularSongs.isEmpty()) {
+                            tvArtistEmpty.visibility = View.VISIBLE
+                        }
+                        layoutArtistAllSongsSection.visibility = View.GONE
+                    }
+                } catch (e: Exception) {
+                    pbArtistLoading.visibility = View.GONE
+                    layoutArtistError.visibility = View.VISIBLE
+                    tvArtistError.text = "Failed to load: ${e.message}"
+                }
+            }
+        }
+
+        btnArtistRetry.setOnClickListener { loadData() }
+        loadData()
+
+        dialog.show()
     }
 
     private fun openGenreTracks(genre: GenreCategory) {
@@ -3082,7 +3678,8 @@ class MainActivity : AppCompatActivity() {
             onSongAddToQueue = { song -> addSongToQueue(song) },
             onSongOptions = { song -> showSongOptionDialog(song) },
             onSongLikeToggled = { song -> toggleLikeSong(song) },
-            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) }
+            isSongLiked = { songId -> playlistDbHelper.isSongLiked(songId) },
+            onArtistClicked = { name -> openArtistPage(null, name) }
         )
         rvSongs.layoutManager = LinearLayoutManager(this)
         rvSongs.adapter = categoryAdapter

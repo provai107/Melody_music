@@ -27,7 +27,8 @@ class LatestReleasesAdapter(
     private val scope: CoroutineScope,
     private val httpClient: OkHttpClient,
     private val onReleaseClicked: (ReleaseItem) -> Unit,
-    private val onPlayClicked: (ReleaseItem) -> Unit
+    private val onPlayClicked: (ReleaseItem) -> Unit,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<LatestReleasesAdapter.ReleaseViewHolder>() {
 
     private val releases = mutableListOf<ReleaseItem>()
@@ -70,7 +71,16 @@ class LatestReleasesAdapter(
             imageLoadJob?.cancel()
 
             tvTitle.text = item.title
-            tvArtist.text = item.artists
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvArtist,
+                    rawArtists = item.artists,
+                    onArtistClicked = onArtistClicked
+                )
+            } else {
+                tvArtist.text = item.artists
+                tvArtist.movementMethod = null
+            }
             tvBadge.text = item.releaseTag
             tvDate.text = item.releaseDate ?: "New Release"
             itemView.contentDescription = "Release ${item.title} by ${item.artists}"

@@ -12,7 +12,10 @@ data class Song(
     val durationSec: Int,
     val mediaUrl: String?,
     val mediaUrlDefault: String?,
-    val previewUrl: String?
+    val previewUrl: String?,
+    val releaseDate: String? = null,
+    val playCount: Long? = null,
+    val year: String? = null
 ) {
     /**
      * Determines the best available playback URL in order of reliability:

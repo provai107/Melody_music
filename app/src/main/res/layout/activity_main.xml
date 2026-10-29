@@ -66,14 +66,14 @@
                     app:tint="@color/textPrimary" />
 
                 <ImageView
-                    android:id="@+id/btnTopSearch"
+                    android:id="@+id/btnTopSettings"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
                     android:layout_marginStart="4dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Search"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_ytm_search"
+                    android:contentDescription="Settings"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_settings"
                     app:tint="@color/textPrimary" />
             </LinearLayout>
         </RelativeLayout>
@@ -1081,14 +1081,65 @@
                                 android:textSize="13sp" />
                         </LinearLayout>
 
-                        <!-- Search Results List -->
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvSearchResults"
+                        <!-- Content container with Artists section + Songs section -->
+                        <LinearLayout
+                            android:id="@+id/layoutSearchResultsContent"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:paddingBottom="140dp"
-                            android:visibility="gone" />
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <!-- Dedicated Artists Section -->
+                            <LinearLayout
+                                android:id="@+id/layoutSearchArtistsSection"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:paddingTop="6dp"
+                                android:paddingBottom="4dp"
+                                android:visibility="gone">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="16dp"
+                                    android:layout_marginBottom="6dp"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:text="Artists"
+                                    android:textColor="@color/textPrimary"
+                                    android:textSize="18sp" />
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:id="@+id/rvSearchArtists"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:clipToPadding="false"
+                                    android:orientation="horizontal"
+                                    android:paddingStart="12dp"
+                                    android:paddingEnd="12dp" />
+
+                                <TextView
+                                    android:id="@+id/tvSongsResultHeader"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="16dp"
+                                    android:layout_marginTop="12dp"
+                                    android:layout_marginBottom="4dp"
+                                    android:fontFamily="@font/youtube_sans_bold_font"
+                                    android:text="Songs"
+                                    android:textColor="@color/textPrimary"
+                                    android:textSize="18sp" />
+                            </LinearLayout>
+
+                            <!-- Search Results List -->
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rvSearchResults"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:clipToPadding="false"
+                                android:paddingBottom="140dp" />
+                        </LinearLayout>
                     </FrameLayout>
 
                 </FrameLayout>
@@ -1151,7 +1202,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:background="@drawable/bg_rounded_card"
+                        android:background="@drawable/bg_library_card_ripple"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
@@ -1161,7 +1212,7 @@
                         <androidx.cardview.widget.CardView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardBackgroundColor="#2A0808"
                             app:cardCornerRadius="8dp"
                             app:cardElevation="0dp">
 
@@ -1214,7 +1265,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_rounded_card"
+                        android:background="@drawable/bg_library_card_ripple"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
@@ -1224,7 +1275,7 @@
                         <androidx.cardview.widget.CardView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardBackgroundColor="#220914"
                             app:cardCornerRadius="8dp"
                             app:cardElevation="0dp">
 
@@ -1277,7 +1328,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_rounded_card"
+                        android:background="@drawable/bg_library_card_ripple"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
@@ -1287,7 +1338,7 @@
                         <androidx.cardview.widget.CardView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            app:cardBackgroundColor="@color/surfaceElevated"
+                            app:cardBackgroundColor="#1A0810"
                             app:cardCornerRadius="8dp"
                             app:cardElevation="0dp">
 
@@ -1335,14 +1386,59 @@
                     </LinearLayout>
 
                     <!-- User Playlists Header -->
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <RelativeLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:fontFamily="@font/youtube_sans_bold_font"
-                        android:text="Your Playlists"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="18sp" />
+                        android:layout_marginTop="26dp"
+                        android:layout_marginBottom="10dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/youtube_sans_bold_font"
+                                android:text="Your Playlists"
+                                android:textColor="@color/textPrimary"
+                                android:textSize="18sp" />
+
+                            <TextView
+                                android:id="@+id/tvPlaylistsCountSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:fontFamily="sans-serif"
+                                android:text="Custom collections"
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Quick Add Playlist Action Button -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnQuickAddPlaylist"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:backgroundTint="@color/accentPrimary"
+                            android:fontFamily="sans-serif-bold"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minHeight="0dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="+ Add Playlist"
+                            android:textAllCaps="false"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="12sp"
+                            app:cornerRadius="18dp" />
+                    </RelativeLayout>
 
                     <!-- User Playlists RecyclerView -->
                     <androidx.recyclerview.widget.RecyclerView
@@ -1358,7 +1454,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_rounded_card"
+                        android:background="@drawable/bg_library_card_gradient"
                         android:gravity="center"
                         android:orientation="vertical"
                         android:padding="28dp"

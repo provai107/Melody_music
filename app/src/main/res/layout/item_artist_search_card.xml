@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="100dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- Circular Artist Avatar -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="36dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/ivSearchArtistAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Artist Image"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Artist Name -->
+    <TextView
+        android:id="@+id/tvSearchArtistName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/youtube_sans_bold_font"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Artist Name"
+        android:textColor="@color/textPrimary"
+        android:textSize="13sp" />
+
+    <!-- Role / Badge -->
+    <TextView
+        android:id="@+id/tvSearchArtistRole"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="sans-serif"
+        android:text="Artist"
+        android:textColor="@color/textSecondary"
+        android:textSize="11sp" />
+</LinearLayout>

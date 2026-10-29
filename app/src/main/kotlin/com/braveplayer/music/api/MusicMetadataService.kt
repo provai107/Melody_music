@@ -3,6 +3,10 @@ package com.braveplayer.music.api
 import com.braveplayer.filter.manager.FilterListManager
 import com.braveplayer.filter.model.RequestType
 import com.braveplayer.filter.network.FilteringOkHttpInterceptor
+import com.braveplayer.music.model.ArtistProfile
+import com.braveplayer.music.model.ArtistSearchResult
+import com.braveplayer.music.model.ArtistSortOption
+import com.braveplayer.music.model.ArtistSongSorter
 import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.model.Song
 import kotlinx.coroutines.Dispatchers
@@ -154,6 +158,181 @@ class MusicMetadataService(
             }
         }
         null
+    }
+
+    companion object {
+        const val JIOSAAVN_API_BASE = "https://www.jiosaavn.com/api.php?_format=json&_marker=0&api_version=4&ctx=web6dot0"
+    }
+
+    suspend fun searchArtists(baseUrl: String, query: String): List<ArtistSearchResult> = withContext(Dispatchers.IO) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return@withContext emptyList()
+
+        val encoded = try {
+            URLEncoder.encode(trimmed, "UTF-8")
+        } catch (_: Exception) {
+            trimmed
+        }
+
+        // 1. Direct JioSaavn provider artist search
+        try {
+            val url = "$JIOSAAVN_API_BASE&__call=search.getArtistResults&q=$encoded&p=1&n=10"
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+            val response = httpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: ""
+                val results = SearchResponseParser.parseArtistSearchResults(body)
+                if (results.isNotEmpty()) {
+                    return@withContext results
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Fallback: derive distinct matching artists from song search results
+        try {
+            when (val searchRes = searchSongs(baseUrl, trimmed, maxRetries = 1)) {
+                is SearchResult.Success -> {
+                    val matching = mutableListOf<ArtistSearchResult>()
+                    val seenNames = mutableSetOf<String>()
+                    val lowerQuery = trimmed.lowercase()
+                    for (song in searchRes.songs) {
+                        val names = song.artists.split(",", "&", "feat.", "ft.", "/").map { it.trim() }
+                        for (name in names) {
+                            if (name.lowercase().contains(lowerQuery) && seenNames.add(name.lowercase())) {
+                                matching.add(
+                                    ArtistSearchResult(
+                                        id = "local_${name.hashCode()}",
+                                        name = name,
+                                        role = "Artist",
+                                        imageUrl = song.imageUrl
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    if (matching.isNotEmpty()) return@withContext matching
+                }
+                else -> Unit
+            }
+        } catch (_: Exception) {}
+
+        emptyList()
+    }
+
+    suspend fun getArtistProfile(artistId: String, artistName: String? = null): ArtistProfile? = withContext(Dispatchers.IO) {
+        val trimmedId = artistId.trim()
+        val trimmedName = artistName?.trim().orEmpty()
+
+        if (trimmedId.isNotEmpty() && !trimmedId.startsWith("local_")) {
+            try {
+                val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistPageDetails&artistId=$trimmedId"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    val profile = SearchResponseParser.parseArtistDetails(body)
+                    if (profile != null) {
+                        return@withContext profile
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // If artistId not present or lookup failed, try searching the artist by name first
+        if (trimmedName.isNotEmpty()) {
+            val searchResults = searchArtists("", trimmedName)
+            val matched = searchResults.firstOrNull { it.name.equals(trimmedName, ignoreCase = true) }
+                ?: searchResults.firstOrNull()
+            if (matched != null && matched.id.isNotEmpty() && !matched.id.startsWith("local_")) {
+                try {
+                    val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistPageDetails&artistId=${matched.id}"
+                    val request = Request.Builder()
+                        .url(url)
+                        .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                        .header("User-Agent", "Mozilla/5.0")
+                        .build()
+                    val response = httpClient.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        val body = response.body?.string() ?: ""
+                        val profile = SearchResponseParser.parseArtistDetails(body)
+                        if (profile != null) {
+                            return@withContext profile
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // Fallback bare profile
+            return@withContext ArtistProfile(
+                id = trimmedId.ifBlank { "artist_${trimmedName.hashCode()}" },
+                name = trimmedName,
+                role = "Artist",
+                imageUrl = matched?.imageUrl
+            )
+        }
+
+        null
+    }
+
+    suspend fun getArtistTracks(
+        baseUrl: String,
+        artistId: String?,
+        artistName: String,
+        sort: ArtistSortOption = ArtistSortOption.POPULARITY
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val collected = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
+
+        // 1. Fetch from search endpoint (provides guaranteed playable media streams)
+        val cleanName = artistName.trim()
+        if (cleanName.isNotEmpty()) {
+            when (val searchRes = searchSongs(baseUrl, cleanName, maxRetries = 1)) {
+                is SearchResult.Success -> {
+                    for (song in searchRes.songs) {
+                        val normTitle = song.title.lowercase().trim()
+                        if (seenIds.add(song.id) && seenTitles.add(normTitle)) {
+                            collected.add(song)
+                        }
+                    }
+                }
+                else -> Unit
+            }
+        }
+
+        // 2. Fetch more tracks from provider artist catalog if artistId available
+        val trimmedId = artistId?.trim()
+        if (!trimmedId.isNullOrEmpty() && !trimmedId.startsWith("local_")) {
+            try {
+                val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistMoreSong&artistId=$trimmedId&p=1&n=20"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    val catalogSongs = SearchResponseParser.parseArtistMoreSongs(body)
+                    for (song in catalogSongs) {
+                        val normTitle = song.title.lowercase().trim()
+                        if (seenIds.add(song.id) && seenTitles.add(normTitle)) {
+                            collected.add(song)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        ArtistSongSorter.sort(collected, sort)
     }
 
     data class MetadataQueryResult(

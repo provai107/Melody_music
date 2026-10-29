@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical"
+    android:paddingTop="8dp">
+
+    <!-- Top Drag Handle & Bar -->
+    <ImageView
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/single_bar_drag_handle" />
+
+    <!-- Top Header Bar -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/btnArtistBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close Artist Page"
+            android:padding="8dp"
+            android:src="@drawable/ic_ytm_chevron_down"
+            app:tint="@color/textPrimary" />
+
+        <TextView
+            android:id="@+id/tvArtistHeaderTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:ellipsize="end"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:maxLines="1"
+            android:text="Artist"
+            android:textColor="@color/textPrimary"
+            android:textSize="17sp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/btnArtistHeaderShare"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Share Artist"
+            android:padding="8dp"
+            android:src="@drawable/ic_ytm_share"
+            app:tint="@color/textSecondary" />
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Scrollable Artist Profile Content -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scrollArtistContent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:paddingBottom="120dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Hero Section: Portrait, Verified, Name, Followers -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingStart="24dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="24dp"
+                    android:paddingBottom="16dp">
+
+                    <!-- Circular Hero Portrait -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        app:cardBackgroundColor="@color/surfaceCard"
+                        app:cardCornerRadius="60dp"
+                        app:cardElevation="6dp">
+
+                        <ImageView
+                            android:id="@+id/ivArtistPortrait"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="Artist Portrait"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_music_note" />
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Verified Badge Row (Shown only if verified by provider) -->
+                    <LinearLayout
+                        android:id="@+id/layoutArtistVerifiedBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginEnd="6dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_verified_badge" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-black"
+                            android:letterSpacing="0.05"
+                            android:text="VERIFIED ARTIST"
+                            android:textColor="@color/accentPrimary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Artist Name -->
+                    <TextView
+                        android:id="@+id/tvArtistName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:gravity="center"
+                        android:maxLines="2"
+                        android:text="Artist Name"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="26sp" />
+
+                    <!-- Followers / Monthly Listeners -->
+                    <TextView
+                        android:id="@+id/tvArtistMetrics"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center"
+                        android:text="100K Followers"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <!-- Action Buttons: Follow, Play, Shuffle -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <!-- Follow / Unfollow Toggle Button -->
+                        <Button
+                            android:id="@+id/btnArtistFollow"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="8dp"
+                            android:fontFamily="sans-serif-bold"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Follow"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp"
+                            app:strokeColor="@color/borderSubtle" />
+
+                        <!-- Play Button -->
+                        <Button
+                            android:id="@+id/btnArtistPlay"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="8dp"
+                            android:backgroundTint="@color/accentPrimary"
+                            android:fontFamily="sans-serif-bold"
+                            android:paddingStart="20dp"
+                            android:paddingEnd="20dp"
+                            android:text="▶ Play"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp" />
+
+                        <!-- Shuffle Button -->
+                        <Button
+                            android:id="@+id/btnArtistShuffle"
+                            style="@style/Widget.MaterialComponents.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="4dp"
+                            android:backgroundTint="@color/surfaceElevated"
+                            android:fontFamily="sans-serif-bold"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="🔀 Shuffle"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- Biography Section (Hidden if unavailable) -->
+                    <LinearLayout
+                        android:id="@+id/layoutArtistBio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_rounded_card"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/youtube_sans_bold_font"
+                            android:text="About"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/tvArtistBio"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:lineSpacingExtra="3dp"
+                            android:maxLines="3"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvArtistBioToggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:fontFamily="sans-serif-bold"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="Read More"
+                            android:textColor="@color/accentPrimary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- SECTION 1: Popular Songs -->
+                <LinearLayout
+                    android:id="@+id/layoutArtistPopularSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:text="Popular Songs"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="19sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvArtistPopularSongs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                </LinearLayout>
+
+                <!-- SECTION 2: Complete Discography with Sort Controls -->
+                <LinearLayout
+                    android:id="@+id/layoutArtistAllSongsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:orientation="vertical">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:id="@+id/tvDiscographyTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:fontFamily="@font/youtube_sans_bold_font"
+                            android:text="All Songs"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="19sp" />
+
+                        <!-- Sort Selector Button -->
+                        <Button
+                            android:id="@+id/btnArtistSort"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:fontFamily="sans-serif-medium"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:text="Popularity ▼"
+                            android:textColor="@color/accentPrimary"
+                            android:textSize="12sp" />
+                    </RelativeLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvArtistAllSongs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                </LinearLayout>
+
+                <!-- SECTION 3: Albums & Singles (Horizontal) -->
+                <LinearLayout
+                    android:id="@+id/layoutArtistAlbumsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginBottom="12dp"
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:text="Albums &amp; Singles"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="19sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvArtistAlbums"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
+                </LinearLayout>
+
+                <!-- SECTION 4: Fans Also Like / Related Artists (Horizontal) -->
+                <LinearLayout
+                    android:id="@+id/layoutArtistRelatedSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginBottom="12dp"
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:text="Fans Also Like"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="19sp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvArtistRelated"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <!-- Loading Indicator -->
+        <ProgressBar
+            android:id="@+id/pbArtistLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/accentPrimary"
+            android:visibility="visible" />
+
+        <!-- Error State with Retry -->
+        <LinearLayout
+            android:id="@+id/layoutArtistError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvArtistError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:text="Unable to load artist profile."
+                android:textColor="@color/textSecondary"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnArtistRetry"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="@color/accentPrimary"
+                android:text="Retry"
+                android:textColor="@color/textPrimary" />
+        </LinearLayout>
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvArtistEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:fontFamily="sans-serif"
+            android:text="No tracks found for this artist."
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+    </FrameLayout>
+</LinearLayout>

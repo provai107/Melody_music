@@ -33,7 +33,8 @@ class HorizontalSongCardAdapter(
     private val onSongClicked: (Song) -> Unit,
     private val onPlayClicked: (Song) -> Unit,
     private val onOptionClicked: (Song) -> Unit,
-    private val showRankBadge: Boolean = false
+    private val showRankBadge: Boolean = false,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<HorizontalSongCardAdapter.SongCardViewHolder>() {
 
     private val songs = mutableListOf<Song>()
@@ -80,7 +81,16 @@ class HorizontalSongCardAdapter(
         fun bind(song: Song, position: Int) {
             tvTitle.text = song.title
             val artistStr = if (song.artists.isNotBlank()) song.artists else song.album
-            tvArtist.text = artistStr
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvArtist,
+                    rawArtists = artistStr,
+                    onArtistClicked = onArtistClicked
+                )
+            } else {
+                tvArtist.text = artistStr
+                tvArtist.movementMethod = null
+            }
             itemView.contentDescription = "${song.title}, by $artistStr"
             btnQuickPlay.contentDescription = "Quick play ${song.title}"
             btnOptions.contentDescription = "Options for ${song.title}"

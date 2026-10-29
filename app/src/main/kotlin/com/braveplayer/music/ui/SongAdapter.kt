@@ -30,7 +30,8 @@ class SongAdapter(
     private val onSongAddToQueue: ((Song) -> Unit)? = null,
     private val onSongOptions: ((Song) -> Unit)? = null,
     private val onSongLikeToggled: ((Song) -> Unit)? = null,
-    private val isSongLiked: ((String) -> Boolean)? = null
+    private val isSongLiked: ((String) -> Boolean)? = null,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
 
     private val songs = mutableListOf<Song>()
@@ -71,8 +72,18 @@ class SongAdapter(
 
         fun bind(song: Song) {
             tvTitle.text = song.title
-            val artistText = if (song.album.isNotBlank()) "${song.artists} • ${song.album}" else song.artists
-            tvArtist.text = artistText
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvArtist,
+                    rawArtists = song.artists,
+                    album = song.album.takeIf { it.isNotBlank() },
+                    onArtistClicked = onArtistClicked
+                )
+            } else {
+                val artistText = if (song.album.isNotBlank()) "${song.artists} • ${song.album}" else song.artists
+                tvArtist.text = artistText
+                tvArtist.movementMethod = null
+            }
             tvSongDuration.text = song.formattedDuration
 
             val durationDesc = if (song.formattedDuration.isNotBlank()) ", duration ${song.formattedDuration}" else ""

@@ -72,6 +72,13 @@ data class PlaybackContext(
             title = "${seedSong.title} Radio",
             songs = songs
         )
+
+        fun artist(artistId: String, artistName: String, songs: List<Song>) = PlaybackContext(
+            type = PlaybackContextType.ARTIST,
+            id = artistId,
+            title = "Artist: $artistName",
+            songs = songs
+        )
     }
 }
 

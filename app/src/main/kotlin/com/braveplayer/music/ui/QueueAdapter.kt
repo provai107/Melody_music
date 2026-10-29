@@ -50,7 +50,8 @@ class QueueAdapter(
     private val onTrackRemoved: (queueItem: QueueItem) -> Unit,
     private val onTrackPlayNext: (queueItem: QueueItem) -> Unit,
     private val onTrackMoved: (fromUpcomingIndex: Int, toUpcomingIndex: Int) -> Unit,
-    private val onStartDrag: ((viewHolder: RecyclerView.ViewHolder) -> Unit)? = null
+    private val onStartDrag: ((viewHolder: RecyclerView.ViewHolder) -> Unit)? = null,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -261,7 +262,16 @@ class QueueAdapter(
             val song = item.song
 
             tvTitle.text = song.title.ifEmpty { "Unknown Title" }
-            tvArtist.text = song.artists.ifEmpty { "Unknown Artist" }
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvArtist,
+                    rawArtists = song.artists,
+                    onArtistClicked = onArtistClicked
+                )
+            } else {
+                tvArtist.text = song.artists.ifEmpty { "Unknown Artist" }
+                tvArtist.movementMethod = null
+            }
             ivIndicator.visibility = if (track.isPlaying) View.VISIBLE else View.GONE
 
             itemView.contentDescription = if (track.isPlaying) {

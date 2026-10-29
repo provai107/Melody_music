@@ -26,7 +26,8 @@ class LatestReleasesSheetAdapter(
     private val scope: CoroutineScope,
     private val httpClient: OkHttpClient,
     private val onReleaseClicked: (ReleaseItem) -> Unit,
-    private val onPlayClicked: (ReleaseItem) -> Unit
+    private val onPlayClicked: (ReleaseItem) -> Unit,
+    private val onArtistClicked: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<LatestReleasesSheetAdapter.RowViewHolder>() {
 
     private val releases = mutableListOf<ReleaseItem>()
@@ -68,12 +69,22 @@ class LatestReleasesSheetAdapter(
             imageJob?.cancel()
 
             tvTitle.text = item.title
-            val subtitle = if (item.album.isNotBlank() && item.album != "Unknown Album") {
-                "${item.artists} • ${item.album}"
+            if (onArtistClicked != null) {
+                com.braveplayer.music.util.ArtistClickHelper.attachClickableArtists(
+                    textView = tvArtist,
+                    rawArtists = item.artists,
+                    album = item.album.takeIf { it.isNotBlank() && it != "Unknown Album" },
+                    onArtistClicked = onArtistClicked
+                )
             } else {
-                item.artists
+                val subtitle = if (item.album.isNotBlank() && item.album != "Unknown Album") {
+                    "${item.artists} • ${item.album}"
+                } else {
+                    item.artists
+                }
+                tvArtist.text = subtitle
+                tvArtist.movementMethod = null
             }
-            tvArtist.text = subtitle
             tvBadge.text = item.releaseTag
 
             val url = item.imageUrl

@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.braveplayer.music.model.FollowedArtist
 import com.braveplayer.music.model.Song
 
 data class Playlist(
@@ -69,7 +70,7 @@ class PlaylistDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "brave_playlists.db"
-        private const val DATABASE_VERSION = 6
+        private const val DATABASE_VERSION = 7
 
         // Playlists Table
         private const val TABLE_PLAYLISTS = "playlists"
@@ -161,6 +162,13 @@ class PlaylistDatabaseHelper(context: Context) :
         private const val COL_RF_ACTION = "action"
         private const val COL_RF_TIMESTAMP = "timestamp"
 
+        // Followed Artists Table
+        private const val TABLE_FOLLOWED_ARTISTS = "followed_artists"
+        private const val COL_FA_ARTIST_ID = "artist_id"
+        private const val COL_FA_NAME = "name"
+        private const val COL_FA_IMAGE_URL = "image_url"
+        private const val COL_FA_FOLLOWED_AT = "followed_at"
+
         const val ACTION_NOT_INTERESTED = "NOT_INTERESTED"
         const val ACTION_HIDE = "HIDE"
 
@@ -204,6 +212,21 @@ class PlaylistDatabaseHelper(context: Context) :
         createDownloadedSongsTable(db)
         createSearchHistoryTable(db)
         createRecommendationFeedbackTable(db)
+        createFollowedArtistsTable(db)
+    }
+
+    private fun createFollowedArtistsTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_FOLLOWED_ARTISTS (
+                $COL_FA_ARTIST_ID TEXT PRIMARY KEY,
+                $COL_FA_NAME TEXT NOT NULL,
+                $COL_FA_IMAGE_URL TEXT,
+                $COL_FA_FOLLOWED_AT INTEGER NOT NULL
+            );
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_fa_followed_at ON $TABLE_FOLLOWED_ARTISTS($COL_FA_FOLLOWED_AT DESC);")
     }
 
     private fun createRecommendationFeedbackTable(db: SQLiteDatabase) {
@@ -338,6 +361,9 @@ class PlaylistDatabaseHelper(context: Context) :
                 db.execSQL("ALTER TABLE $TABLE_SEARCH_HISTORY ADD COLUMN $COL_SH_PREVIEW_URL TEXT;")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_search_song_id ON $TABLE_SEARCH_HISTORY($COL_SH_SONG_ID);")
             } catch (_: Exception) {}
+        }
+        if (oldVersion < 7) {
+            createFollowedArtistsTable(db)
         }
     }
 
@@ -986,7 +1012,7 @@ class PlaylistDatabaseHelper(context: Context) :
             null,
             null,
             null,
-            "$COL_SH_TIMESTAMP DESC",
+            "$COL_SH_TIMESTAMP DESC, $COL_SH_ID DESC",
             limit.toString()
         )
         cursor.use {
@@ -1256,5 +1282,73 @@ class PlaylistDatabaseHelper(context: Context) :
             }
         }
         return null
+    }
+
+    // ==========================================
+    // Followed Artists Operations
+    // ==========================================
+
+    fun followArtist(artistId: String, name: String, imageUrl: String?): Boolean {
+        val trimmedId = artistId.trim()
+        if (trimmedId.isEmpty()) return false
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_FA_ARTIST_ID, trimmedId)
+            put(COL_FA_NAME, name.trim())
+            put(COL_FA_IMAGE_URL, imageUrl)
+            put(COL_FA_FOLLOWED_AT, System.currentTimeMillis())
+        }
+        val result = db.insertWithOnConflict(TABLE_FOLLOWED_ARTISTS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+        return result != -1L
+    }
+
+    fun unfollowArtist(artistId: String): Boolean {
+        val trimmedId = artistId.trim()
+        if (trimmedId.isEmpty()) return false
+        val db = writableDatabase
+        val rows = db.delete(TABLE_FOLLOWED_ARTISTS, "$COL_FA_ARTIST_ID = ?", arrayOf(trimmedId))
+        return rows > 0
+    }
+
+    fun isArtistFollowed(artistId: String): Boolean {
+        val trimmedId = artistId.trim()
+        if (trimmedId.isEmpty()) return false
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_FOLLOWED_ARTISTS,
+            arrayOf(COL_FA_ARTIST_ID),
+            "$COL_FA_ARTIST_ID = ?",
+            arrayOf(trimmedId),
+            null, null, null
+        )
+        return cursor.use { it.moveToFirst() }
+    }
+
+    fun getAllFollowedArtists(): List<FollowedArtist> {
+        val list = mutableListOf<FollowedArtist>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_FOLLOWED_ARTISTS,
+            null, null, null, null, null,
+            "$COL_FA_FOLLOWED_AT DESC"
+        )
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                val id = c.getString(c.getColumnIndexOrThrow(COL_FA_ARTIST_ID))
+                val name = c.getString(c.getColumnIndexOrThrow(COL_FA_NAME))
+                val img = c.getString(c.getColumnIndexOrThrow(COL_FA_IMAGE_URL))
+                val at = c.getLong(c.getColumnIndexOrThrow(COL_FA_FOLLOWED_AT))
+                list.add(FollowedArtist(id, name, img, at))
+            }
+        }
+        return list
+    }
+
+    fun getFollowedArtistCount(): Int {
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE_FOLLOWED_ARTISTS", null)
+        return cursor.use {
+            if (it.moveToFirst()) it.getInt(0) else 0
+        }
     }
 }

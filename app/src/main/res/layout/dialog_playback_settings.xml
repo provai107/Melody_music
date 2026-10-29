@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@drawable/bg_now_playing_sheet"
     android:orientation="vertical"
     android:paddingTop="8dp">
@@ -42,9 +42,9 @@
             android:layout_centerInParent="true"
             android:fontFamily="@font/youtube_sans_bold_font"
             android:letterSpacing="0.04"
-            android:text="Playback &amp; Recommendations"
+            android:text="Playback &amp; Settings"
             android:textColor="@color/textPrimary"
-            android:textSize="16sp" />
+            android:textSize="17sp" />
     </RelativeLayout>
 
     <View
@@ -54,16 +54,31 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="16dp"
-        android:paddingBottom="32dp">
+        android:paddingBottom="36dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <!-- ============================================== -->
+            <!-- SECTION 1: RECOMMENDATIONS & DISCOVERY        -->
+            <!-- ============================================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08"
+                android:text="RECOMMENDATIONS &amp; DISCOVERY"
+                android:textColor="@color/accentPrimary"
+                android:textSize="12sp" />
 
             <!-- Switch 1: Autoplay -->
             <RelativeLayout
@@ -74,8 +89,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAutoplay"
                     android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchAutoplay"
                     android:orientation="vertical">
 
                     <TextView
@@ -115,8 +130,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchSmartShuffle"
                     android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchSmartShuffle"
                     android:orientation="vertical">
 
                     <TextView
@@ -156,8 +171,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchPersonalization"
                     android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchPersonalization"
                     android:orientation="vertical">
 
                     <TextView
@@ -192,13 +207,13 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="18dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/switchAvoidRecent"
                     android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchAvoidRecent"
                     android:orientation="vertical">
 
                     <TextView
@@ -229,7 +244,7 @@
                     app:trackTint="@color/accentPrimary" />
             </RelativeLayout>
 
-            <!-- Switch 5: Reduced Visual Intensity / Subdued Accent Colors -->
+            <!-- Switch 5: Reduced Visual Intensity -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -245,7 +260,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:fontFamily="sans-serif-medium"
                         android:text="Subdued Accent Colors"
                         android:textColor="@color/textPrimary"
                         android:textSize="15sp" />
@@ -270,21 +285,15 @@
                     app:trackTint="@color/accentPrimary" />
             </RelativeLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="20dp"
-                android:background="@color/borderSubtle" />
-
             <!-- RadioGroup: Diversity Modes -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-bold"
-                android:letterSpacing="0.08"
-                android:text="RECOMMENDATION DIVERSITY"
-                android:textColor="@color/accentPrimary"
-                android:textSize="12sp" />
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Recommendation Diversity"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
 
             <RadioGroup
                 android:id="@+id/rgDiversity"
@@ -326,34 +335,250 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="22dp"
                 android:background="@color/borderSubtle" />
 
-            <!-- Reset Learned Preferences Section -->
+            <!-- ============================================== -->
+            <!-- SECTION 2: AUDIO PLAYBACK & STREAMING QUALITY -->
+            <!-- ============================================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08"
+                android:text="AUDIO PLAYBACK &amp; STREAMING"
+                android:textColor="@color/accentPrimary"
+                android:textSize="12sp" />
+
+            <!-- Switch: Gapless Playback -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchGaplessPlayback"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Gapless Playback"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Seamlessly transition between consecutive tracks without silence or buffer lag"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchGaplessPlayback"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    app:thumbTint="@color/textPrimary"
+                    app:trackTint="@color/accentPrimary" />
+            </RelativeLayout>
+
+            <!-- Switch: Clear Queue on Play -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchClearQueueOnPlay"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Clear Queue on New Play"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Start a fresh queue when tapping a song or album from library or discovery"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchClearQueueOnPlay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    app:thumbTint="@color/textPrimary"
+                    app:trackTint="@color/accentPrimary" />
+            </RelativeLayout>
+
+            <!-- Audio Quality RadioGroup -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Streaming Audio Quality"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
+
+            <RadioGroup
+                android:id="@+id/rgAudioQuality"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp">
+
+                <RadioButton
+                    android:id="@+id/rbQualityHigh"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif"
+                    android:text="High Quality (320 kbps) • Highest acoustic fidelity"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rbQualityStandard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Standard Quality (160 kbps) • Balanced bandwidth and sound"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rbQualitySaver"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:text="Data Saver (96 kbps) • Minimal mobile data consumption"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+            </RadioGroup>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="22dp"
+                android:background="@color/borderSubtle" />
+
+            <!-- ============================================== -->
+            <!-- SECTION 3: FOLLOWED ARTISTS & LIBRARY         -->
+            <!-- ============================================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08"
+                android:text="FOLLOWED ARTISTS"
+                android:textColor="@color/accentPrimary"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:id="@+id/cardFollowedArtistsStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/bg_library_card_gradient"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="14dp">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_artist_person"
+                    app:tint="@color/accentPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Artists You Follow"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvFollowedArtistsCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="0 artists followed"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="22dp"
+                android:background="@color/borderSubtle" />
+
+            <!-- ============================================== -->
+            <!-- SECTION 4: STORAGE & CACHE                    -->
+            <!-- ============================================== -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-bold"
                 android:letterSpacing="0.08"
-                android:text="PREFERENCE DATA"
+                android:text="STORAGE &amp; PREFERENCE DATA"
                 android:textColor="@color/accentPrimary"
                 android:textSize="12sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:fontFamily="sans-serif"
-                android:text="Reset learned listening patterns, skipped song penalties, and not-interested feedback."
-                android:textColor="@color/textSecondary"
-                android:textSize="12sp" />
+            <Button
+                android:id="@+id/btnClearArtworkCache"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Clear Artwork &amp; Image Cache"
+                android:textColor="@color/textPrimary"
+                app:strokeColor="@color/borderSubtle" />
 
             <Button
                 android:id="@+id/btnResetPreferences"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="24dp"
                 android:fontFamily="sans-serif-medium"
                 android:text="Reset Learned Preferences"
                 android:textColor="@color/accentPrimary"
@@ -362,11 +587,12 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="22dp"
                 android:background="@color/borderSubtle" />
 
-            <!-- About Melody & Update Section -->
+            <!-- ============================================== -->
+            <!-- SECTION 5: ABOUT MELODY                       -->
+            <!-- ============================================== -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -412,7 +638,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
-                        android:text="Version 1.0.0 (Build 1)"
+                        android:text="Version 1.1.1 (Build 4)"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>

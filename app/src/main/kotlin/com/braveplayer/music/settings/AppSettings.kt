@@ -19,6 +19,13 @@ class AppSettings(context: Context) {
         private const val KEY_AVOID_RECENT = "avoid_recently_played"
         private const val KEY_DIVERSITY = "recommendation_diversity"
         private const val KEY_REDUCED_INTENSITY = "reduced_accent_intensity"
+        private const val KEY_AUDIO_QUALITY = "audio_quality"
+        private const val KEY_GAPLESS_PLAYBACK = "gapless_playback"
+        private const val KEY_CLEAR_QUEUE_ON_PLAY = "clear_queue_on_play"
+
+        const val QUALITY_HIGH = "HIGH"
+        const val QUALITY_STANDARD = "STANDARD"
+        const val QUALITY_SAVER = "SAVER"
 
         const val DIVERSITY_BALANCED = "BALANCED"
         const val DIVERSITY_FAMILIAR = "FAMILIAR"
@@ -100,6 +107,30 @@ class AppSettings(context: Context) {
 
     fun setReducedIntensityEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_REDUCED_INTENSITY, enabled).apply()
+    }
+
+    fun getAudioQuality(): String {
+        return prefs.getString(KEY_AUDIO_QUALITY, QUALITY_HIGH) ?: QUALITY_HIGH
+    }
+
+    fun setAudioQuality(quality: String) {
+        prefs.edit().putString(KEY_AUDIO_QUALITY, quality).apply()
+    }
+
+    fun isGaplessPlaybackEnabled(): Boolean {
+        return prefs.getBoolean(KEY_GAPLESS_PLAYBACK, true)
+    }
+
+    fun setGaplessPlaybackEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_GAPLESS_PLAYBACK, enabled).apply()
+    }
+
+    fun shouldClearQueueOnPlay(): Boolean {
+        return prefs.getBoolean(KEY_CLEAR_QUEUE_ON_PLAY, false)
+    }
+
+    fun setClearQueueOnPlay(clear: Boolean) {
+        prefs.edit().putBoolean(KEY_CLEAR_QUEUE_ON_PLAY, clear).apply()
     }
 
     fun resetToDefault(): String {

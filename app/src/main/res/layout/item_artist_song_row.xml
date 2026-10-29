@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="8dp">
+
+    <!-- Optional Rank Number (for Popular tracks) -->
+    <TextView
+        android:id="@+id/tvSongRank"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:fontFamily="sans-serif-black"
+        android:gravity="center"
+        android:text="1"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Album Artwork -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="6dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/ivArtistSongCover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Song Artwork"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Song Details Column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvArtistSongTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:maxLines="1"
+            android:text="Song Title"
+            android:textColor="@color/textPrimary"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvArtistSongArtists"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text="Artist Name"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Subtitle with Release Date / Year or Play Count -->
+        <TextView
+            android:id="@+id/tvArtistSongMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif"
+            android:text="2026 • 3:45"
+            android:textColor="@color/textDisabled"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Like Button -->
+    <ImageView
+        android:id="@+id/btnLikeArtistSong"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Like Track"
+        android:padding="8dp"
+        android:src="@drawable/ic_heart_outline"
+        app:tint="@color/textSecondary" />
+
+    <!-- 3-Dots Overflow Menu -->
+    <ImageView
+        android:id="@+id/btnArtistSongOverflow"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Track Options"
+        android:padding="8dp"
+        android:src="@drawable/ic_ytm_overflow"
+        app:tint="@color/textSecondary" />
+
+</LinearLayout>
