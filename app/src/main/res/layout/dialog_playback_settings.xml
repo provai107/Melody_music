@@ -783,7 +783,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
-                        android:text="Version 1.1.6 (Build 9)"
+                        android:text="Version 1.1.7 (Build 10)"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>
