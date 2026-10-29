@@ -269,6 +269,7 @@ class MusicRecommendationEngine(
         val seedYear = parseSongYear(seedSong)
 
         for (candidate in candidates) {
+            if (candidate.durationSec in 1..30) continue
             if (candidate.getBestPlaybackUrl() == null) continue
             if (candidate.id == seedSong.id) continue
             if (candidate.id in excludeSongIds) continue

@@ -204,4 +204,88 @@ class SearchResponseParserTest {
         assertThat(parsedArray[0].title).isEqualTo("Zaalima")
         assertThat(parsedArray[0].year).isEqualTo("2017")
     }
+
+    @Test
+    fun testDesDecryptionOfEncryptedMediaUrl() {
+        val encUrl = "ID2ieOjCrwfgWvL5sXl4B1ImC5QfbsDyXvauhZTyL60cVcGVUl+s13UOkeMXqmBpERCyfhJwXoi3hDxeQKaG2hw7tS9a8Gtq"
+        val (url320, url160) = SearchResponseParser.decryptMediaUrl(encUrl)
+
+        assertThat(url320).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_320.mp4")
+        assertThat(url160).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_160.mp4")
+    }
+
+    @Test
+    fun testStrictRejectionOf15SecondAndShortClips() {
+        val shortSongsJson = """
+        {
+          "results": [
+            {
+              "id": "short_15s",
+              "title": "Caller Tune Preview",
+              "duration": 15,
+              "media_url": "https://aac.saavncdn.com/15.mp4"
+            },
+            {
+              "id": "short_30s",
+              "title": "Teaser Snippet",
+              "duration": 30,
+              "media_url": "https://aac.saavncdn.com/30.mp4"
+            },
+            {
+              "id": "ringtone_song",
+              "title": "My Favorite Ringtone",
+              "duration": 45,
+              "media_url": "https://aac.saavncdn.com/ringtone.mp4"
+            },
+            {
+              "id": "valid_full_song",
+              "title": "Ek Tarfa",
+              "duration": 234,
+              "media_url": "https://aac.saavncdn.com/full.mp4"
+            }
+          ]
+        }
+        """.trimIndent()
+
+        val parsed = SearchResponseParser.parseSearchResponse(shortSongsJson)
+        assertThat(parsed).hasSize(1)
+        assertThat(parsed[0].id).isEqualTo("valid_full_song")
+        assertThat(parsed[0].title).isEqualTo("Ek Tarfa")
+        assertThat(parsed[0].durationSec).isEqualTo(234)
+    }
+
+    @Test
+    fun testDirectJioSaavnResultsShapeWithEncryptedMediaUrl() {
+        val jioSaavnJson = """
+        {
+          "total": 1,
+          "start": 1,
+          "results": [
+            {
+              "id": "maa6PErt",
+              "title": "Ek Tarfa",
+              "subtitle": "Darshan Raval - Ek Tarfa",
+              "image": "https://c.saavncdn.com/750/Ek-Tarfa-150x150.jpg",
+              "more_info": {
+                "music": "Darshan Raval",
+                "album": "Ek Tarfa",
+                "duration": "234",
+                "encrypted_media_url": "ID2ieOjCrwfgWvL5sXl4B1ImC5QfbsDyXvauhZTyL60cVcGVUl+s13UOkeMXqmBpERCyfhJwXoi3hDxeQKaG2hw7tS9a8Gtq"
+              }
+            }
+          ]
+        }
+        """.trimIndent()
+
+        val parsed = SearchResponseParser.parseSearchResponse(jioSaavnJson)
+        assertThat(parsed).hasSize(1)
+        val song = parsed[0]
+        assertThat(song.id).isEqualTo("maa6PErt")
+        assertThat(song.title).isEqualTo("Ek Tarfa")
+        assertThat(song.artists).isEqualTo("Darshan Raval")
+        assertThat(song.durationSec).isEqualTo(234)
+        assertThat(song.mediaUrl).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_320.mp4")
+        assertThat(song.mediaUrlDefault).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_160.mp4")
+        assertThat(song.getBestPlaybackUrl()).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_160.mp4")
+    }
 }

@@ -3,11 +3,47 @@ package com.braveplayer.music.model
 import org.json.JSONArray
 import org.json.JSONObject
 
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
+
 /**
  * Parser for FastAPI JioSaavn API responses.
  * Handles single-song results, query results arrays, empty responses, and error payloads.
  */
 object SearchResponseParser {
+
+    private const val DES_KEY = "38346591"
+
+    /**
+     * Decrypts encrypted media URLs returned by JioSaavn API into high-quality 320kbps
+     * and standard 160kbps AAC media stream URLs.
+     */
+    fun decryptMediaUrl(encryptedUrl: String): Pair<String?, String?> {
+        val trimmed = encryptedUrl.trim()
+        if (trimmed.isEmpty()) return Pair(null, null)
+        return try {
+            val keyBytes = DES_KEY.toByteArray(Charsets.UTF_8)
+            val keySpec = SecretKeySpec(keyBytes, "DES")
+            val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
+            cipher.init(Cipher.DECRYPT_MODE, keySpec)
+            val decodedBytes = try {
+                android.util.Base64.decode(trimmed, android.util.Base64.DEFAULT)
+            } catch (_: Throwable) {
+                java.util.Base64.getDecoder().decode(trimmed)
+            }
+            val decryptedBytes = cipher.doFinal(decodedBytes)
+            val decryptedUrl = String(decryptedBytes, Charsets.UTF_8).trim()
+            if (decryptedUrl.isNotEmpty() && (decryptedUrl.startsWith("http://") || decryptedUrl.startsWith("https://"))) {
+                val url320 = decryptedUrl.replace("_96.mp4", "_320.mp4").replace("_96.mp3", "_320.mp4")
+                val url160 = decryptedUrl.replace("_96.mp4", "_160.mp4").replace("_96.mp3", "_160.mp4")
+                Pair(url320, url160)
+            } else {
+                Pair(null, null)
+            }
+        } catch (_: Exception) {
+            Pair(null, null)
+        }
+    }
 
     fun parseSearchResponse(jsonString: String): List<Song> {
         val trimmed = jsonString.trim()
@@ -36,21 +72,30 @@ object SearchResponseParser {
                 return emptyList()
             }
 
+            // Find array in any known field: "result", "results", "songs", "data", "list"
+            val array = root.optJSONArray("result")
+                ?: root.optJSONArray("results")
+                ?: root.optJSONArray("songs")
+                ?: root.optJSONArray("data")
+                ?: root.optJSONArray("list")
+                ?: root.optJSONObject("data")?.optJSONArray("songs")
+                ?: root.optJSONObject("data")?.optJSONArray("results")
+
+            if (array != null) {
+                for (i in 0 until array.length()) {
+                    val obj = array.optJSONObject(i)
+                    if (obj != null) {
+                        parseSongObject(obj)?.let { resultsList.add(it) }
+                    }
+                }
+                return resultsList
+            }
+
             if (root.has("result")) {
-                val resultField = root.get("result")
-                when (resultField) {
-                    is JSONArray -> {
-                        for (i in 0 until resultField.length()) {
-                            val obj = resultField.optJSONObject(i)
-                            if (obj != null) {
-                                parseSongObject(obj)?.let { resultsList.add(it) }
-                            }
-                        }
-                    }
-                    is JSONObject -> {
-                        // Could be single song result or album details
-                        parseSongObject(resultField)?.let { resultsList.add(it) }
-                    }
+                val resultObj = root.optJSONObject("result")
+                if (resultObj != null) {
+                    parseSongObject(resultObj)?.let { resultsList.add(it) }
+                    return resultsList
                 }
             } else if (root.has("id") && (root.has("title") || root.has("song"))) {
                 // Root is a single song object
@@ -74,10 +119,26 @@ object SearchResponseParser {
         val rawAlbum = json.optString("album", "Unknown Album")
         val album = cleanHtmlEntities(rawAlbum)
 
+        val moreInfo = json.optJSONObject("more_info")
+        val durationSec = json.optInt("duration", 0).let { if (it > 0) it else moreInfo?.optInt("duration", 0) ?: 0 }
+
+        // Strictly eliminate 15-second teaser / caller tune clips (<= 30 seconds)
+        if (durationSec in 1..30) {
+            return null
+        }
+
+        // Filter out ringtones, teasers, status clips, jiotune previews
+        val lowerTitle = rawTitle.lowercase()
+        val lowerAlbum = rawAlbum.lowercase()
+        val isShortClipOrRingtone = listOf("ringtone", "jiotune", "teaser", "snippet", "status clip", "15 sec", "15sec", "15s clip", "caller tune")
+            .any { lowerTitle.contains(it) || lowerAlbum.contains(it) }
+        if (isShortClipOrRingtone) {
+            return null
+        }
+
         // Artists extraction
         val artists = extractArtists(json)
 
-        val moreInfo = json.optJSONObject("more_info")
         val year = json.optString("year", "").ifBlank {
             moreInfo?.optString("year", "")?.ifBlank { null }
         }
@@ -92,14 +153,34 @@ object SearchResponseParser {
         }
 
         val imageUrl = upgradeArtworkResolution(json.optString("image", "").ifBlank { null })
-        val durationSec = json.optInt("duration", 0).let { if (it > 0) it else moreInfo?.optInt("duration", 0) ?: 0 }
 
-        val mediaUrl = json.optString("media_url", "").ifBlank {
+        var mediaUrl = json.optString("media_url", "").ifBlank {
             moreInfo?.optString("media_url", "")?.ifBlank { null }
         }
-        val mediaUrlDefault = json.optString("media_url_default", "").ifBlank {
+        var mediaUrlDefault = json.optString("media_url_default", "").ifBlank {
             moreInfo?.optString("media_url_default", "")?.ifBlank { null }
         }
+
+        // Decrypt encrypted_media_url if direct media_url is missing or blank
+        if (mediaUrl.isNullOrBlank() || mediaUrlDefault.isNullOrBlank()) {
+            val encUrl = json.optString("encrypted_media_url", "").ifBlank {
+                moreInfo?.optString("encrypted_media_url", "")?.ifBlank { null }
+            }
+            if (!encUrl.isNullOrBlank()) {
+                val (dec320, dec160) = decryptMediaUrl(encUrl)
+                if (mediaUrl.isNullOrBlank()) mediaUrl = dec320
+                if (mediaUrlDefault.isNullOrBlank()) mediaUrlDefault = dec160
+            }
+        }
+
+        // Upgrade .mp3 to .mp4 container for high-bitrate Saavn CDN delivery
+        if (mediaUrl?.contains("saavncdn.com") == true && mediaUrl.endsWith(".mp3")) {
+            mediaUrl = mediaUrl.replace(".mp3", ".mp4")
+        }
+        if (mediaUrlDefault?.contains("saavncdn.com") == true && mediaUrlDefault.endsWith(".mp3")) {
+            mediaUrlDefault = mediaUrlDefault.replace(".mp3", ".mp4")
+        }
+
         val previewUrl = json.optString("vlink", "").ifBlank {
             moreInfo?.optString("vlink", "")?.ifBlank { null }
         }
@@ -121,33 +202,39 @@ object SearchResponseParser {
     }
 
     private fun extractArtists(json: JSONObject): String {
-        // First try artistMap.primary_artists
-        if (json.has("artistMap")) {
-            val map = json.optJSONObject("artistMap")
-            if (map != null && map.has("primary_artists")) {
-                val primaryArray = map.optJSONArray("primary_artists")
-                if (primaryArray != null && primaryArray.length() > 0) {
-                    val names = mutableListOf<String>()
-                    for (i in 0 until primaryArray.length()) {
-                        val artistObj = primaryArray.optJSONObject(i)
-                        val name = artistObj?.optString("name")
-                        if (!name.isNullOrBlank()) {
-                            names.add(cleanHtmlEntities(name))
-                        }
+        val moreInfo = json.optJSONObject("more_info")
+        val map = json.optJSONObject("artistMap") ?: moreInfo?.optJSONObject("artistMap")
+        if (map != null && map.has("primary_artists")) {
+            val primaryArray = map.optJSONArray("primary_artists")
+            if (primaryArray != null && primaryArray.length() > 0) {
+                val names = mutableListOf<String>()
+                for (i in 0 until primaryArray.length()) {
+                    val artistObj = primaryArray.optJSONObject(i)
+                    val name = artistObj?.optString("name")
+                    if (!name.isNullOrBlank()) {
+                        names.add(cleanHtmlEntities(name))
                     }
-                    if (names.isNotEmpty()) {
-                        return names.joinToString(", ")
-                    }
+                }
+                if (names.isNotEmpty()) {
+                    return names.joinToString(", ")
                 }
             }
         }
 
-        // Fallback to subtitle or music
-        val subtitle = json.optString("subtitle", "")
-        if (subtitle.isNotBlank()) return cleanHtmlEntities(subtitle)
-
-        val music = json.optString("music", "")
+        val music = json.optString("music", "").ifBlank {
+            moreInfo?.optString("music", "") ?: ""
+        }
         if (music.isNotBlank()) return cleanHtmlEntities(music)
+
+        // Fallback to subtitle
+        val subtitle = json.optString("subtitle", "").ifBlank {
+            moreInfo?.optString("subtitle", "") ?: ""
+        }
+        if (subtitle.isNotBlank()) {
+            val cleanSub = cleanHtmlEntities(subtitle)
+            val hyphenIdx = cleanSub.indexOf(" - ")
+            return if (hyphenIdx > 0) cleanSub.substring(0, hyphenIdx).trim() else cleanSub
+        }
 
         return "Unknown Artist"
     }
