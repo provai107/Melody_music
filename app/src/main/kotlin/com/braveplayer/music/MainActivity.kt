@@ -70,6 +70,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.braveplayer.music.ui.SearchChipAdapter
 import com.braveplayer.music.settings.FilterEngineProvider
+import com.braveplayer.music.model.ReleaseItem
+import com.braveplayer.music.model.GenreCardTheme
+import com.braveplayer.music.model.PopularArtistItem
+import com.braveplayer.music.discovery.LatestReleasesRepository
+import com.braveplayer.music.discovery.GenrePersonalizationEngine
+import com.braveplayer.music.ui.LatestReleasesAdapter
+import com.braveplayer.music.ui.LatestReleasesSheetAdapter
+import com.braveplayer.music.ui.GenreCardAdapter
+import com.braveplayer.music.ui.PopularArtistAdapter
 import com.braveplayer.music.ui.GenreAdapter
 import com.braveplayer.music.ui.MoodAdapter
 import com.braveplayer.music.ui.PlaylistAdapter
@@ -154,7 +163,6 @@ class MainActivity : AppCompatActivity() {
     private var btnHomeLikedShortcut: View? = null
     private var btnHomeQueueShortcut: View? = null
     private lateinit var rvMoodHome: RecyclerView
-    private lateinit var rvGenreHome: RecyclerView
     private lateinit var rvRecentlyPlayedHome: RecyclerView
     private lateinit var tvHomeGreeting: TextView
     private lateinit var tvHomeGreetingSub: TextView
@@ -164,12 +172,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSeeAllRecent: View
     private lateinit var rvTrendingCarousel: RecyclerView
     private lateinit var pbTrendingLoading: ProgressBar
-    private lateinit var rvMadeForYouCarousel: RecyclerView
-    private lateinit var pbMadeForYouLoading: ProgressBar
     private lateinit var rvDailyMixesCarousel: RecyclerView
     private lateinit var rvMostPlayedCarousel: RecyclerView
     private lateinit var layoutMostPlayedEmpty: View
-    private lateinit var rvOtherGenresCarousel: RecyclerView
     private lateinit var rvRecommendedPlaylistsCarousel: RecyclerView
     private lateinit var cardContinueListening: View
     private lateinit var ivContinueCover: ImageView
@@ -177,10 +182,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvContinueArtist: TextView
     private lateinit var btnContinuePlay: View
 
+    // Redesigned Home Discovery Views
+    private lateinit var rvLatestReleases: RecyclerView
+    private lateinit var btnSeeAllReleases: TextView
+    private lateinit var pbLatestReleasesLoading: ProgressBar
+    private lateinit var rvNewMusicForYou: RecyclerView
+    private lateinit var pbNewMusicLoading: ProgressBar
+    private lateinit var rvFavouriteGenres: RecyclerView
+    private lateinit var rvRecommendedGenres: RecyclerView
+    private lateinit var rvBrowseAllGenres: RecyclerView
+    private lateinit var rvPopularArtists: RecyclerView
+
+    // Redesigned Repositories & Adapters
+    private lateinit var latestReleasesRepository: LatestReleasesRepository
+    private lateinit var genrePersonalizationEngine: GenrePersonalizationEngine
+    private lateinit var latestReleasesAdapter: LatestReleasesAdapter
+    private lateinit var newMusicForYouAdapter: HorizontalSongCardAdapter
+    private lateinit var favouriteGenresAdapter: GenreCardAdapter
+    private lateinit var recommendedGenresAdapter: GenreCardAdapter
+    private lateinit var browseAllGenresAdapter: GenreCardAdapter
+    private lateinit var popularArtistsAdapter: PopularArtistAdapter
+
     // Reusable Home Carousel Adapters
     private lateinit var homeRecentCardAdapter: HorizontalSongCardAdapter
     private lateinit var trendingCardAdapter: HorizontalSongCardAdapter
-    private lateinit var madeForYouCardAdapter: HorizontalSongCardAdapter
     private lateinit var dailyMixCardAdapter: DailyMixCardAdapter
     private lateinit var mostPlayedCardAdapter: HorizontalSongCardAdapter
     private lateinit var curatedPlaylistCardAdapter: CuratedPlaylistCardAdapter
@@ -310,6 +335,8 @@ class MainActivity : AppCompatActivity() {
         playlistDbHelper = PlaylistDatabaseHelper(this)
         recommendationEngine = MusicRecommendationEngine(metadataService, playlistDbHelper)
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
+        latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper)
+        genrePersonalizationEngine = GenrePersonalizationEngine(playlistDbHelper)
         lyricsService = LyricsService(metadataService.httpClient)
         songDownloadHelper = SongDownloadHelper(this, playlistDbHelper)
         updateManager = AppUpdateManager(this)
@@ -386,26 +413,43 @@ class MainActivity : AppCompatActivity() {
 
         // Home UI & Modern Carousels
         rvMoodHome = findViewById(R.id.rvMoodHome)
-        rvGenreHome = findViewById(R.id.rvGenreHome)
         rvRecentlyPlayedHome = findViewById(R.id.rvRecentlyPlayedHome)
         tvHomeGreeting = findViewById(R.id.tvHomeGreeting)
         tvHomeGreetingSub = findViewById(R.id.tvHomeGreetingSub)
         layoutRecentEmpty = findViewById(R.id.layoutRecentEmpty)
         btnSeeAllRecent = findViewById(R.id.btnSeeAllRecent)
-        rvTrendingCarousel = findViewById(R.id.rvTrendingCarousel)
-        pbTrendingLoading = findViewById(R.id.pbTrendingLoading)
-        rvMadeForYouCarousel = findViewById(R.id.rvMadeForYouCarousel)
-        pbMadeForYouLoading = findViewById(R.id.pbMadeForYouLoading)
-        rvDailyMixesCarousel = findViewById(R.id.rvDailyMixesCarousel)
-        rvMostPlayedCarousel = findViewById(R.id.rvMostPlayedCarousel)
-        layoutMostPlayedEmpty = findViewById(R.id.layoutMostPlayedEmpty)
-        rvOtherGenresCarousel = findViewById(R.id.rvOtherGenresCarousel)
-        rvRecommendedPlaylistsCarousel = findViewById(R.id.rvRecommendedPlaylistsCarousel)
         cardContinueListening = findViewById(R.id.cardContinueListening)
         ivContinueCover = findViewById(R.id.ivContinueCover)
         tvContinueTitle = findViewById(R.id.tvContinueTitle)
         tvContinueArtist = findViewById(R.id.tvContinueArtist)
         btnContinuePlay = findViewById(R.id.btnContinuePlay)
+
+        // Section 3: Latest Releases
+        rvLatestReleases = findViewById(R.id.rvLatestReleases)
+        btnSeeAllReleases = findViewById(R.id.btnSeeAllReleases)
+        pbLatestReleasesLoading = findViewById(R.id.pbLatestReleasesLoading)
+
+        // Section 4: New Music for You
+        rvNewMusicForYou = findViewById(R.id.rvNewMusicForYou)
+        pbNewMusicLoading = findViewById(R.id.pbNewMusicLoading)
+
+        // Sections 5, 6, 7: Genre Tiers
+        rvFavouriteGenres = findViewById(R.id.rvFavouriteGenres)
+        rvRecommendedGenres = findViewById(R.id.rvRecommendedGenres)
+        rvBrowseAllGenres = findViewById(R.id.rvBrowseAllGenres)
+
+        // Section 8: Trending
+        rvTrendingCarousel = findViewById(R.id.rvTrendingCarousel)
+        pbTrendingLoading = findViewById(R.id.pbTrendingLoading)
+
+        // Section 9: Popular Artists
+        rvPopularArtists = findViewById(R.id.rvPopularArtists)
+
+        // Sections 10, 11: Playlists & Most Played
+        rvDailyMixesCarousel = findViewById(R.id.rvDailyMixesCarousel)
+        rvRecommendedPlaylistsCarousel = findViewById(R.id.rvRecommendedPlaylistsCarousel)
+        rvMostPlayedCarousel = findViewById(R.id.rvMostPlayedCarousel)
+        layoutMostPlayedEmpty = findViewById(R.id.layoutMostPlayedEmpty)
 
         // Explore / Search UI
         etSearchQuery = findViewById(R.id.etSearchQuery)
@@ -496,11 +540,6 @@ class MainActivity : AppCompatActivity() {
             openMoodTracks(mood)
         }
 
-        // Genres Carousel on Home
-        rvGenreHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        rvGenreHome.adapter = GenreAdapter(MusicCatalog.GENRES) { genre ->
-            openGenreTracks(genre)
-        }
 
         // Explore: Recent Searches
         recentSearchAdapter = RecentSearchAdapter(
@@ -574,7 +613,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // SECTION 4: Recently Played Horizontal Carousel
+        // SECTION 2: Recently Played Horizontal Carousel & Continue Listening
         homeRecentCardAdapter = HorizontalSongCardAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
@@ -585,7 +624,56 @@ class MainActivity : AppCompatActivity() {
         rvRecentlyPlayedHome.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvRecentlyPlayedHome.adapter = homeRecentCardAdapter
 
-        // SECTION 5: Trending Songs Horizontal Carousel
+        // SECTION 3: Latest Releases Horizontal Carousel
+        latestReleasesAdapter = LatestReleasesAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onReleaseClicked = { release -> playRelease(release) },
+            onPlayClicked = { release -> playRelease(release) }
+        )
+        rvLatestReleases.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvLatestReleases.adapter = latestReleasesAdapter
+        btnSeeAllReleases.setOnClickListener { openLatestReleasesSheet() }
+
+        // SECTION 4: New Music for You (Tailored Discovery) Carousel
+        newMusicForYouAdapter = HorizontalSongCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onSongClicked = { song -> playSongNow(song) },
+            onPlayClicked = { song -> playSongNow(song) },
+            onOptionClicked = { song -> showSongOptionDialog(song) }
+        )
+        rvNewMusicForYou.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvNewMusicForYou.adapter = newMusicForYouAdapter
+
+        // SECTION 5: Your Favourite Genres Carousel
+        favouriteGenresAdapter = GenreCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onGenreClicked = { theme -> openGenreThemeTracks(theme) }
+        )
+        rvFavouriteGenres.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvFavouriteGenres.adapter = favouriteGenresAdapter
+
+        // SECTION 6: Recommended Genres Carousel
+        recommendedGenresAdapter = GenreCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onGenreClicked = { theme -> openGenreThemeTracks(theme) }
+        )
+        rvRecommendedGenres.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvRecommendedGenres.adapter = recommendedGenresAdapter
+
+        // SECTION 7: Browse All Genres Carousel
+        browseAllGenresAdapter = GenreCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onGenreClicked = { theme -> openGenreThemeTracks(theme) }
+        )
+        rvBrowseAllGenres.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvBrowseAllGenres.adapter = browseAllGenresAdapter
+
+        // SECTION 8: Trending Songs Carousel
         trendingCardAdapter = HorizontalSongCardAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
@@ -597,18 +685,16 @@ class MainActivity : AppCompatActivity() {
         rvTrendingCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvTrendingCarousel.adapter = trendingCardAdapter
 
-        // SECTION 6: Made for You Recommendations Carousel
-        madeForYouCardAdapter = HorizontalSongCardAdapter(
+        // SECTION 9: Popular Artists Carousel
+        popularArtistsAdapter = PopularArtistAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
-            onSongClicked = { song -> playSongNow(song) },
-            onPlayClicked = { song -> playSongNow(song) },
-            onOptionClicked = { song -> showSongOptionDialog(song) }
+            onArtistClicked = { artist -> openArtistTracks(artist) }
         )
-        rvMadeForYouCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        rvMadeForYouCarousel.adapter = madeForYouCardAdapter
+        rvPopularArtists.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvPopularArtists.adapter = popularArtistsAdapter
 
-        // SECTION 7: Daily Mixes Horizontal Carousel
+        // SECTION 10: Daily Mixes Carousel & Recommended Albums/Playlists
         dailyMixCardAdapter = DailyMixCardAdapter(
             onMixClicked = { mix -> showMixDetailDialog(mix) },
             onPlayClicked = { mix -> playMixDirectly(mix, shuffle = false) },
@@ -617,7 +703,16 @@ class MainActivity : AppCompatActivity() {
         rvDailyMixesCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvDailyMixesCarousel.adapter = dailyMixCardAdapter
 
-        // SECTION 8: Most Played Songs Carousel
+        curatedPlaylistCardAdapter = CuratedPlaylistCardAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onCollectionClicked = { col -> openCuratedCollection(col) },
+            onPlayClicked = { col -> playCuratedCollection(col) }
+        )
+        rvRecommendedPlaylistsCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvRecommendedPlaylistsCarousel.adapter = curatedPlaylistCardAdapter
+
+        // SECTION 11: Most Played Songs Carousel
         mostPlayedCardAdapter = HorizontalSongCardAdapter(
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
@@ -628,22 +723,6 @@ class MainActivity : AppCompatActivity() {
         )
         rvMostPlayedCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvMostPlayedCarousel.adapter = mostPlayedCardAdapter
-
-        // SECTION 9 & 10: Genres Carousels
-        rvOtherGenresCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        rvOtherGenresCarousel.adapter = GenreAdapter(MusicCatalog.GENRES.drop(6)) { genre ->
-            openGenreTracks(genre)
-        }
-
-        // SECTION 11: Recommended Albums & Playlists Carousel
-        curatedPlaylistCardAdapter = CuratedPlaylistCardAdapter(
-            scope = lifecycleScope,
-            httpClient = metadataService.httpClient,
-            onCollectionClicked = { col -> openCuratedCollection(col) },
-            onPlayClicked = { col -> playCuratedCollection(col) }
-        )
-        rvRecommendedPlaylistsCarousel.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        rvRecommendedPlaylistsCarousel.adapter = curatedPlaylistCardAdapter
 
         collectionPlaylistAdapter = PlaylistAdapter(
             onPlaylistSelected = { playlist -> showPlaylistDetailDialog(playlist) },
@@ -1476,7 +1555,8 @@ class MainActivity : AppCompatActivity() {
         searchAdapter.notifyDataSetChanged()
         homeRecentCardAdapter.notifyDataSetChanged()
         trendingCardAdapter.notifyDataSetChanged()
-        madeForYouCardAdapter.notifyDataSetChanged()
+        newMusicForYouAdapter.notifyDataSetChanged()
+        latestReleasesAdapter.notifyDataSetChanged()
         mostPlayedCardAdapter.notifyDataSetChanged()
         refreshCollectionData()
     }
@@ -1616,7 +1696,7 @@ class MainActivity : AppCompatActivity() {
         }
         tvHomeGreetingSub.text = "Discover and stream tailored to your day"
 
-        // 2. Section 4: Recently Played Carousel
+        // 2. Section 2: Recently Played & Continue Listening
         val recent = playlistDbHelper.getRecentlyPlayedSongs(15)
         if (recent.isNotEmpty()) {
             layoutRecentEmpty.visibility = View.GONE
@@ -1630,20 +1710,82 @@ class MainActivity : AppCompatActivity() {
             updateContinueListeningCard(null)
         }
 
-        // 3. Section 8: Most Played Carousel
-        val mostPlayedPairs = playlistDbHelper.getMostPlayedSongs(15)
-        if (mostPlayedPairs.isNotEmpty()) {
-            layoutMostPlayedEmpty.visibility = View.GONE
-            rvMostPlayedCarousel.visibility = View.VISIBLE
-            val mostPlayedSongs = mostPlayedPairs.map { it.first }
-            val counts = mostPlayedPairs.associate { it.first.id to it.second }
-            mostPlayedCardAdapter.submitData(mostPlayedSongs, counts)
-        } else {
-            layoutMostPlayedEmpty.visibility = View.VISIBLE
-            rvMostPlayedCarousel.visibility = View.GONE
+        val baseUrl = appSettings.getBaseUrl()
+
+        // 3. Section 3: Latest Releases (Horizontal Carousel with Caching)
+        val cachedReleases = latestReleasesRepository.getCachedReleases()
+        if (cachedReleases.isNotEmpty()) {
+            latestReleasesAdapter.submitData(cachedReleases)
+        }
+        pbLatestReleasesLoading.visibility = if (cachedReleases.isEmpty()) View.VISIBLE else View.GONE
+        lifecycleScope.launch {
+            val releases = try {
+                latestReleasesRepository.fetchLatestReleases(baseUrl)
+            } catch (_: Exception) {
+                cachedReleases
+            }
+            pbLatestReleasesLoading.visibility = View.GONE
+            if (releases.isNotEmpty()) {
+                latestReleasesAdapter.submitData(releases)
+            }
         }
 
-        // 4. Section 7: Daily Mixes Carousel
+        // 4. Section 4: New Music for You (Tailored Discovery)
+        pbNewMusicLoading.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val seed = recent.firstOrNull() ?: playlistDbHelper.getAllLikedSongs().firstOrNull()
+            val recommendations = if (seed != null) {
+                try {
+                    recommendationEngine.getRecommendations(baseUrl, seed, limit = 15)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            } else {
+                try {
+                    recommendationEngine.fetchCandidateSongs(baseUrl, "Popular Hits")
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            pbNewMusicLoading.visibility = View.GONE
+            if (recommendations.isNotEmpty()) {
+                newMusicForYouAdapter.submitData(recommendations)
+            }
+        }
+
+        // 5. Section 5: Your Favourite Genres
+        val favouriteGenres = genrePersonalizationEngine.getFavouriteGenres(6)
+        favouriteGenresAdapter.submitData(favouriteGenres)
+
+        // 6. Section 6: Recommended Genres (Diverse & Complementary)
+        val favIds = favouriteGenres.map { it.id }.toSet()
+        val recommendedGenres = genrePersonalizationEngine.getRecommendedGenres(6, excludedGenreIds = favIds)
+        recommendedGenresAdapter.submitData(recommendedGenres)
+
+        // 7. Section 7: Browse All Genres (Complete Catalog)
+        val allGenres = genrePersonalizationEngine.getAllGenres()
+        browseAllGenresAdapter.submitData(allGenres)
+
+        // 8. Section 8: Trending Songs (Real Backend Data)
+        pbTrendingLoading.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val trendingSongs = try {
+                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
+                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
+            } catch (_: Exception) {
+                emptyList()
+            }
+            pbTrendingLoading.visibility = View.GONE
+            if (trendingSongs.isNotEmpty()) {
+                trendingCardAdapter.submitData(trendingSongs)
+            }
+        }
+
+        // 9. Section 9: Popular Artists
+        val popularArtists = genrePersonalizationEngine.getPopularArtists(10)
+        popularArtistsAdapter.submitData(popularArtists)
+
+        // 10. Section 10: Daily Mixes Carousel & Recommended Albums/Playlists
         val mixPreviews = listOf(
             PersonalizedMix("daily_mix_1", "Daily Mix 1", "Curated from your top listened tracks and favorite artists.", emptyList(), category = "DAILY MIX 1"),
             PersonalizedMix("daily_mix_2", "Daily Mix 2", "High-energy rhythm cluster with complementary artist selections.", emptyList(), category = "DAILY MIX 2"),
@@ -1652,7 +1794,6 @@ class MainActivity : AppCompatActivity() {
         )
         dailyMixCardAdapter.submitMixes(mixPreviews)
 
-        // 5. Section 11: Recommended Albums & Playlists
         val userPlaylists = playlistDbHelper.getAllPlaylists()
         val playlistItems = mutableListOf<HomeCollectionItem>()
         for (p in userPlaylists) {
@@ -1670,43 +1811,17 @@ class MainActivity : AppCompatActivity() {
         playlistItems.add(HomeCollectionItem("curated_4", "Party Dance Hits", "Uplifting festival and club bangers", "https://c.saavncdn.com/editorial/PartyDance_20230501.jpg"))
         curatedPlaylistCardAdapter.submitItems(playlistItems)
 
-        // 6. Section 5: Trending Songs (Real Backend Data)
-        val baseUrl = appSettings.getBaseUrl()
-        pbTrendingLoading.visibility = View.VISIBLE
-        lifecycleScope.launch {
-            val trendingSongs = try {
-                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
-                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
-            } catch (_: Exception) {
-                emptyList()
-            }
-            pbTrendingLoading.visibility = View.GONE
-            if (trendingSongs.isNotEmpty()) {
-                trendingCardAdapter.submitData(trendingSongs)
-            }
-        }
-
-        // 7. Section 6: Made for You (Personalized Recommendations)
-        pbMadeForYouLoading.visibility = View.VISIBLE
-        lifecycleScope.launch {
-            val seed = recent.firstOrNull() ?: playlistDbHelper.getAllLikedSongs().firstOrNull()
-            val recommendations = if (seed != null) {
-                try {
-                    recommendationEngine.getRecommendations(baseUrl, seed, limit = 15)
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            } else {
-                try {
-                    recommendationEngine.fetchCandidateSongs(baseUrl, "Popular Hits")
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
-            pbMadeForYouLoading.visibility = View.GONE
-            if (recommendations.isNotEmpty()) {
-                madeForYouCardAdapter.submitData(recommendations)
-            }
+        // 11. Section 11: Most Played Songs Carousel
+        val mostPlayedPairs = playlistDbHelper.getMostPlayedSongs(15)
+        if (mostPlayedPairs.isNotEmpty()) {
+            layoutMostPlayedEmpty.visibility = View.GONE
+            rvMostPlayedCarousel.visibility = View.VISIBLE
+            val mostPlayedSongs = mostPlayedPairs.map { it.first }
+            val counts = mostPlayedPairs.associate { it.first.id to it.second }
+            mostPlayedCardAdapter.submitData(mostPlayedSongs, counts)
+        } else {
+            layoutMostPlayedEmpty.visibility = View.VISIBLE
+            rvMostPlayedCarousel.visibility = View.GONE
         }
     }
 
@@ -2842,6 +2957,81 @@ class MainActivity : AppCompatActivity() {
             subtitle = "Offline tracks",
             songs = downloaded,
             isDownloaded = true
+        )
+    }
+
+    private fun playRelease(release: ReleaseItem) {
+        val song = release.song
+        val cached = latestReleasesRepository.getCachedReleases().map { it.song }.ifEmpty { listOf(song) }
+        val context = com.braveplayer.music.player.PlaybackContext.playlist(
+            playlistId = 0L,
+            name = "Latest Releases: ${release.title}",
+            songs = cached
+        )
+        playbackController.playTrack(
+            song = song,
+            context = context,
+            contextSongs = cached
+        )
+    }
+
+    private fun openLatestReleasesSheet() {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_latest_releases_sheet, null)
+        dialog.setContentView(view)
+
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.behavior.skipCollapsed = true
+
+        val btnClose: ImageView = view.findViewById(R.id.btnSheetClose)
+        val pbLoading: ProgressBar = view.findViewById(R.id.pbSheetLoading)
+        val rvAllReleases: RecyclerView = view.findViewById(R.id.rvAllReleasesList)
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        val sheetAdapter = LatestReleasesSheetAdapter(
+            scope = lifecycleScope,
+            httpClient = metadataService.httpClient,
+            onReleaseClicked = { release ->
+                playRelease(release)
+                dialog.dismiss()
+            },
+            onPlayClicked = { release ->
+                playRelease(release)
+                dialog.dismiss()
+            }
+        )
+        rvAllReleases.layoutManager = LinearLayoutManager(this)
+        rvAllReleases.adapter = sheetAdapter
+
+        val cached = latestReleasesRepository.getCachedReleases()
+        if (cached.isNotEmpty()) {
+            sheetAdapter.submitData(cached)
+        } else {
+            pbLoading.visibility = View.VISIBLE
+            lifecycleScope.launch {
+                val releases = latestReleasesRepository.fetchLatestReleases(appSettings.getBaseUrl())
+                pbLoading.visibility = View.GONE
+                sheetAdapter.submitData(releases)
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun openGenreThemeTracks(theme: GenreCardTheme) {
+        openCategorySheet(
+            title = "${theme.emoji} ${theme.displayName}",
+            subtitle = theme.subtitle,
+            query = theme.query
+        )
+    }
+
+    private fun openArtistTracks(artist: PopularArtistItem) {
+        openCategorySheet(
+            title = artist.name,
+            subtitle = if (artist.role.isNotBlank()) artist.role else "Artist",
+            query = artist.query
         )
     }
 

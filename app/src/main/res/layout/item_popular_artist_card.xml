@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="96dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <!-- Circular Artist Profile Artwork -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="84dp"
+        android:layout_height="84dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="42dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/ivArtistImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Artist Profile Image"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Artist Name -->
+    <TextView
+        android:id="@+id/tvArtistName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/youtube_sans_bold_font"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Artist"
+        android:textColor="@color/textPrimary"
+        android:textSize="12sp" />
+
+    <!-- Role / Tag -->
+    <TextView
+        android:id="@+id/tvArtistRole"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Artist"
+        android:textColor="@color/textSecondary"
+        android:textSize="10sp" />
+
+</LinearLayout>

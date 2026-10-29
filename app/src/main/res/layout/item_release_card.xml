@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="140dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:orientation="vertical">
+
+    <!-- Square Artwork Card with Badge & Play Button Overlay -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        app:cardBackgroundColor="@color/surfaceCard"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="0dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/ivReleaseCover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Release Cover Artwork"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_music_note" />
+
+            <!-- Release Type / Year Pill Badge -->
+            <TextView
+                android:id="@+id/tvReleaseBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_pill_badge"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.05"
+                android:paddingStart="6dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="2dp"
+                android:text="NEW"
+                android:textColor="@color/textPrimary"
+                android:textSize="9sp" />
+
+            <!-- Circular Play Button Floating Overlay -->
+            <FrameLayout
+                android:id="@+id/btnReleasePlay"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_play_circle_red"
+                android:clickable="true"
+                android:contentDescription="Play release"
+                android:elevation="3dp"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_play_arrow"
+                    app:tint="@color/textPrimary" />
+            </FrameLayout>
+
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Release Song/Album Title -->
+    <TextView
+        android:id="@+id/tvReleaseTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/youtube_sans_bold_font"
+        android:maxLines="1"
+        android:text="Latest Track"
+        android:textColor="@color/textPrimary"
+        android:textSize="13sp" />
+
+    <!-- Primary Artist -->
+    <TextView
+        android:id="@+id/tvReleaseArtist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif"
+        android:maxLines="1"
+        android:text="Artist Name"
+        android:textColor="@color/textSecondary"
+        android:textSize="11sp" />
+
+    <!-- Release Date / Tag -->
+    <TextView
+        android:id="@+id/tvReleaseDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:text="Released 2026"
+        android:textColor="#FF4455"
+        android:textSize="10sp" />
+
+</LinearLayout>
