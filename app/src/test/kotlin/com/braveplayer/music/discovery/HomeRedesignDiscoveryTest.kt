@@ -206,4 +206,39 @@ class HomeRedesignDiscoveryTest {
         assertThat(cached).isEqualTo(releases)
         }
     }
+
+    @Test
+    fun testGenrePersonalizationPrioritizesUserSelectedGenres() {
+        val selected = setOf("Rock", "EDM", "Indie")
+        val favouriteGenres = genreEngine.getFavouriteGenres(limit = 6, userSelectedGenres = selected)
+        assertThat(favouriteGenres).isNotEmpty
+        val topIds = favouriteGenres.take(3).map { it.id }
+        assertThat(topIds).containsExactly("rock", "edm", "indie")
+    }
+
+    @Test
+    fun testPopularArtistsPrioritizesUserSelectedSingers() {
+        val selectedSingers = setOf("Darshan Raval", "Atif Aslam", "Taylor Swift")
+        val artists = genreEngine.getPopularArtists(limit = 10, userSelectedSingers = selectedSingers)
+        assertThat(artists).isNotEmpty
+        val topNames = artists.take(3).map { it.name }
+        assertThat(topNames).contains("Darshan Raval", "Atif Aslam", "Taylor Swift")
+        val favItem = artists.first { it.name == "Darshan Raval" }
+        assertThat(favItem.role).isEqualTo("Favourite Artist")
+    }
+
+    @Test
+    fun testLatestReleasesStrictYearFiltering() {
+        val song2026 = Song("s1", "Title 2026", "Artist", "Album", null, 200, "https://a.com/1.mp3", null, null, year = "2026")
+        val song2025 = Song("s2", "Title 2025", "Artist", "Album", null, 200, "https://a.com/2.mp3", null, null, releaseDate = "2025-08-10")
+        val song2024 = Song("s3", "Old Title", "Artist", "Album", null, 200, "https://a.com/3.mp3", null, null, year = "2024")
+        val song2019 = Song("s4", "Evergreen Hit 2019", "Artist", "Album 2019", null, 200, "https://a.com/4.mp3", null, null, year = "2019")
+        val songNoYearOld = Song("s5", "Old Hit 2018", "Artist", "Album", null, 200, "https://a.com/5.mp3", null, null)
+
+        assertThat(LatestReleasesRepository.isRecentRelease(song2026)).isTrue()
+        assertThat(LatestReleasesRepository.isRecentRelease(song2025)).isTrue()
+        assertThat(LatestReleasesRepository.isRecentRelease(song2024)).isFalse()
+        assertThat(LatestReleasesRepository.isRecentRelease(song2019)).isFalse()
+        assertThat(LatestReleasesRepository.isRecentRelease(songNoYearOld)).isFalse()
+    }
 }

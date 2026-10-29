@@ -4,15 +4,17 @@ import com.braveplayer.music.model.GenreCardTheme
 import com.braveplayer.music.model.PopularArtistItem
 import com.braveplayer.music.model.Song
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
+import com.braveplayer.music.settings.AppSettings
 import java.util.Calendar
 
 /**
  * Intelligent genre personalization and artist discovery engine.
- * Computes multi-signal genre affinity from liked songs, listening history,
- * most-played counts, and search patterns, with elegant fallback for new users.
+ * Computes multi-signal genre affinity from user settings preferences, liked songs,
+ * listening history, most-played counts, and search patterns.
  */
 class GenrePersonalizationEngine(
-    private val dbHelper: PlaylistDatabaseHelper
+    private val dbHelper: PlaylistDatabaseHelper,
+    private val appSettings: AppSettings? = null
 ) {
 
     companion object {
@@ -50,25 +52,44 @@ class GenrePersonalizationEngine(
     }
 
     /**
-     * Computes dynamically ranked favourite genres based on user history,
-     * liked songs, play counts, and search queries.
+     * Computes dynamically ranked favourite genres based on user settings preferences,
+     * history, liked songs, play counts, and search queries.
      * Falls back smoothly to popular catalog genres when user data is scarce.
      */
-    fun getFavouriteGenres(limit: Int = 6): List<GenreCardTheme> {
+    fun getFavouriteGenres(
+        limit: Int = 6,
+        userSelectedGenres: Set<String>? = null
+    ): List<GenreCardTheme> {
+        val result = mutableListOf<GenreCardTheme>()
+        val seenThemeIds = mutableSetOf<String>()
+
+        // 1. Explicit user preferences from AppSettings or argument
+        val preferred = userSelectedGenres ?: appSettings?.getFavouriteGenres()
+        if (preferred != null) {
+            for (genreName in preferred) {
+                if (result.size >= limit) break
+                val theme = findThemeByName(genreName)
+                if (theme != null && seenThemeIds.add(theme.id)) {
+                    result.add(theme)
+                }
+            }
+        }
+
+        // 2. Multi-signal affinity from history, likes, and searches
         val scores = mutableMapOf<String, Double>()
         MusicCatalog.GENRE_THEMES.forEach { scores[it.id] = 0.0 }
 
-        val likedSongs = try { dbHelper.getAllLikedSongs() } catch (_: Exception) { emptyList() }
+        val likedSongs: List<Song> = try { dbHelper.getAllLikedSongs() } catch (_: Exception) { emptyList() }
         for (song in likedSongs) {
             addSongScore(scores, song, 3.0)
         }
 
-        val recentSongs = try { dbHelper.getRecentlyPlayedSongs(50) } catch (_: Exception) { emptyList() }
+        val recentSongs: List<Song> = try { dbHelper.getRecentlyPlayedSongs(50) } catch (_: Exception) { emptyList() }
         for (song in recentSongs) {
             addSongScore(scores, song, 1.5)
         }
 
-        val mostPlayed = try { dbHelper.getMostPlayedSongs(30) } catch (_: Exception) { emptyList() }
+        val mostPlayed: List<Pair<Song, Int>> = try { dbHelper.getMostPlayedSongs(30) } catch (_: Exception) { emptyList() }
         for ((song, playCount) in mostPlayed) {
             addSongScore(scores, song, 0.5 * playCount.coerceAtMost(10))
         }
@@ -89,14 +110,19 @@ class GenrePersonalizationEngine(
             .sortedByDescending { it.value }
             .mapNotNull { entry -> MusicCatalog.GENRE_THEMES.firstOrNull { it.id == entry.key } }
 
-        val result = ranked.toMutableList()
+        for (theme in ranked) {
+            if (result.size >= limit) break
+            if (seenThemeIds.add(theme.id)) {
+                result.add(theme)
+            }
+        }
 
-        // Graceful fallback: If less than limit, append popular defaults
+        // 3. Graceful fallback: If less than limit, append popular defaults
         val defaultFallbackIds = listOf("bollywood", "pop", "punjabi", "romantic", "hiphop", "edm", "lofi")
         for (id in defaultFallbackIds) {
             if (result.size >= limit) break
             val theme = MusicCatalog.GENRE_THEMES.firstOrNull { it.id == id }
-            if (theme != null && !result.contains(theme)) {
+            if (theme != null && seenThemeIds.add(theme.id)) {
                 result.add(theme)
             }
         }
@@ -104,12 +130,22 @@ class GenrePersonalizationEngine(
         // Fill remaining from catalog if still under limit
         for (theme in MusicCatalog.GENRE_THEMES) {
             if (result.size >= limit) break
-            if (!result.contains(theme)) {
+            if (seenThemeIds.add(theme.id)) {
                 result.add(theme)
             }
         }
 
         return result.take(limit)
+    }
+
+    private fun findThemeByName(name: String): GenreCardTheme? {
+        val clean = name.trim().lowercase()
+        val norm = clean.replace("-", "").replace(" ", "")
+        return MusicCatalog.GENRE_THEMES.firstOrNull {
+            it.id.equals(clean, ignoreCase = true) ||
+            it.displayName.equals(clean, ignoreCase = true) ||
+            it.id.replace("-", "").replace(" ", "").equals(norm, ignoreCase = true)
+        }
     }
 
     /**
@@ -158,21 +194,48 @@ class GenrePersonalizationEngine(
     }
 
     /**
-     * Builds a list of popular artists dynamically merging user play history
-     * and curated high-profile artist recommendations.
+     * Builds a list of popular artists dynamically merging user preferences,
+     * play history, and curated high-profile artist recommendations.
      */
-    fun getPopularArtists(limit: Int = 10): List<PopularArtistItem> {
+    fun getPopularArtists(
+        limit: Int = 10,
+        userSelectedSingers: Set<String>? = null
+    ): List<PopularArtistItem> {
         val result = mutableListOf<PopularArtistItem>()
         val seenNames = mutableSetOf<String>()
 
-        // 1. User's top played artists from local database
-        val playCounts = try { dbHelper.getArtistPlayCounts() } catch (_: Exception) { emptyMap() }
+        // 1. User's explicit favourite singers from AppSettings or parameter
+        val preferredSingers = userSelectedSingers ?: appSettings?.getFavouriteSingers()
+        if (preferredSingers != null) {
+            for (singer in preferredSingers) {
+                if (result.size >= limit) break
+                val cleanName = singer.trim()
+                if (cleanName.isNotBlank() && seenNames.add(cleanName.lowercase())) {
+                    val matchingCurated = CURATED_POPULAR_ARTISTS.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
+                    val imageUrl = matchingCurated?.imageUrl
+                        ?: if (cleanName.contains("Atif", ignoreCase = true)) "https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg" else null
+                    result.add(
+                        PopularArtistItem(
+                            id = "fav_${cleanName.hashCode()}",
+                            name = cleanName,
+                            role = "Favourite Artist",
+                            imageUrl = imageUrl,
+                            query = "$cleanName Songs"
+                        )
+                    )
+                }
+            }
+        }
+
+        // 2. User's top played artists from local database
+        val playCounts: Map<String, Int> = try { dbHelper.getArtistPlayCounts() } catch (_: Exception) { emptyMap() }
         val topUserArtists = playCounts.entries
             .filter { it.key.isNotBlank() && !it.key.equals("Unknown Artist", ignoreCase = true) }
             .sortedByDescending { it.value }
             .take(5)
 
         for (entry in topUserArtists) {
+            if (result.size >= limit) break
             val artistName = entry.key.trim()
             val cleanName = artistName.split(",", "&", "feat.", "ft.")[0].trim()
             if (cleanName.isNotBlank() && seenNames.add(cleanName.lowercase())) {
@@ -189,7 +252,7 @@ class GenrePersonalizationEngine(
             }
         }
 
-        // 2. Curated popular artists
+        // 3. Curated popular artists
         for (artist in CURATED_POPULAR_ARTISTS) {
             if (result.size >= limit) break
             if (seenNames.add(artist.name.lowercase())) {

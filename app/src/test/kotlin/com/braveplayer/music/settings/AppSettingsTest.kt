@@ -63,4 +63,36 @@ class AppSettingsTest {
         settings.setRecommendationDiversity(AppSettings.DIVERSITY_FAMILIAR)
         assertThat(settings.getRecommendationDiversity()).isEqualTo(AppSettings.DIVERSITY_FAMILIAR)
     }
+
+    @Test
+    fun testMusicPreferencesDefaultsAndCustomization() {
+        // Defaults
+        val defaultGenres = settings.getFavouriteGenres()
+        assertThat(defaultGenres).contains("Bollywood", "Pop", "Punjabi", "Romantic", "Lo-Fi")
+
+        val defaultSingers = settings.getFavouriteSingers()
+        assertThat(defaultSingers).contains("Arijit Singh", "Atif Aslam", "Darshan Raval")
+
+        val defaultLanguages = settings.getPreferredLanguages()
+        assertThat(defaultLanguages).contains("Hindi", "English", "Punjabi")
+
+        // Customization
+        val customGenres = setOf("Rock", "EDM", "Indie")
+        settings.setFavouriteGenres(customGenres)
+        assertThat(settings.getFavouriteGenres()).containsExactlyInAnyOrder("Rock", "EDM", "Indie")
+
+        val customSingers = setOf("Darshan Raval", "The Weeknd")
+        settings.setFavouriteSingers(customSingers)
+        assertThat(settings.getFavouriteSingers()).containsExactlyInAnyOrder("Darshan Raval", "The Weeknd")
+
+        val customLanguages = setOf("Punjabi", "English")
+        settings.setPreferredLanguages(customLanguages)
+        assertThat(settings.getPreferredLanguages()).containsExactlyInAnyOrder("Punjabi", "English")
+
+        // Reset
+        settings.resetMusicPreferences()
+        assertThat(settings.getFavouriteGenres()).isEqualTo(AppSettings.DEFAULT_FAVOURITE_GENRES)
+        assertThat(settings.getFavouriteSingers()).isEqualTo(AppSettings.DEFAULT_FAVOURITE_SINGERS)
+        assertThat(settings.getPreferredLanguages()).isEqualTo(AppSettings.DEFAULT_PREFERRED_LANGUAGES)
+    }
 }

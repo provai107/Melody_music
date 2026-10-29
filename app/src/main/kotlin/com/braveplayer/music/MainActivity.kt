@@ -22,10 +22,13 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
+import android.content.res.ColorStateList
 import android.widget.Toast
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import android.app.Dialog
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.OnBackPressedCallback
@@ -349,8 +352,8 @@ class MainActivity : AppCompatActivity() {
         playlistDbHelper = PlaylistDatabaseHelper(this)
         recommendationEngine = MusicRecommendationEngine(metadataService, playlistDbHelper)
         mixGenerator = MixGenerator(recommendationEngine, playlistDbHelper)
-        latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper)
-        genrePersonalizationEngine = GenrePersonalizationEngine(playlistDbHelper)
+        latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper, appSettings)
+        genrePersonalizationEngine = GenrePersonalizationEngine(playlistDbHelper, appSettings)
         lyricsService = LyricsService(metadataService.httpClient)
         songDownloadHelper = SongDownloadHelper(this, playlistDbHelper)
         updateManager = AppUpdateManager(this)
@@ -1794,7 +1797,7 @@ class MainActivity : AppCompatActivity() {
         pbLatestReleasesLoading.visibility = if (cachedReleases.isEmpty()) View.VISIBLE else View.GONE
         lifecycleScope.launch {
             val releases = try {
-                latestReleasesRepository.fetchLatestReleases(baseUrl)
+                latestReleasesRepository.fetchLatestReleases(baseUrl, preferredLanguages = appSettings.getPreferredLanguages())
             } catch (_: Exception) {
                 cachedReleases
             }
@@ -1816,7 +1819,8 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 try {
-                    recommendationEngine.fetchCandidateSongs(baseUrl, "Popular Hits")
+                    val lang = appSettings.getPreferredLanguages().firstOrNull() ?: "Hindi"
+                    recommendationEngine.fetchCandidateSongs(baseUrl, "Latest $lang Hits 2026")
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -1844,13 +1848,13 @@ class MainActivity : AppCompatActivity() {
         pbTrendingLoading.visibility = View.VISIBLE
         lifecycleScope.launch {
             val trendingSongs = try {
-                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
-                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
+                metadataService.fetchTrendingSongs(appSettings.getPreferredLanguages(), limit = 30)
             } catch (_: Exception) {
                 emptyList()
             }
             pbTrendingLoading.visibility = View.GONE
             if (trendingSongs.isNotEmpty()) {
+                cachedTrendingSongs = trendingSongs
                 trendingCardAdapter.submitData(trendingSongs)
             }
         }
@@ -2208,11 +2212,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         pbTrendingExploreLoading.visibility = View.VISIBLE
-        val baseUrl = appSettings.getBaseUrl()
         lifecycleScope.launch {
             val songs = try {
-                recommendationEngine.fetchCandidateSongs(baseUrl, "Top Trending Hits")
-                    .ifEmpty { recommendationEngine.fetchCandidateSongs(baseUrl, "Trending") }
+                metadataService.fetchTrendingSongs(appSettings.getPreferredLanguages(), limit = 30)
             } catch (_: Exception) {
                 emptyList()
             }
@@ -3022,6 +3024,215 @@ class MainActivity : AppCompatActivity() {
 
         ivClose.setOnClickListener { dialog.dismiss() }
 
+        // Section 0: Your Music Preferences (Languages, Favourite Genres, Favourite Singers)
+        val chipGroupLanguages: ChipGroup? = view.findViewById(R.id.chipGroupLanguages)
+        val btnEditFavouriteGenres: Button? = view.findViewById(R.id.btnEditFavouriteGenres)
+        val chipGroupFavouriteGenres: ChipGroup? = view.findViewById(R.id.chipGroupFavouriteGenres)
+        val btnEditFavouriteSingers: Button? = view.findViewById(R.id.btnEditFavouriteSingers)
+        val chipGroupFavouriteSingers: ChipGroup? = view.findViewById(R.id.chipGroupFavouriteSingers)
+
+        fun renderLanguageChips() {
+            chipGroupLanguages?.removeAllViews()
+            val currentLangs = appSettings.getPreferredLanguages()
+            for (lang in AppSettings.ALL_LANGUAGE_OPTIONS) {
+                val isSelected = currentLangs.contains(lang)
+                val chip = Chip(this)
+                chip.text = lang
+                chip.isCheckable = true
+                chip.isChecked = isSelected
+                chip.setTextColor(ContextCompat.getColor(this, if (isSelected) R.color.textPrimary else R.color.textSecondary))
+                chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, if (isSelected) R.color.accentPrimary else R.color.surfaceElevated))
+                chip.chipStrokeWidth = if (isSelected) 0f else 2f
+                chip.setChipStrokeColorResource(R.color.borderSubtle)
+                chip.chipCornerRadius = 24f
+                chip.setOnCheckedChangeListener { _, checked ->
+                    val updated = appSettings.getPreferredLanguages().toMutableSet()
+                    if (checked) {
+                        updated.add(lang)
+                    } else {
+                        if (updated.size > 1) {
+                            updated.remove(lang)
+                        } else {
+                            chip.isChecked = true
+                            Toast.makeText(this@MainActivity, "Select at least one language", Toast.LENGTH_SHORT).show()
+                            return@setOnCheckedChangeListener
+                        }
+                    }
+                    appSettings.setPreferredLanguages(updated)
+                    renderLanguageChips()
+                    recommendationEngine.clearCache()
+                    latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper, appSettings)
+                    cachedTrendingSongs = emptyList()
+                    refreshHomeData()
+                }
+                chipGroupLanguages?.addView(chip)
+            }
+        }
+
+        fun renderGenreChips() {
+            chipGroupFavouriteGenres?.removeAllViews()
+            val favGenres = appSettings.getFavouriteGenres()
+            for (genre in favGenres) {
+                val chip = Chip(this)
+                chip.text = genre
+                chip.isCheckable = false
+                chip.setTextColor(ContextCompat.getColor(this, R.color.textPrimary))
+                chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surfaceElevated))
+                chip.chipStrokeWidth = 2f
+                chip.setChipStrokeColorResource(R.color.accentPrimary)
+                chip.chipCornerRadius = 24f
+                chipGroupFavouriteGenres?.addView(chip)
+            }
+        }
+
+        fun renderSingerChips() {
+            chipGroupFavouriteSingers?.removeAllViews()
+            val favSingers = appSettings.getFavouriteSingers()
+            for (singer in favSingers) {
+                val chip = Chip(this)
+                chip.text = singer
+                chip.isCheckable = false
+                chip.setTextColor(ContextCompat.getColor(this, R.color.textPrimary))
+                chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surfaceElevated))
+                chip.chipStrokeWidth = 2f
+                chip.setChipStrokeColorResource(R.color.accentPrimary)
+                chip.chipCornerRadius = 24f
+                chipGroupFavouriteSingers?.addView(chip)
+            }
+        }
+
+        renderLanguageChips()
+        renderGenreChips()
+        renderSingerChips()
+
+        btnEditFavouriteGenres?.setOnClickListener {
+            val genreDialog = BottomSheetDialog(this)
+            val genreView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favourite_genres, null)
+            genreDialog.setContentView(genreView)
+
+            val dialogChips: ChipGroup = genreView.findViewById(R.id.dialogChipGroupGenres)
+            val btnSave: Button = genreView.findViewById(R.id.btnSaveGenreDialog)
+            val btnCancel: Button = genreView.findViewById(R.id.btnCancelGenreDialog)
+
+            val currentSelections = appSettings.getFavouriteGenres().toMutableSet()
+
+            for (genre in AppSettings.ALL_GENRE_OPTIONS) {
+                val isSelected = currentSelections.contains(genre)
+                val chip = Chip(this)
+                chip.text = genre
+                chip.isCheckable = true
+                chip.isChecked = isSelected
+                chip.setTextColor(ContextCompat.getColor(this, if (isSelected) R.color.textPrimary else R.color.textSecondary))
+                chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, if (isSelected) R.color.accentPrimary else R.color.surfaceElevated))
+                chip.chipStrokeWidth = if (isSelected) 0f else 2f
+                chip.setChipStrokeColorResource(R.color.borderSubtle)
+                chip.chipCornerRadius = 24f
+                chip.setOnCheckedChangeListener { _, checked ->
+                    if (checked) {
+                        currentSelections.add(genre)
+                    } else {
+                        if (currentSelections.size > 1) {
+                            currentSelections.remove(genre)
+                        } else {
+                            chip.isChecked = true
+                            Toast.makeText(this@MainActivity, "Select at least one genre", Toast.LENGTH_SHORT).show()
+                            return@setOnCheckedChangeListener
+                        }
+                    }
+                    chip.setTextColor(ContextCompat.getColor(this@MainActivity, if (checked) R.color.textPrimary else R.color.textSecondary))
+                    chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, if (checked) R.color.accentPrimary else R.color.surfaceElevated))
+                    chip.chipStrokeWidth = if (checked) 0f else 2f
+                }
+                dialogChips.addView(chip)
+            }
+
+            btnCancel.setOnClickListener { genreDialog.dismiss() }
+            btnSave.setOnClickListener {
+                appSettings.setFavouriteGenres(currentSelections)
+                renderGenreChips()
+                recommendationEngine.clearCache()
+                refreshHomeData()
+                genreDialog.dismiss()
+                Toast.makeText(this@MainActivity, "Favourite genres updated", Toast.LENGTH_SHORT).show()
+            }
+
+            genreDialog.show()
+        }
+
+        btnEditFavouriteSingers?.setOnClickListener {
+            val singerDialog = BottomSheetDialog(this)
+            val singerView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favourite_singers, null)
+            singerDialog.setContentView(singerView)
+
+            val dialogChips: ChipGroup = singerView.findViewById(R.id.dialogChipGroupSingers)
+            val etCustomArtist: EditText = singerView.findViewById(R.id.etCustomArtistName)
+            val btnAddCustom: Button = singerView.findViewById(R.id.btnAddCustomArtist)
+            val btnSave: Button = singerView.findViewById(R.id.btnSaveSingerDialog)
+            val btnCancel: Button = singerView.findViewById(R.id.btnCancelSingerDialog)
+
+            val currentSingers = appSettings.getFavouriteSingers().toMutableSet()
+            val candidateList = (currentSingers + AppSettings.POPULAR_SINGER_OPTIONS).distinct().toMutableList()
+
+            fun refreshSingerDialogChips() {
+                dialogChips.removeAllViews()
+                for (singer in candidateList) {
+                    val isSelected = currentSingers.contains(singer)
+                    val chip = Chip(this)
+                    chip.text = singer
+                    chip.isCheckable = true
+                    chip.isChecked = isSelected
+                    chip.setTextColor(ContextCompat.getColor(this, if (isSelected) R.color.textPrimary else R.color.textSecondary))
+                    chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, if (isSelected) R.color.accentPrimary else R.color.surfaceElevated))
+                    chip.chipStrokeWidth = if (isSelected) 0f else 2f
+                    chip.setChipStrokeColorResource(R.color.borderSubtle)
+                    chip.chipCornerRadius = 24f
+                    chip.setOnCheckedChangeListener { _, checked ->
+                        if (checked) {
+                            currentSingers.add(singer)
+                        } else {
+                            if (currentSingers.size > 1) {
+                                currentSingers.remove(singer)
+                            } else {
+                                chip.isChecked = true
+                                Toast.makeText(this@MainActivity, "Select at least one artist", Toast.LENGTH_SHORT).show()
+                                return@setOnCheckedChangeListener
+                            }
+                        }
+                        chip.setTextColor(ContextCompat.getColor(this@MainActivity, if (checked) R.color.textPrimary else R.color.textSecondary))
+                        chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this@MainActivity, if (checked) R.color.accentPrimary else R.color.surfaceElevated))
+                        chip.chipStrokeWidth = if (checked) 0f else 2f
+                    }
+                    dialogChips.addView(chip)
+                }
+            }
+
+            refreshSingerDialogChips()
+
+            btnAddCustom.setOnClickListener {
+                val input = etCustomArtist.text.toString().trim()
+                if (input.isNotEmpty()) {
+                    if (!candidateList.any { it.equals(input, ignoreCase = true) }) {
+                        candidateList.add(0, input)
+                    }
+                    currentSingers.add(input)
+                    etCustomArtist.setText("")
+                    refreshSingerDialogChips()
+                }
+            }
+
+            btnCancel.setOnClickListener { singerDialog.dismiss() }
+            btnSave.setOnClickListener {
+                appSettings.setFavouriteSingers(currentSingers)
+                renderSingerChips()
+                recommendationEngine.clearCache()
+                refreshHomeData()
+                singerDialog.dismiss()
+                Toast.makeText(this@MainActivity, "Favourite artists updated", Toast.LENGTH_SHORT).show()
+            }
+
+            singerDialog.show()
+        }
+
         // Initialize state from AppSettings
         switchAutoplay.isChecked = appSettings.isAutoplayEnabled()
         switchSmartShuffle.isChecked = (smartShuffleState == SmartShuffleState.SMART_SHUFFLE || appSettings.isSmartShuffleEnabled())
@@ -3134,12 +3345,18 @@ class MainActivity : AppCompatActivity() {
         btnResetPreferences.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Reset Learned Preferences?")
-                .setMessage("This will clear your listening history, skipped track penalties, and recommendation feedback. Recommendations will reset to fresh defaults.")
+                .setMessage("This will clear your listening history, skipped track penalties, and recommendation feedback, and reset your preferred languages, genres, and artists to fresh defaults.")
                 .setPositiveButton("Reset") { _, _ ->
                     playlistDbHelper.resetLearnedPreferences()
+                    appSettings.resetMusicPreferences()
                     recommendationEngine.clearCache()
+                    latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper, appSettings)
+                    cachedTrendingSongs = emptyList()
+                    renderLanguageChips()
+                    renderGenreChips()
+                    renderSingerChips()
                     refreshHomeData()
-                    Toast.makeText(this, "Preferences and history reset", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Preferences and history reset to defaults", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()

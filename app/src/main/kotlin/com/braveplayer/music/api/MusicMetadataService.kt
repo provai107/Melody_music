@@ -655,6 +655,135 @@ class MusicMetadataService(
         collected
     }
 
+    suspend fun fetchTrendingSongs(
+        preferredLanguages: Set<String> = emptySet(),
+        limit: Int = 40
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val chartIds = mutableListOf<String>()
+        // Always include official JioSaavn Trending Today chart
+        chartIds.add("110858205") // Trending Today
+
+        val lowerLangs = preferredLanguages.map { it.lowercase().trim() }
+        if (lowerLangs.isEmpty() || lowerLangs.contains("hindi")) {
+            chartIds.add("1134548194") // India Superhits Top 50
+        }
+        if (lowerLangs.contains("punjabi")) {
+            chartIds.add("1134543511") // Punjabi: India Superhits Top 50
+            chartIds.add("1265052337") // Trending Punjabi
+        }
+        if (lowerLangs.contains("english")) {
+            chartIds.add("1134595537") // International : India Superhits Top 50
+        }
+        if (lowerLangs.contains("tamil")) {
+            chartIds.add("110858201") // Chennai Hot 50
+        }
+
+        val collected = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
+
+        for (chartId in chartIds.distinct()) {
+            val url = "$JIOSAAVN_API_BASE&__call=playlist.getDetails&listid=$chartId"
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+            try {
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    val songs = SearchResponseParser.parseSearchResponse(body)
+                    for (song in songs) {
+                        if (song.durationSec in 1..30) continue
+                        if (song.getBestPlaybackUrl() == null) continue
+                        val cleanTitle = song.title.lowercase().trim()
+                        if (seenIds.add(song.id) && seenTitles.add(cleanTitle)) {
+                            collected.add(song)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            if (collected.size >= limit) break
+        }
+
+        collected.take(limit)
+    }
+
+    suspend fun fetchLatestAlbumSongs(
+        preferredLanguages: Set<String> = emptySet(),
+        limit: Int = 30
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val langs = if (preferredLanguages.isNotEmpty()) {
+            preferredLanguages.joinToString(",") { it.lowercase().trim() }
+        } else {
+            "hindi,english,punjabi"
+        }
+
+        val url = "$JIOSAAVN_API_BASE&__call=content.getAlbums&languages=$langs&p=1&n=12"
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+            .header("User-Agent", "Mozilla/5.0")
+            .build()
+
+        val albumIds = mutableListOf<String>()
+        try {
+            val response = httpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: ""
+                val root = org.json.JSONObject(body)
+                val data = root.optJSONArray("data")
+                if (data != null) {
+                    for (i in 0 until data.length()) {
+                        val albumObj = data.optJSONObject(i)
+                        val id = albumObj?.optString("id")
+                        val year = albumObj?.optString("year")
+                        if (!id.isNullOrBlank()) {
+                            // Prioritize 2026/2025 releases
+                            if (year.isNullOrBlank() || year == "2026" || year == "2025") {
+                                albumIds.add(id)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        val collected = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
+
+        for (albId in albumIds.take(8)) {
+            val albUrl = "$JIOSAAVN_API_BASE&__call=content.getAlbumDetails&albumid=$albId"
+            val albReq = Request.Builder()
+                .url(albUrl)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+            try {
+                val resp = httpClient.newCall(albReq).execute()
+                if (resp.isSuccessful) {
+                    val aBody = resp.body?.string() ?: ""
+                    val songs = SearchResponseParser.parseSearchResponse(aBody)
+                    for (song in songs) {
+                        if (song.durationSec in 1..30) continue
+                        if (song.getBestPlaybackUrl() == null) continue
+                        val cleanTitle = song.title.lowercase().trim()
+                        if (seenIds.add(song.id) && seenTitles.add(cleanTitle)) {
+                            collected.add(song)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            if (collected.size >= limit) break
+        }
+
+        collected.take(limit)
+    }
+
     data class MetadataQueryResult(
         val statusCode: Int,
         val isBlocked: Boolean,

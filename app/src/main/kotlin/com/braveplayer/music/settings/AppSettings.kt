@@ -22,6 +22,9 @@ class AppSettings(context: Context) {
         private const val KEY_AUDIO_QUALITY = "audio_quality"
         private const val KEY_GAPLESS_PLAYBACK = "gapless_playback"
         private const val KEY_CLEAR_QUEUE_ON_PLAY = "clear_queue_on_play"
+        private const val KEY_FAVOURITE_GENRES = "favourite_genres"
+        private const val KEY_FAVOURITE_SINGERS = "favourite_singers"
+        private const val KEY_PREFERRED_LANGUAGES = "preferred_languages"
 
         const val QUALITY_HIGH = "HIGH"
         const val QUALITY_STANDARD = "STANDARD"
@@ -34,6 +37,29 @@ class AppSettings(context: Context) {
         const val SHUFFLE_MODE_NORMAL = "NORMAL"
         const val SHUFFLE_MODE_SHUFFLE = "SHUFFLE"
         const val SHUFFLE_MODE_SMART = "SMART_SHUFFLE"
+
+        val DEFAULT_FAVOURITE_GENRES = setOf("Bollywood", "Pop", "Punjabi", "Romantic", "Lo-Fi")
+        val DEFAULT_FAVOURITE_SINGERS = setOf("Arijit Singh", "Atif Aslam", "Darshan Raval", "Shreya Ghoshal", "Pritam", "Diljit Dosanjh")
+        val DEFAULT_PREFERRED_LANGUAGES = setOf("Hindi", "English", "Punjabi")
+
+        val ALL_GENRE_OPTIONS = listOf(
+            "Bollywood", "Pop", "Punjabi", "Romantic", "Lo-Fi",
+            "Hip Hop", "Rock", "EDM", "R&B", "Indie",
+            "Acoustic", "Classical", "Chill", "Workout", "Focus", "Party"
+        )
+
+        val POPULAR_SINGER_OPTIONS = listOf(
+            "Arijit Singh", "Atif Aslam", "Darshan Raval", "Shreya Ghoshal",
+            "Pritam", "Diljit Dosanjh", "The Weeknd", "Taylor Swift",
+            "Billie Eilish", "Badshah", "AP Dhillon", "Ed Sheeran",
+            "Anirudh", "Sachin-Jigar", "Neha Kakkar", "Jubin Nautiyal",
+            "Karan Aujla", "Sidhu Moose Wala", "Yo Yo Honey Singh", "Sonu Nigam", "KK"
+        )
+
+        val ALL_LANGUAGE_OPTIONS = listOf(
+            "Hindi", "English", "Punjabi", "Tamil", "Telugu",
+            "Bengali", "Bhojpuri", "Gujarati", "Marathi", "Kannada", "Malayalam"
+        )
 
         // Default free cloud API URL hosted on Vercel
         const val DEFAULT_BASE_URL = "https://melody-api-psi.vercel.app"
@@ -131,6 +157,41 @@ class AppSettings(context: Context) {
 
     fun setClearQueueOnPlay(clear: Boolean) {
         prefs.edit().putBoolean(KEY_CLEAR_QUEUE_ON_PLAY, clear).apply()
+    }
+
+    fun getFavouriteGenres(): Set<String> {
+        val raw = prefs.getStringSet(KEY_FAVOURITE_GENRES, null)
+        return if (raw.isNullOrEmpty()) DEFAULT_FAVOURITE_GENRES else raw
+    }
+
+    fun setFavouriteGenres(genres: Set<String>) {
+        prefs.edit().putStringSet(KEY_FAVOURITE_GENRES, genres).apply()
+    }
+
+    fun getFavouriteSingers(): Set<String> {
+        val raw = prefs.getStringSet(KEY_FAVOURITE_SINGERS, null)
+        return if (raw.isNullOrEmpty()) DEFAULT_FAVOURITE_SINGERS else raw
+    }
+
+    fun setFavouriteSingers(singers: Set<String>) {
+        prefs.edit().putStringSet(KEY_FAVOURITE_SINGERS, singers).apply()
+    }
+
+    fun getPreferredLanguages(): Set<String> {
+        val raw = prefs.getStringSet(KEY_PREFERRED_LANGUAGES, null)
+        return if (raw.isNullOrEmpty()) DEFAULT_PREFERRED_LANGUAGES else raw
+    }
+
+    fun setPreferredLanguages(languages: Set<String>) {
+        prefs.edit().putStringSet(KEY_PREFERRED_LANGUAGES, languages).apply()
+    }
+
+    fun resetMusicPreferences() {
+        prefs.edit()
+            .remove(KEY_FAVOURITE_GENRES)
+            .remove(KEY_FAVOURITE_SINGERS)
+            .remove(KEY_PREFERRED_LANGUAGES)
+            .apply()
     }
 
     fun resetToDefault(): String {
