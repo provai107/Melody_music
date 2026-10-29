@@ -262,8 +262,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Switch 2: Smart Shuffle -->
@@ -303,8 +303,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Switch 3: Personalization -->
@@ -344,8 +344,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Switch 4: Avoid Recently Played -->
@@ -385,8 +385,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Switch 5: Reduced Visual Intensity -->
@@ -426,8 +426,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- RadioGroup: Diversity Modes -->
@@ -533,8 +533,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Switch: Clear Queue on Play -->
@@ -574,8 +574,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    app:thumbTint="@color/textPrimary"
-                    app:trackTint="@color/accentPrimary" />
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
             </RelativeLayout>
 
             <!-- Audio Quality RadioGroup -->
@@ -783,7 +783,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
-                        android:text="Version 1.1.7 (Build 10)"
+                        android:text="Version 1.1.8 (Build 11)"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>

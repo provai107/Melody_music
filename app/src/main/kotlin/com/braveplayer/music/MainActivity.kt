@@ -3233,6 +3233,22 @@ class MainActivity : AppCompatActivity() {
             singerDialog.show()
         }
 
+        // Enforce dynamic white-to-red thumb and track color state lists for all settings switches
+        val switchThumbColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_thumb_selector)
+        val switchTrackColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_track_selector)
+        listOfNotNull(
+            switchAutoplay,
+            switchSmartShuffle,
+            switchPersonalization,
+            switchAvoidRecent,
+            switchReducedIntensity,
+            switchGaplessPlayback,
+            switchClearQueueOnPlay
+        ).forEach { sw ->
+            sw.thumbTintList = switchThumbColor
+            sw.trackTintList = switchTrackColor
+        }
+
         // Initialize state from AppSettings
         switchAutoplay.isChecked = appSettings.isAutoplayEnabled()
         switchSmartShuffle.isChecked = (smartShuffleState == SmartShuffleState.SMART_SHUFFLE || appSettings.isSmartShuffleEnabled())
