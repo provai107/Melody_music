@@ -3303,6 +3303,10 @@ class MainActivity : AppCompatActivity() {
         val btnArtistSort: Button = view.findViewById(R.id.btnArtistSort)
         val rvArtistAllSongs: RecyclerView = view.findViewById(R.id.rvArtistAllSongs)
 
+        val layoutArtistSeeMore: LinearLayout = view.findViewById(R.id.layoutArtistSeeMore)
+        val pbArtistSeeMoreLoading: ProgressBar = view.findViewById(R.id.pbArtistSeeMoreLoading)
+        val btnArtistSeeMore: Button = view.findViewById(R.id.btnArtistSeeMore)
+
         val layoutArtistAlbumsSection: LinearLayout = view.findViewById(R.id.layoutArtistAlbumsSection)
         val rvArtistAlbums: RecyclerView = view.findViewById(R.id.rvArtistAlbums)
 
@@ -3338,6 +3342,9 @@ class MainActivity : AppCompatActivity() {
         val rawSongs = mutableListOf<Song>()
         val popularSongs = mutableListOf<Song>()
         var currentSortOption = ArtistSortOption.POPULARITY
+        var artistPage = 1
+        var hasMoreArtistSongs = true
+        var resolvedArtistId: String? = artistId
 
         // Follow state
         var isFollowed = playlistDbHelper.isArtistFollowed(stableArtistId)
@@ -3612,21 +3619,74 @@ class MainActivity : AppCompatActivity() {
                     // Populate Discography (All Songs)
                     rawSongs.clear()
                     rawSongs.addAll(tracks)
+                    resolvedArtistId = profile?.id?.takeIf { !it.startsWith("local_") } ?: artistId
 
                     if (rawSongs.isNotEmpty()) {
                         layoutArtistAllSongsSection.visibility = View.VISIBLE
                         tvDiscographyTitle.text = "All Songs (${rawSongs.size})"
                         applySort(currentSortOption)
+
+                        if (tracks.size >= 15) {
+                            layoutArtistSeeMore.visibility = View.VISIBLE
+                            btnArtistSeeMore.visibility = View.VISIBLE
+                            pbArtistSeeMoreLoading.visibility = View.GONE
+                        } else {
+                            layoutArtistSeeMore.visibility = View.GONE
+                        }
                     } else {
                         if (popularSongs.isEmpty()) {
                             tvArtistEmpty.visibility = View.VISIBLE
                         }
                         layoutArtistAllSongsSection.visibility = View.GONE
+                        layoutArtistSeeMore.visibility = View.GONE
                     }
                 } catch (e: Exception) {
                     pbArtistLoading.visibility = View.GONE
                     layoutArtistError.visibility = View.VISIBLE
                     tvArtistError.text = "Failed to load: ${e.message}"
+                }
+            }
+        }
+
+        btnArtistSeeMore.setOnClickListener {
+            if (!hasMoreArtistSongs) return@setOnClickListener
+            btnArtistSeeMore.visibility = View.GONE
+            pbArtistSeeMoreLoading.visibility = View.VISIBLE
+
+            lifecycleScope.launch {
+                try {
+                    artistPage++
+                    val moreTracks = withContext(Dispatchers.IO) {
+                        metadataService.getMoreArtistTracks(
+                            baseUrl = appSettings.getBaseUrl(),
+                            artistId = resolvedArtistId,
+                            artistName = artistName,
+                            page = artistPage,
+                            limit = 50
+                        )
+                    }
+
+                    pbArtistSeeMoreLoading.visibility = View.GONE
+
+                    val existingIds = rawSongs.map { it.id }.toSet()
+                    val newTracks = moreTracks.filter { it.id !in existingIds }
+
+                    if (newTracks.isNotEmpty()) {
+                        rawSongs.addAll(newTracks)
+                        tvDiscographyTitle.text = "All Songs (${rawSongs.size})"
+                        applySort(currentSortOption)
+                    }
+
+                    if (moreTracks.size < 15 || newTracks.isEmpty()) {
+                        hasMoreArtistSongs = false
+                        layoutArtistSeeMore.visibility = View.GONE
+                    } else {
+                        btnArtistSeeMore.visibility = View.VISIBLE
+                    }
+                } catch (e: Exception) {
+                    pbArtistSeeMoreLoading.visibility = View.GONE
+                    btnArtistSeeMore.visibility = View.VISIBLE
+                    Toast.makeText(this@MainActivity, "Failed to load more songs", Toast.LENGTH_SHORT).show()
                 }
             }
         }

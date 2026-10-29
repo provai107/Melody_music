@@ -290,7 +290,16 @@ class MusicMetadataService(
     ): List<Song> = withContext(Dispatchers.IO) {
         val collected = mutableListOf<Song>()
         val seenIds = mutableSetOf<String>()
-        val seenTitles = mutableSetOf<String>()
+
+        var effectiveArtistId = artistId?.trim()
+        if (effectiveArtistId.isNullOrEmpty() || effectiveArtistId.startsWith("local_")) {
+            val searchResults = searchArtists("", artistName)
+            val matched = searchResults.firstOrNull { it.name.equals(artistName, ignoreCase = true) }
+                ?: searchResults.firstOrNull()
+            if (matched != null && matched.id.isNotBlank() && !matched.id.startsWith("local_")) {
+                effectiveArtistId = matched.id
+            }
+        }
 
         // 1. Fetch from search endpoint (provides guaranteed playable media streams)
         val cleanName = artistName.trim()
@@ -298,8 +307,7 @@ class MusicMetadataService(
             when (val searchRes = searchSongs(baseUrl, cleanName, maxRetries = 1)) {
                 is SearchResult.Success -> {
                     for (song in searchRes.songs) {
-                        val normTitle = song.title.lowercase().trim()
-                        if (seenIds.add(song.id) && seenTitles.add(normTitle)) {
+                        if (seenIds.add(song.id)) {
                             collected.add(song)
                         }
                     }
@@ -308,11 +316,10 @@ class MusicMetadataService(
             }
         }
 
-        // 2. Fetch more tracks from provider artist catalog if artistId available
-        val trimmedId = artistId?.trim()
-        if (!trimmedId.isNullOrEmpty() && !trimmedId.startsWith("local_")) {
+        // 2. Fetch more tracks from provider artist catalog if artistId available (up to 50 items)
+        if (!effectiveArtistId.isNullOrEmpty() && !effectiveArtistId.startsWith("local_")) {
             try {
-                val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistMoreSong&artistId=$trimmedId&p=1&n=20"
+                val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistMoreSong&artistId=$effectiveArtistId&p=1&n=50"
                 val request = Request.Builder()
                     .url(url)
                     .header("X-Player-Request-Type", RequestType.METADATA_API.name)
@@ -323,8 +330,7 @@ class MusicMetadataService(
                     val body = response.body?.string() ?: ""
                     val catalogSongs = SearchResponseParser.parseArtistMoreSongs(body)
                     for (song in catalogSongs) {
-                        val normTitle = song.title.lowercase().trim()
-                        if (seenIds.add(song.id) && seenTitles.add(normTitle)) {
+                        if (seenIds.add(song.id)) {
                             collected.add(song)
                         }
                     }
@@ -333,6 +339,68 @@ class MusicMetadataService(
         }
 
         ArtistSongSorter.sort(collected, sort)
+    }
+
+    suspend fun getMoreArtistTracks(
+        baseUrl: String,
+        artistId: String?,
+        artistName: String,
+        page: Int,
+        limit: Int = 50
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val collected = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+
+        var effectiveArtistId = artistId?.trim()
+        if (effectiveArtistId.isNullOrEmpty() || effectiveArtistId.startsWith("local_")) {
+            val searchResults = searchArtists("", artistName)
+            val matched = searchResults.firstOrNull { it.name.equals(artistName, ignoreCase = true) }
+                ?: searchResults.firstOrNull()
+            if (matched != null && matched.id.isNotBlank() && !matched.id.startsWith("local_")) {
+                effectiveArtistId = matched.id
+            }
+        }
+
+        if (!effectiveArtistId.isNullOrEmpty() && !effectiveArtistId.startsWith("local_")) {
+            try {
+                val url = "$JIOSAAVN_API_BASE&__call=artist.getArtistMoreSong&artistId=$effectiveArtistId&p=$page&n=$limit"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    val catalogSongs = SearchResponseParser.parseArtistMoreSongs(body)
+                    for (song in catalogSongs) {
+                        if (seenIds.add(song.id)) {
+                            collected.add(song)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Secondary fallback search if catalog is unavailable for subsequent page
+        if (collected.isEmpty() && page > 1) {
+            val cleanName = artistName.trim()
+            if (cleanName.isNotEmpty()) {
+                val query = "$cleanName songs $page"
+                when (val searchRes = searchSongs(baseUrl, query, maxRetries = 1)) {
+                    is SearchResult.Success -> {
+                        for (song in searchRes.songs) {
+                            if (seenIds.add(song.id)) {
+                                collected.add(song)
+                            }
+                        }
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+        collected
     }
 
     data class MetadataQueryResult(

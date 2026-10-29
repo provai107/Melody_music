@@ -197,4 +197,117 @@ class MusicRecommendationEngineTest {
         assertThat(dbHelper.getNotInterestedSongIds()).isEmpty()
         assertThat(dbHelper.getNotInterestedArtists()).isEmpty()
     }
+
+    @Test
+    fun testAntiRepetitionRejectsDerivativeAndIdenticalTitles() {
+        val seed = Song(
+            id = "seed_1",
+            title = "Apna Bana Le",
+            artists = "Arijit Singh",
+            album = "Bhediya",
+            imageUrl = null,
+            durationSec = 260,
+            mediaUrl = "https://aac.saavncdn.com/seed.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null
+        )
+
+        val candRemix = Song("r1", "Apna Bana Le (Remix)", "Arijit Singh, Sachin-Jigar", "Bhediya", null, 240, "https://aac.saavncdn.com/r1.mp3", null, null)
+        val candAcoustic = Song("r2", "Apna Bana Le - Acoustic Version", "Arijit Singh", "Acoustic Hits", null, 250, "https://aac.saavncdn.com/r2.mp3", null, null)
+        val candLyrical = Song("r3", "Apna Bana Le [Lyrical Video]", "Arijit Singh", "Bhediya", null, 260, "https://aac.saavncdn.com/r3.mp3", null, null)
+        val candSameNameDiffId = Song("r4", "Apna Bana Le", "Arijit Singh", "Top Hits 2023", null, 260, "https://aac.saavncdn.com/r4.mp3", null, null)
+        val candFreshSong = Song("f1", "Kesariya", "Arijit Singh", "Brahmastra", null, 270, "https://aac.saavncdn.com/f1.mp3", null, null)
+
+        val candidates = listOf(candRemix, candAcoustic, candLyrical, candSameNameDiffId, candFreshSong)
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = candidates,
+            excludeSongIds = emptySet(),
+            excludeTitles = emptySet(),
+            likedIds = emptySet(),
+            skippedIds = emptySet(),
+            artistPlayCounts = emptyMap(),
+            limit = 10
+        )
+
+        // Only Kesariya must survive; all Apna Bana Le versions must be strictly rejected
+        assertThat(ranked).hasSize(1)
+        assertThat(ranked.first().id).isEqualTo("f1")
+        assertThat(ranked.first().title).isEqualTo("Kesariya")
+    }
+
+    @Test
+    fun testExcludeTitlesFiltersQueuedSongs() {
+        val seed = Song("s1", "Ilahi", "Arijit Singh", "YJHD", null, 200, "https://aac.saavncdn.com/s1.mp3", null, null)
+
+        val candInQueue = Song("c1", "Tum Hi Ho (From Aashiqui 2)", "Arijit Singh", "Aashiqui 2", null, 260, "https://aac.saavncdn.com/c1.mp3", null, null)
+        val candNotInQueue = Song("c2", "Raabta", "Arijit Singh", "Agent Vinod", null, 240, "https://aac.saavncdn.com/c2.mp3", null, null)
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = listOf(candInQueue, candNotInQueue),
+            excludeSongIds = emptySet(),
+            excludeTitles = setOf("Tum Hi Ho"),
+            likedIds = emptySet(),
+            skippedIds = emptySet()
+        )
+
+        assertThat(ranked).hasSize(1)
+        assertThat(ranked.first().id).isEqualTo("c2")
+        assertThat(ranked.first().title).isEqualTo("Raabta")
+    }
+
+    @Test
+    fun testSameGenreAndEraAffinityScoring() {
+        // Bollywood Romantic Song from 2022
+        val seed = Song(
+            id = "s_era",
+            title = "Kesariya",
+            artists = "Arijit Singh, Pritam",
+            album = "Brahmastra",
+            imageUrl = null,
+            durationSec = 268,
+            mediaUrl = "https://aac.saavncdn.com/kes.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "2022"
+        )
+
+        // Matching genre (Bollywood romantic) and matching era (2021)
+        val candSameEraGenre = Song(
+            id = "cand_close",
+            title = "Rataan Lambiyan",
+            artists = "Jubin Nautiyal, Tanishk Bagchi",
+            album = "Shershaah",
+            imageUrl = null,
+            durationSec = 230,
+            mediaUrl = "https://aac.saavncdn.com/close.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "2021"
+        )
+
+        // Distant era (1985) and non-matching genre (Classical)
+        val candDistant = Song(
+            id = "cand_distant",
+            title = "Classical Concerto Symphony",
+            artists = "Orchestra",
+            album = "Symphony Collection",
+            imageUrl = null,
+            durationSec = 300,
+            mediaUrl = "https://aac.saavncdn.com/dist.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "1985"
+        )
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = listOf(candDistant, candSameEraGenre),
+            excludeSongIds = emptySet()
+        )
+
+        assertThat(ranked.first().id).isEqualTo("cand_close")
+    }
 }

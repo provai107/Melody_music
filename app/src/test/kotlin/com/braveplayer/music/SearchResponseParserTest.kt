@@ -158,4 +158,50 @@ class SearchResponseParserTest {
         assertThat(song.formattedDuration).isEqualTo("--:--")
         assertThat(song.getBestPlaybackUrl()).isNull()
     }
+
+    @Test
+    fun testParseArtistMoreSongsHandlesMultipleShapes() {
+        val jsonTopSongs = """
+        {
+          "topSongs": {
+            "songs": [
+              {
+                "id": "track_101",
+                "title": "Gerua",
+                "album": "Dilwale",
+                "artistMap": { "primary_artists": [{ "name": "Arijit Singh" }] },
+                "media_url": "https://aac.saavncdn.com/101.mp4",
+                "year": "2015"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val parsed = SearchResponseParser.parseArtistMoreSongs(jsonTopSongs)
+        assertThat(parsed).hasSize(1)
+        assertThat(parsed[0].id).isEqualTo("track_101")
+        assertThat(parsed[0].title).isEqualTo("Gerua")
+        assertThat(parsed[0].artists).isEqualTo("Arijit Singh")
+        assertThat(parsed[0].year).isEqualTo("2015")
+
+        val jsonDirectArray = """
+        [
+          {
+            "id": "track_102",
+            "title": "Zaalima",
+            "album": "Raees",
+            "subtitle": "Arijit Singh",
+            "media_url": "https://aac.saavncdn.com/102.mp4",
+            "year": "2017"
+          }
+        ]
+        """.trimIndent()
+
+        val parsedArray = SearchResponseParser.parseArtistMoreSongs(jsonDirectArray)
+        assertThat(parsedArray).hasSize(1)
+        assertThat(parsedArray[0].id).isEqualTo("track_102")
+        assertThat(parsedArray[0].title).isEqualTo("Zaalima")
+        assertThat(parsedArray[0].year).isEqualTo("2017")
+    }
 }

@@ -309,6 +309,9 @@ class PlaybackService : MediaSessionService() {
                 val hiddenIds = playlistDbHelper.getHiddenSongIds()
                 val notInterestedIds = playlistDbHelper.getNotInterestedSongIds()
                 val currentQueueIds = (0 until totalCount).map { exoPlayer.getMediaItemAt(it).mediaId }.toSet()
+                val currentQueueTitles = (0 until totalCount).mapNotNull {
+                    exoPlayer.getMediaItemAt(it).mediaMetadata.title?.toString()
+                }.toSet()
                 val strictExcludeIds = (currentQueueIds + failedTrackIds + hiddenIds + notInterestedIds).toSet()
                 val baseUrl = appSettings.getBaseUrl()
 
@@ -321,6 +324,7 @@ class PlaybackService : MediaSessionService() {
                             baseUrl = baseUrl,
                             seedSong = seedSong,
                             excludeSongIds = strictExcludeIds + recentExtendedIds,
+                            excludeTitles = currentQueueTitles,
                             limit = 8,
                             personalizationEnabled = appSettings.isPersonalizationEnabled(),
                             avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
@@ -362,7 +366,9 @@ class PlaybackService : MediaSessionService() {
                                 val valid = songs.filter {
                                     it.id !in strictExcludeIds &&
                                     it.id !in recentExtendedIds &&
-                                    it.id !in candidates.map { c -> c.id }
+                                    it.id !in candidates.map { c -> c.id } &&
+                                    !MusicRecommendationEngine.areTitlesTooSimilar(it.title, seedSong.title) &&
+                                    !currentQueueTitles.any { q -> MusicRecommendationEngine.areTitlesTooSimilar(it.title, q) }
                                 }
                                 candidates.addAll(valid)
                             }
@@ -379,7 +385,9 @@ class PlaybackService : MediaSessionService() {
                                 val songs = recommendationEngine.fetchCandidateSongs(baseUrl, query)
                                 val valid = songs.filter {
                                     it.id !in strictExcludeIds &&
-                                    it.id !in candidates.map { c -> c.id }
+                                    it.id !in candidates.map { c -> c.id } &&
+                                    !MusicRecommendationEngine.areTitlesTooSimilar(it.title, seedSong.title) &&
+                                    !currentQueueTitles.any { q -> MusicRecommendationEngine.areTitlesTooSimilar(it.title, q) }
                                 }
                                 candidates.addAll(valid)
                             }

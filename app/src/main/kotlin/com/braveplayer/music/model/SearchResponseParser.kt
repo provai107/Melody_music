@@ -320,9 +320,29 @@ object SearchResponseParser {
 
         val results = mutableListOf<Song>()
         try {
+            if (trimmed.startsWith("[")) {
+                val array = JSONArray(trimmed)
+                for (i in 0 until array.length()) {
+                    val songObj = array.optJSONObject(i)
+                    if (songObj != null) {
+                        parseSongObject(songObj)?.let { results.add(it) }
+                    }
+                }
+                return results
+            }
+
             val root = JSONObject(trimmed)
             val topSongsObj = root.optJSONObject("topSongs")
-            val array = topSongsObj?.optJSONArray("songs") ?: root.optJSONArray("topSongs") ?: root.optJSONArray("results")
+            val dataObj = root.optJSONObject("data")
+            val array = topSongsObj?.optJSONArray("songs")
+                ?: topSongsObj?.optJSONArray("results")
+                ?: root.optJSONArray("topSongs")
+                ?: root.optJSONArray("songs")
+                ?: root.optJSONArray("results")
+                ?: root.optJSONArray("data")
+                ?: dataObj?.optJSONArray("songs")
+                ?: dataObj?.optJSONArray("results")
+
             if (array != null) {
                 for (i in 0 until array.length()) {
                     val songObj = array.optJSONObject(i)

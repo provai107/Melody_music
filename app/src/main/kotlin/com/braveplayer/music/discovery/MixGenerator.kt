@@ -71,6 +71,7 @@ class MixGenerator(
                 baseUrl = baseUrl,
                 seedSong = seed,
                 excludeSongIds = seenIds,
+                excludeTitles = resultSongs.map { it.title }.toSet(),
                 limit = limit - resultSongs.size
             )
             for (rec in recs) {

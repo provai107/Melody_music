@@ -337,6 +337,38 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false" />
+
+                    <!-- See More Songs Section -->
+                    <LinearLayout
+                        android:id="@+id/layoutArtistSeeMore"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="8dp"
+                        android:visibility="gone">
+
+                        <ProgressBar
+                            android:id="@+id/pbArtistSeeMoreLoading"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:indeterminateTint="@color/accentPrimary"
+                            android:visibility="gone" />
+
+                        <Button
+                            android:id="@+id/btnArtistSeeMore"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:fontFamily="sans-serif-bold"
+                            android:paddingStart="24dp"
+                            android:paddingEnd="24dp"
+                            android:text="See More Songs"
+                            android:textColor="@color/accentPrimary"
+                            android:textSize="13sp"
+                            app:strokeColor="@color/borderSubtle" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <!-- SECTION 3: Albums & Singles (Horizontal) -->

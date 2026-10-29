@@ -555,7 +555,17 @@ class CentralizedPlaybackController(
                     manualQueue.forEach { add(it.song.id) }
                     activeContextTracks.forEach { add(it.song.id) }
                     autoplayQueue.forEach { add(it.song.id) }
+                    playbackHistory.forEach { add(it.song.id) }
                     addAll(failedSongIdsInSession)
+                }
+
+                val currentQueueTitles = buildSet {
+                    currentItem?.let { add(it.song.title) }
+                    playNextQueue.forEach { add(it.song.title) }
+                    manualQueue.forEach { add(it.song.title) }
+                    activeContextTracks.forEach { add(it.song.title) }
+                    autoplayQueue.forEach { add(it.song.title) }
+                    playbackHistory.forEach { add(it.song.title) }
                 }
 
                 val recs = withContext(Dispatchers.IO) {
@@ -563,6 +573,7 @@ class CentralizedPlaybackController(
                         baseUrl = baseUrl,
                         seedSong = seed,
                         excludeSongIds = currentQueueSongIds + recentRecommendedSongIds,
+                        excludeTitles = currentQueueTitles,
                         limit = 6,
                         personalizationEnabled = appSettings.isPersonalizationEnabled(),
                         avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
