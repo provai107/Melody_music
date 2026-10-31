@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
 import com.braveplayer.music.model.ReleaseItem
+import com.braveplayer.music.model.SearchResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -88,12 +89,12 @@ class LatestReleasesSheetAdapter(
             tvBadge.text = item.releaseTag
 
             val url = item.imageUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = sheetImageCache.get(url)
                 if (cached != null) {
                     ivCover.setImageBitmap(cached)
                 } else {
-                    ivCover.setImageResource(R.drawable.ic_music_note)
+                    ivCover.setImageResource(R.drawable.ic_melody_logo)
                     imageJob = scope.launch(Dispatchers.IO) {
                         try {
                             val request = Request.Builder().url(url).build()
@@ -109,14 +110,20 @@ class LatestReleasesSheetAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    ivCover.setImageResource(R.drawable.ic_melody_logo)
+                                }
                             }
                         } catch (_: Exception) {
-                            // Keep placeholder
+                            withContext(Dispatchers.Main) {
+                                ivCover.setImageResource(R.drawable.ic_melody_logo)
+                            }
                         }
                     }
                 }
             } else {
-                ivCover.setImageResource(R.drawable.ic_music_note)
+                ivCover.setImageResource(R.drawable.ic_melody_logo)
             }
 
             itemView.setOnClickListener { onReleaseClicked(item) }

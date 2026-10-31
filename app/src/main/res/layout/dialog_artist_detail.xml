@@ -108,7 +108,7 @@
                             android:layout_height="match_parent"
                             android:contentDescription="Artist Portrait"
                             android:scaleType="centerCrop"
-                            android:src="@drawable/ic_music_note" />
+                            android:src="@drawable/ic_melody_logo" />
                     </androidx.cardview.widget.CardView>
 
                     <!-- Verified Badge Row (Shown only if verified by provider) -->

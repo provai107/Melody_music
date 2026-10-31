@@ -96,6 +96,7 @@ import com.braveplayer.music.model.ArtistProfile
 import com.braveplayer.music.model.ArtistSearchResult
 import com.braveplayer.music.model.ArtistSortOption
 import com.braveplayer.music.model.ArtistSongSorter
+import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.ui.ArtistSearchAdapter
 import com.braveplayer.music.ui.ArtistSongAdapter
 import com.braveplayer.music.ui.ArtistAlbumAdapter
@@ -235,6 +236,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutError: LinearLayout
     private lateinit var tvErrorMessage: TextView
     private lateinit var btnRetrySearch: Button
+    private lateinit var tvSongsResultHeader: TextView
     private lateinit var rvSearchResults: RecyclerView
     private lateinit var layoutSearchResultsContent: View
     private lateinit var layoutSearchArtistsSection: View
@@ -242,6 +244,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var artistSearchAdapter: ArtistSearchAdapter
 
     // Explore: Movie Soundtrack Card
+    private lateinit var tvMovieSoundtrackHeader: TextView
     private lateinit var cardSearchMovieSoundtrack: View
     private lateinit var ivMovieSoundtrackPoster: ImageView
     private lateinit var tvMovieSoundtrackTitle: TextView
@@ -490,12 +493,14 @@ class MainActivity : AppCompatActivity() {
         layoutError = findViewById(R.id.layoutError)
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetrySearch = findViewById(R.id.btnRetrySearch)
+        tvSongsResultHeader = findViewById(R.id.tvSongsResultHeader)
         rvSearchResults = findViewById(R.id.rvSearchResults)
         layoutSearchResultsContent = findViewById(R.id.layoutSearchResultsContent)
         layoutSearchArtistsSection = findViewById(R.id.layoutSearchArtistsSection)
         rvSearchArtists = findViewById(R.id.rvSearchArtists)
 
         // Explore: Movie Soundtrack Card
+        tvMovieSoundtrackHeader = findViewById(R.id.tvMovieSoundtrackHeader)
         cardSearchMovieSoundtrack = findViewById(R.id.cardSearchMovieSoundtrack)
         ivMovieSoundtrackPoster = findViewById(R.id.ivMovieSoundtrackPoster)
         tvMovieSoundtrackTitle = findViewById(R.id.tvMovieSoundtrackTitle)
@@ -835,6 +840,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_search -> {
                     if (layoutSearchResultsContainer.visibility == View.VISIBLE) {
+                        (layoutSearchResultsContent as? androidx.core.widget.NestedScrollView)?.smoothScrollTo(0, 0)
                         rvSearchResults.smoothScrollToPosition(0)
                     } else {
                         (layoutExploreDiscovery as? androidx.core.widget.NestedScrollView)?.smoothScrollTo(0, 0)
@@ -1322,8 +1328,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadArtwork(url: String?, target: ImageView) {
-        if (url.isNullOrBlank()) {
-            target.setImageResource(R.drawable.ic_music_note)
+        if (url.isNullOrBlank() || SearchResponseParser.isJioSaavnPlaceholder(url)) {
+            target.setImageResource(R.drawable.ic_melody_logo)
             return
         }
         val cached = coverImageCache.get(url)
@@ -1331,7 +1337,7 @@ class MainActivity : AppCompatActivity() {
             target.setImageBitmap(cached)
             return
         }
-        target.setImageResource(R.drawable.ic_music_note)
+        target.setImageResource(R.drawable.ic_melody_logo)
         lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
                 try {
@@ -1348,6 +1354,8 @@ class MainActivity : AppCompatActivity() {
             if (bitmap != null) {
                 coverImageCache.put(url, bitmap)
                 target.setImageBitmap(bitmap)
+            } else {
+                target.setImageResource(R.drawable.ic_melody_logo)
             }
         }
     }
@@ -1680,6 +1688,12 @@ class MainActivity : AppCompatActivity() {
             when (result) {
                 is SearchResult.Success -> {
                     searchAdapter.submitList(result.songs)
+                    val hasSongs = result.songs.isNotEmpty()
+                    if (::tvSongsResultHeader.isInitialized) {
+                        tvSongsResultHeader.visibility = if (hasSongs) View.VISIBLE else View.GONE
+                    }
+                    rvSearchResults.visibility = if (hasSongs) View.VISIBLE else View.GONE
+
                     val ost = result.movieSoundtrack
                     currentMovieSoundtrack = ost
                     if (ost != null && ost.songs.isNotEmpty()) {
@@ -1687,8 +1701,8 @@ class MainActivity : AppCompatActivity() {
                         val yearPrefix = ost.year?.let { "$it • " }.orEmpty()
                         tvMovieSoundtrackSubtitle.text = "$yearPrefix${ost.songs.size} Songs • Complete Soundtrack"
                         val poster = ost.imageUrl
-                        ivMovieSoundtrackPoster.setImageResource(R.drawable.ic_music_note)
-                        if (!poster.isNullOrBlank()) {
+                        ivMovieSoundtrackPoster.setImageResource(R.drawable.ic_melody_logo)
+                        if (!poster.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(poster)) {
                             lifecycleScope.launch {
                                 val bmp = withContext(Dispatchers.IO) {
                                     try {
@@ -1702,19 +1716,39 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 if (bmp != null) {
                                     ivMovieSoundtrackPoster.setImageBitmap(bmp)
+                                } else {
+                                    ivMovieSoundtrackPoster.setImageResource(R.drawable.ic_melody_logo)
                                 }
                             }
                         }
                         cardSearchMovieSoundtrack.visibility = View.VISIBLE
+                        if (::tvMovieSoundtrackHeader.isInitialized) {
+                            tvMovieSoundtrackHeader.visibility = View.VISIBLE
+                        }
                     } else {
                         cardSearchMovieSoundtrack.visibility = View.GONE
+                        if (::tvMovieSoundtrackHeader.isInitialized) {
+                            tvMovieSoundtrackHeader.visibility = View.GONE
+                        }
                     }
-                    showSearchState(SearchState.RESULTS)
+                    if (hasSongs || ost != null || hasArtists) {
+                        showSearchState(SearchState.RESULTS)
+                    } else {
+                        tvEmptyResults.text = "No results found for \"$trimmed\""
+                        showSearchState(SearchState.EMPTY)
+                    }
                 }
                 is SearchResult.Empty -> {
                     searchAdapter.submitList(emptyList())
+                    if (::tvSongsResultHeader.isInitialized) {
+                        tvSongsResultHeader.visibility = View.GONE
+                    }
+                    rvSearchResults.visibility = View.GONE
                     currentMovieSoundtrack = null
                     cardSearchMovieSoundtrack.visibility = View.GONE
+                    if (::tvMovieSoundtrackHeader.isInitialized) {
+                        tvMovieSoundtrackHeader.visibility = View.GONE
+                    }
                     if (hasArtists) {
                         showSearchState(SearchState.RESULTS)
                     } else {
@@ -1724,8 +1758,15 @@ class MainActivity : AppCompatActivity() {
                 }
                 is SearchResult.Error -> {
                     searchAdapter.submitList(emptyList())
+                    if (::tvSongsResultHeader.isInitialized) {
+                        tvSongsResultHeader.visibility = View.GONE
+                    }
+                    rvSearchResults.visibility = View.GONE
                     currentMovieSoundtrack = null
                     cardSearchMovieSoundtrack.visibility = View.GONE
+                    if (::tvMovieSoundtrackHeader.isInitialized) {
+                        tvMovieSoundtrackHeader.visibility = View.GONE
+                    }
                     if (hasArtists) {
                         showSearchState(SearchState.RESULTS)
                     } else {
@@ -1821,6 +1862,12 @@ class MainActivity : AppCompatActivity() {
             if (::cardSearchMovieSoundtrack.isInitialized) {
                 cardSearchMovieSoundtrack.visibility = View.GONE
             }
+            if (::tvMovieSoundtrackHeader.isInitialized) {
+                tvMovieSoundtrackHeader.visibility = View.GONE
+            }
+            if (::tvSongsResultHeader.isInitialized) {
+                tvSongsResultHeader.visibility = View.GONE
+            }
         } else {
             layoutExploreDiscovery.visibility = View.GONE
             layoutSearchResultsContainer.visibility = View.VISIBLE
@@ -1829,8 +1876,16 @@ class MainActivity : AppCompatActivity() {
             layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
             layoutSearchResultsContent.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
             rvSearchResults.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
-            if (state != SearchState.RESULTS && ::cardSearchMovieSoundtrack.isInitialized) {
-                cardSearchMovieSoundtrack.visibility = View.GONE
+            if (state != SearchState.RESULTS) {
+                if (::cardSearchMovieSoundtrack.isInitialized) {
+                    cardSearchMovieSoundtrack.visibility = View.GONE
+                }
+                if (::tvMovieSoundtrackHeader.isInitialized) {
+                    tvMovieSoundtrackHeader.visibility = View.GONE
+                }
+                if (::tvSongsResultHeader.isInitialized) {
+                    tvSongsResultHeader.visibility = View.GONE
+                }
             }
         }
     }
@@ -1990,7 +2045,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             tvContinueTitle.text = "Ready to listen"
             tvContinueArtist.text = "Discover mixes, trending hits, and genres in Melody"
-            ivContinueCover.setImageResource(R.drawable.ic_music_note)
+            ivContinueCover.setImageResource(R.drawable.ic_melody_logo)
         }
     }
 
@@ -3615,8 +3670,10 @@ class MainActivity : AppCompatActivity() {
         // Immediately resolve and load consistent artist portrait to prevent flicker/mismatch
         val resolvedInitialImage = initialImageUrl
             ?: com.braveplayer.music.discovery.GenrePersonalizationEngine.getCanonicalArtistImage(artistName)
-        if (!resolvedInitialImage.isNullOrBlank()) {
+        if (!resolvedInitialImage.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(resolvedInitialImage)) {
             loadArtwork(resolvedInitialImage, ivArtistPortrait)
+        } else {
+            ivArtistPortrait.setImageResource(R.drawable.ic_melody_logo)
         }
 
         val layoutArtistVerifiedBadge: LinearLayout = view.findViewById(R.id.layoutArtistVerifiedBadge)
@@ -3898,9 +3955,11 @@ class MainActivity : AppCompatActivity() {
 
                     // Populate Profile info
                     if (profile != null) {
-                        val finalImage = profile.imageUrl?.takeIf { it.isNotBlank() } ?: resolvedInitialImage
-                        if (!finalImage.isNullOrBlank()) {
+                        val finalImage = profile.imageUrl?.takeIf { it.isNotBlank() && !SearchResponseParser.isJioSaavnPlaceholder(it) } ?: resolvedInitialImage
+                        if (!finalImage.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(finalImage)) {
                             loadArtwork(finalImage, ivArtistPortrait)
+                        } else {
+                            ivArtistPortrait.setImageResource(R.drawable.ic_melody_logo)
                         }
                         layoutArtistVerifiedBadge.visibility = if (profile.isVerified) View.VISIBLE else View.GONE
 

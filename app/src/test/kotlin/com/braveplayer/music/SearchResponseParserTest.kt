@@ -288,4 +288,29 @@ class SearchResponseParserTest {
         assertThat(song.mediaUrlDefault).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_160.mp4")
         assertThat(song.getBestPlaybackUrl()).isEqualTo("https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_160.mp4")
     }
+
+    @Test
+    fun testJioSaavnPlaceholderDetectionAndFiltering() {
+        val placeholderUrls = listOf(
+            "https://www.jiosaavn.com/_i/3.0/artist-default-music.png",
+            "https://www.jiosaavn.com/_i/3.0/artist-default-film.png",
+            "https://c.saavncdn.com/_i/3.0/album-default.png",
+            "https://c.saavncdn.com/default_artist.jpg",
+            "https://c.saavncdn.com/default-avatar.png",
+            "https://c.saavncdn.com/default_album.png",
+            "https://c.saavncdn.com/no-image.jpg",
+            "https://c.saavncdn.com/placeholder.png",
+            "",
+            "   "
+        )
+        for (url in placeholderUrls) {
+            assertThat(SearchResponseParser.isJioSaavnPlaceholder(url)).isTrue()
+            assertThat(SearchResponseParser.upgradeArtworkResolution(url)).isNull()
+        }
+
+        val validUrl = "https://c.saavncdn.com/750/Ek-Tarfa-150x150.jpg"
+        assertThat(SearchResponseParser.isJioSaavnPlaceholder(validUrl)).isFalse()
+        assertThat(SearchResponseParser.upgradeArtworkResolution(validUrl))
+            .isEqualTo("https://c.saavncdn.com/750/Ek-Tarfa-500x500.jpg")
+    }
 }

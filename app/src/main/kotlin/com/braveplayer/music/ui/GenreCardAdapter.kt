@@ -13,6 +13,7 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
 import com.braveplayer.music.model.GenreCardTheme
+import com.braveplayer.music.model.SearchResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -82,12 +83,12 @@ class GenreCardAdapter(
 
             // Load artwork into tilted card
             val url = item.artworkUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = genreImageCache.get(url)
                 if (cached != null) {
                     ivArtwork.setImageBitmap(cached)
                 } else {
-                    ivArtwork.setImageResource(R.drawable.ic_music_note)
+                    ivArtwork.setImageResource(R.drawable.ic_melody_logo)
                     imageLoadJob = scope.launch(Dispatchers.IO) {
                         try {
                             val request = Request.Builder().url(url).build()
@@ -103,14 +104,20 @@ class GenreCardAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    ivArtwork.setImageResource(R.drawable.ic_melody_logo)
+                                }
                             }
                         } catch (_: Exception) {
-                            // Fallback image remains
+                            withContext(Dispatchers.Main) {
+                                ivArtwork.setImageResource(R.drawable.ic_melody_logo)
+                            }
                         }
                     }
                 }
             } else {
-                ivArtwork.setImageResource(R.drawable.ic_music_note)
+                ivArtwork.setImageResource(R.drawable.ic_melody_logo)
             }
 
             itemView.setOnClickListener {

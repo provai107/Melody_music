@@ -26,7 +26,7 @@
                 android:layout_height="match_parent"
                 android:contentDescription="Artwork"
                 android:scaleType="centerCrop"
-                android:src="@drawable/ic_music_note" />
+                android:src="@drawable/ic_melody_logo" />
         </androidx.cardview.widget.CardView>
 
         <!-- Play Circle Overlay Button (Bottom-Right) -->

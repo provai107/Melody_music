@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
+import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -120,22 +121,24 @@ class SongAdapter(
             // Cover Image Loading with cache
             imageLoadJob?.cancel()
             val imageUrl = song.imageUrl
-            if (!imageUrl.isNullOrBlank()) {
+            if (!imageUrl.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(imageUrl)) {
                 val cached = imageCache.get(imageUrl)
                 if (cached != null) {
                     ivCover.setImageBitmap(cached)
                 } else {
-                    ivCover.setImageResource(R.drawable.ic_music_note)
+                    ivCover.setImageResource(R.drawable.ic_melody_logo)
                     imageLoadJob = scope.launch {
                         val bitmap = fetchBitmap(imageUrl)
                         if (bitmap != null) {
                             imageCache.put(imageUrl, bitmap)
                             ivCover.setImageBitmap(bitmap)
+                        } else {
+                            ivCover.setImageResource(R.drawable.ic_melody_logo)
                         }
                     }
                 }
             } else {
-                ivCover.setImageResource(R.drawable.ic_music_note)
+                ivCover.setImageResource(R.drawable.ic_melody_logo)
             }
         }
 

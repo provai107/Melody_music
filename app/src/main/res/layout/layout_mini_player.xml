@@ -39,7 +39,7 @@
                 android:layout_height="match_parent"
                 android:contentDescription="Mini Album Cover"
                 android:scaleType="centerCrop"
-                android:src="@drawable/ic_music_note" />
+                android:src="@drawable/ic_melody_logo" />
         </androidx.cardview.widget.CardView>
 
         <!-- Title & Artist Column -->

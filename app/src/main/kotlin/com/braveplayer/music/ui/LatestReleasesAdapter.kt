@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
 import com.braveplayer.music.model.ReleaseItem
+import com.braveplayer.music.model.SearchResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -86,12 +87,12 @@ class LatestReleasesAdapter(
             itemView.contentDescription = "Release ${item.title} by ${item.artists}"
 
             val url = item.imageUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = releaseImageCache.get(url)
                 if (cached != null) {
                     ivCover.setImageBitmap(cached)
                 } else {
-                    ivCover.setImageResource(R.drawable.ic_music_note)
+                    ivCover.setImageResource(R.drawable.ic_melody_logo)
                     imageLoadJob = scope.launch(Dispatchers.IO) {
                         try {
                             val request = Request.Builder().url(url).build()
@@ -107,14 +108,20 @@ class LatestReleasesAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    ivCover.setImageResource(R.drawable.ic_melody_logo)
+                                }
                             }
                         } catch (_: Exception) {
-                            // Leave placeholder
+                            withContext(Dispatchers.Main) {
+                                ivCover.setImageResource(R.drawable.ic_melody_logo)
+                            }
                         }
                     }
                 }
             } else {
-                ivCover.setImageResource(R.drawable.ic_music_note)
+                ivCover.setImageResource(R.drawable.ic_melody_logo)
             }
 
             itemView.setOnClickListener {

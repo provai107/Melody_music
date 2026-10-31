@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
+import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.playlist.SearchHistoryItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,9 +73,9 @@ class RecentSearchAdapter(
             ivThumb.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
 
             // Load thumbnail
-            ivThumb.setImageResource(R.drawable.ic_music_note)
+            ivThumb.setImageResource(R.drawable.ic_melody_logo)
             val url = item.imageUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = imageCache.get(url)
                 if (cached != null) {
                     ivThumb.setImageBitmap(cached)
@@ -97,9 +98,19 @@ class RecentSearchAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    if (ivThumb.tag == url) {
+                                        ivThumb.setImageResource(R.drawable.ic_melody_logo)
+                                    }
+                                }
                             }
                         } catch (_: Exception) {
-                            // Fallback remains ic_music_note
+                            withContext(Dispatchers.Main) {
+                                if (ivThumb.tag == url) {
+                                    ivThumb.setImageResource(R.drawable.ic_melody_logo)
+                                }
+                            }
                         }
                     }
                 }

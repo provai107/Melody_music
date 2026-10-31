@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
 import com.braveplayer.music.model.ArtistProfile
+import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.model.Song
 import com.braveplayer.music.util.ArtistClickHelper
 import kotlinx.coroutines.CoroutineScope
@@ -133,12 +134,12 @@ class ArtistSongAdapter(
 
             // Image loading
             val url = song.imageUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = imageCache.get(url)
                 if (cached != null) {
                     ivCover.setImageBitmap(cached)
                 } else {
-                    ivCover.setImageResource(R.drawable.ic_music_note)
+                    ivCover.setImageResource(R.drawable.ic_melody_logo)
                     imageJob = scope.launch(Dispatchers.IO) {
                         try {
                             val request = Request.Builder().url(url).build()
@@ -154,12 +155,20 @@ class ArtistSongAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    ivCover.setImageResource(R.drawable.ic_melody_logo)
+                                }
                             }
-                        } catch (_: Exception) {}
+                        } catch (_: Exception) {
+                            withContext(Dispatchers.Main) {
+                                ivCover.setImageResource(R.drawable.ic_melody_logo)
+                            }
+                        }
                     }
                 }
             } else {
-                ivCover.setImageResource(R.drawable.ic_music_note)
+                ivCover.setImageResource(R.drawable.ic_melody_logo)
             }
         }
 

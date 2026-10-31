@@ -249,8 +249,41 @@ object SearchResponseParser {
             .trim()
     }
 
+    fun isJioSaavnPlaceholder(url: String?): Boolean {
+        if (url.isNullOrBlank()) return true
+        val lower = url.lowercase()
+        return lower.contains("artist-default") ||
+               lower.contains("album-default") ||
+               lower.contains("playlist-default") ||
+               lower.contains("default-music") ||
+               lower.contains("default-film") ||
+               lower.contains("default_artist") ||
+               lower.contains("default_album") ||
+               lower.contains("default_film") ||
+               lower.contains("default-avatar") ||
+               lower.contains("default_avatar") ||
+               lower.contains("default-track") ||
+               lower.contains("default_track") ||
+               lower.contains("default-song") ||
+               lower.contains("default_song") ||
+               lower.contains("default-actor") ||
+               lower.contains("default_actor") ||
+               lower.contains("default-star") ||
+               lower.contains("default_star") ||
+               lower.contains("/_i/") ||
+               lower.contains("default.png") ||
+               lower.contains("default.jpg") ||
+               lower.contains("default.jpeg") ||
+               lower.contains("default.webp") ||
+               lower.contains("no-image") ||
+               lower.contains("no_image") ||
+               lower.contains("empty-art") ||
+               lower.contains("empty_art") ||
+               lower.contains("placeholder")
+    }
+
     fun upgradeArtworkResolution(url: String?): String? {
-        if (url.isNullOrBlank()) return null
+        if (url.isNullOrBlank() || isJioSaavnPlaceholder(url)) return null
         return url.replace("50x50", "500x500")
             .replace("150x150", "500x500")
     }

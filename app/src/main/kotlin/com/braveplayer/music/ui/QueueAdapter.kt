@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
+import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.player.QueueItem
 import com.braveplayer.music.player.QueueOrigin
 import com.braveplayer.music.player.QueueSnapshot
@@ -360,8 +361,8 @@ class QueueAdapter(
         }
 
         private fun loadThumbnail(url: String?) {
-            ivCover.setImageResource(R.drawable.ic_music_note)
-            if (url.isNullOrBlank()) return
+            ivCover.setImageResource(R.drawable.ic_melody_logo)
+            if (url.isNullOrBlank() || SearchResponseParser.isJioSaavnPlaceholder(url)) return
 
             val cached = queueThumbCache.get(url)
             if (cached != null) {
@@ -374,6 +375,8 @@ class QueueAdapter(
                 if (bitmap != null) {
                     queueThumbCache.put(url, bitmap)
                     ivCover.setImageBitmap(bitmap)
+                } else {
+                    ivCover.setImageResource(R.drawable.ic_melody_logo)
                 }
             }
         }

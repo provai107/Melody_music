@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.braveplayer.music.R
 import com.braveplayer.music.model.ArtistSearchResult
+import com.braveplayer.music.model.SearchResponseParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -68,12 +69,12 @@ class ArtistSearchAdapter(
             itemView.contentDescription = "Artist ${item.name}"
 
             val url = item.imageUrl
-            if (!url.isNullOrBlank()) {
+            if (!url.isNullOrBlank() && !SearchResponseParser.isJioSaavnPlaceholder(url)) {
                 val cached = imageCache.get(url)
                 if (cached != null) {
                     ivAvatar.setImageBitmap(cached)
                 } else {
-                    ivAvatar.setImageResource(R.drawable.ic_music_note)
+                    ivAvatar.setImageResource(R.drawable.ic_melody_logo)
                     imageJob = scope.launch(Dispatchers.IO) {
                         try {
                             val request = Request.Builder().url(url).build()
@@ -89,12 +90,20 @@ class ArtistSearchAdapter(
                                         }
                                     }
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    ivAvatar.setImageResource(R.drawable.ic_melody_logo)
+                                }
                             }
-                        } catch (_: Exception) {}
+                        } catch (_: Exception) {
+                            withContext(Dispatchers.Main) {
+                                ivAvatar.setImageResource(R.drawable.ic_melody_logo)
+                            }
+                        }
                     }
                 }
             } else {
-                ivAvatar.setImageResource(R.drawable.ic_music_note)
+                ivAvatar.setImageResource(R.drawable.ic_melody_logo)
             }
 
             itemView.setOnClickListener { onArtistClicked(item) }
