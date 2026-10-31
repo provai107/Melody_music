@@ -7,8 +7,10 @@ import com.braveplayer.music.model.ArtistProfile
 import com.braveplayer.music.model.ArtistSearchResult
 import com.braveplayer.music.model.ArtistSortOption
 import com.braveplayer.music.model.ArtistSongSorter
+import com.braveplayer.music.model.MovieSoundtrack
 import com.braveplayer.music.model.SearchResponseParser
 import com.braveplayer.music.model.Song
+import com.braveplayer.music.model.SongDeduplicator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -18,7 +20,10 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 sealed class SearchResult {
-    data class Success(val songs: List<Song>) : SearchResult()
+    data class Success(
+        val songs: List<Song>,
+        val movieSoundtrack: MovieSoundtrack? = null
+    ) : SearchResult()
     data class Empty(val query: String) : SearchResult()
     data class Error(val message: String, val statusCode: Int = -1) : SearchResult()
 }
@@ -149,11 +154,96 @@ class MusicMetadataService(
         }
     }
 
+    suspend fun searchMovieSoundtrack(query: String): MovieSoundtrack? = withContext(Dispatchers.IO) {
+        val trimmed = query.trim()
+        if (trimmed.length < 2) return@withContext null
+
+        val encoded = try {
+            URLEncoder.encode(trimmed, "UTF-8")
+        } catch (_: Exception) {
+            trimmed
+        }
+
+        try {
+            val url = "$JIOSAAVN_API_BASE&__call=search.getAlbumResults&q=$encoded&p=1&n=5"
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext null
+
+            val body = response.body?.string() ?: ""
+            val root = org.json.JSONObject(body)
+            val results = root.optJSONArray("results") ?: root.optJSONArray("data") ?: return@withContext null
+            if (results.length() == 0) return@withContext null
+
+            var matchedAlbumId: String? = null
+            var matchedAlbumTitle: String? = null
+            var matchedAlbumYear: String? = null
+            var matchedAlbumImage: String? = null
+
+            for (i in 0 until results.length()) {
+                val albObj = results.optJSONObject(i) ?: continue
+                val title = SearchResponseParser.cleanHtmlEntities(albObj.optString("title", albObj.optString("name", "")))
+                val albId = albObj.optString("id", albObj.optString("albumid", "")).trim()
+                if (albId.isEmpty() || title.isEmpty()) continue
+
+                if (SongDeduplicator.isMovieAlbumMatch(trimmed, title)) {
+                    matchedAlbumId = albId
+                    matchedAlbumTitle = title
+                    matchedAlbumYear = albObj.optString("year", "").ifBlank { null }
+                    matchedAlbumImage = SearchResponseParser.upgradeArtworkResolution(albObj.optString("image", "").ifBlank { null })
+                    break
+                }
+            }
+
+            if (matchedAlbumId == null) return@withContext null
+
+            val detailUrl = "$JIOSAAVN_API_BASE&__call=content.getAlbumDetails&albumid=$matchedAlbumId"
+            val detailReq = Request.Builder()
+                .url(detailUrl)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+            val detailResp = httpClient.newCall(detailReq).execute()
+            if (!detailResp.isSuccessful) return@withContext null
+
+            val detailBody = detailResp.body?.string() ?: ""
+            val albumDetailObj = org.json.JSONObject(detailBody)
+            val finalTitle = SearchResponseParser.cleanHtmlEntities(albumDetailObj.optString("title", matchedAlbumTitle ?: ""))
+            val finalImage = SearchResponseParser.upgradeArtworkResolution(albumDetailObj.optString("image", "").ifBlank { null }) ?: matchedAlbumImage
+            val finalYear = albumDetailObj.optString("year", "").ifBlank { null } ?: matchedAlbumYear
+            val finalSubtitle = SearchResponseParser.cleanHtmlEntities(albumDetailObj.optString("subtitle", "").ifBlank { null }.orEmpty())
+
+            val rawSongs = SearchResponseParser.parseSearchResponse(detailBody)
+            val validSongs = rawSongs.filter { it.durationSec !in 1..30 && it.getBestPlaybackUrl() != null }
+            val deduplicatedAlbumSongs = SongDeduplicator.deduplicateAndRankSongs(validSongs, trimmed)
+
+            if (deduplicatedAlbumSongs.isEmpty()) return@withContext null
+
+            MovieSoundtrack(
+                id = matchedAlbumId,
+                title = finalTitle,
+                imageUrl = finalImage,
+                year = finalYear,
+                subtitle = finalSubtitle,
+                songs = deduplicatedAlbumSongs
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun searchSongs(baseUrl: String, query: String, maxRetries: Int = 2): SearchResult = withContext(Dispatchers.IO) {
         val trimmedQuery = query.trim()
         if (trimmedQuery.isEmpty()) {
             return@withContext SearchResult.Empty(query)
         }
+
+        // Search for movie soundtrack in parallel with song discovery
+        val movieSoundtrack = searchMovieSoundtrack(trimmedQuery)
 
         val collected = mutableListOf<Song>()
         val seenIds = mutableSetOf<String>()
@@ -215,7 +305,10 @@ class MusicMetadataService(
                 try {
                     val response = httpClient.newCall(request).execute()
                     if (response.header("X-Filter-Blocked") == "true") {
-                        if (collected.isNotEmpty()) return@withContext SearchResult.Success(collected)
+                        if (collected.isNotEmpty()) {
+                            val ranked = SongDeduplicator.deduplicateAndRankSongs(collected, trimmedQuery, movieSoundtrack?.songs.orEmpty())
+                            return@withContext SearchResult.Success(ranked, movieSoundtrack)
+                        }
                         return@withContext SearchResult.Error("API request blocked by filter: ${response.header("X-Filter-Rule")}")
                     }
 
@@ -241,18 +334,17 @@ class MusicMetadataService(
         }
 
         // If baseUrl was explicitly provided but failed to connect (e.g. offline or unresolvable host)
-        // and no songs collected yet, propagate error so offline fallbacks can engage properly
-        if (backendFailed && collected.isEmpty()) {
+        // and no songs collected yet and no movie soundtrack found, propagate error
+        if (backendFailed && collected.isEmpty() && movieSoundtrack == null) {
             return@withContext lastError ?: SearchResult.Error("Failed to connect to backend")
         }
 
         // 3. Fallback / Enrichment: Direct JioSaavn Search
-        if (collected.size < 5) {
+        if (collected.size < 15) {
             val directSongs = fetchDirectJioSaavnSongs(trimmedQuery)
             addSongs(directSongs)
 
             // If query has "by" or "song", clean query and also search title part
-            // e.g. "ek tarfa by darshan raval" -> search "ek tarfa darshan raval" and "ek tarfa"
             if (lowerQuery.contains(" by ") || lowerQuery.contains(" song")) {
                 val cleanQuery = trimmedQuery
                     .replace(Regex("(?i)\\b(by|songs?|audio|video|track|mp3)\\b"), " ")
@@ -273,8 +365,8 @@ class MusicMetadataService(
             }
         }
 
-        // 4. Autocomplete fallback if still empty
-        if (collected.isEmpty()) {
+        // 4. Autocomplete fallback if still empty or small
+        if (collected.size < 5) {
             try {
                 val encoded = try { URLEncoder.encode(trimmedQuery, "UTF-8") } catch (_: Exception) { trimmedQuery }
                 val autoUrl = "$JIOSAAVN_API_BASE&__call=autocomplete.get&query=$encoded"
@@ -313,10 +405,19 @@ class MusicMetadataService(
             } catch (_: Exception) {}
         }
 
-        return@withContext if (collected.isEmpty()) {
+        // 5. Intelligent Deduplication and Quality Ranking
+        // Keeps official movie soundtrack tracks at the top without duplicate album banners
+        val movieTracks = movieSoundtrack?.songs.orEmpty()
+        val finalRanked = SongDeduplicator.deduplicateAndRankSongs(
+            songs = collected,
+            query = trimmedQuery,
+            movieTracks = movieTracks
+        )
+
+        return@withContext if (finalRanked.isEmpty() && movieSoundtrack == null) {
             SearchResult.Empty(trimmedQuery)
         } else {
-            SearchResult.Success(collected)
+            SearchResult.Success(finalRanked, movieSoundtrack)
         }
     }
 

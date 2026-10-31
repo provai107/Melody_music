@@ -241,6 +241,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvSearchArtists: RecyclerView
     private lateinit var artistSearchAdapter: ArtistSearchAdapter
 
+    // Explore: Movie Soundtrack Card
+    private lateinit var cardSearchMovieSoundtrack: View
+    private lateinit var ivMovieSoundtrackPoster: ImageView
+    private lateinit var tvMovieSoundtrackTitle: TextView
+    private lateinit var tvMovieSoundtrackSubtitle: TextView
+    private lateinit var btnPlayMovieSoundtrack: View
+    private var currentMovieSoundtrack: com.braveplayer.music.model.MovieSoundtrack? = null
+
     // Explore: Recent Searches
     private lateinit var layoutRecentSearchesSection: View
     private lateinit var btnClearRecentSearches: TextView
@@ -486,6 +494,32 @@ class MainActivity : AppCompatActivity() {
         layoutSearchResultsContent = findViewById(R.id.layoutSearchResultsContent)
         layoutSearchArtistsSection = findViewById(R.id.layoutSearchArtistsSection)
         rvSearchArtists = findViewById(R.id.rvSearchArtists)
+
+        // Explore: Movie Soundtrack Card
+        cardSearchMovieSoundtrack = findViewById(R.id.cardSearchMovieSoundtrack)
+        ivMovieSoundtrackPoster = findViewById(R.id.ivMovieSoundtrackPoster)
+        tvMovieSoundtrackTitle = findViewById(R.id.tvMovieSoundtrackTitle)
+        tvMovieSoundtrackSubtitle = findViewById(R.id.tvMovieSoundtrackSubtitle)
+        btnPlayMovieSoundtrack = findViewById(R.id.btnPlayMovieSoundtrack)
+
+        cardSearchMovieSoundtrack.setOnClickListener {
+            currentMovieSoundtrack?.let { ost ->
+                if (ost.songs.isNotEmpty()) {
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
+                    val firstSong = ost.songs.first()
+                    val context = com.braveplayer.music.player.PlaybackContext.album(ost.title, ost.songs)
+                    playbackController.playTrack(
+                        song = firstSong,
+                        context = context,
+                        contextSongs = ost.songs
+                    )
+                }
+            }
+        }
+        btnPlayMovieSoundtrack.setOnClickListener {
+            cardSearchMovieSoundtrack.performClick()
+        }
 
         // Explore: Recent Searches
         layoutRecentSearchesSection = findViewById(R.id.layoutRecentSearchesSection)
@@ -1646,10 +1680,41 @@ class MainActivity : AppCompatActivity() {
             when (result) {
                 is SearchResult.Success -> {
                     searchAdapter.submitList(result.songs)
+                    val ost = result.movieSoundtrack
+                    currentMovieSoundtrack = ost
+                    if (ost != null && ost.songs.isNotEmpty()) {
+                        tvMovieSoundtrackTitle.text = ost.title
+                        val yearPrefix = ost.year?.let { "$it • " }.orEmpty()
+                        tvMovieSoundtrackSubtitle.text = "$yearPrefix${ost.songs.size} Songs • Complete Soundtrack"
+                        val poster = ost.imageUrl
+                        ivMovieSoundtrackPoster.setImageResource(R.drawable.ic_music_note)
+                        if (!poster.isNullOrBlank()) {
+                            lifecycleScope.launch {
+                                val bmp = withContext(Dispatchers.IO) {
+                                    try {
+                                        val req = Request.Builder().url(poster).build()
+                                        val resp = metadataService.httpClient.newCall(req).execute()
+                                        if (resp.isSuccessful) {
+                                            val bytes = resp.body?.bytes()
+                                            if (bytes != null) BitmapFactory.decodeByteArray(bytes, 0, bytes.size) else null
+                                        } else null
+                                    } catch (_: Exception) { null }
+                                }
+                                if (bmp != null) {
+                                    ivMovieSoundtrackPoster.setImageBitmap(bmp)
+                                }
+                            }
+                        }
+                        cardSearchMovieSoundtrack.visibility = View.VISIBLE
+                    } else {
+                        cardSearchMovieSoundtrack.visibility = View.GONE
+                    }
                     showSearchState(SearchState.RESULTS)
                 }
                 is SearchResult.Empty -> {
                     searchAdapter.submitList(emptyList())
+                    currentMovieSoundtrack = null
+                    cardSearchMovieSoundtrack.visibility = View.GONE
                     if (hasArtists) {
                         showSearchState(SearchState.RESULTS)
                     } else {
@@ -1659,6 +1724,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 is SearchResult.Error -> {
                     searchAdapter.submitList(emptyList())
+                    currentMovieSoundtrack = null
+                    cardSearchMovieSoundtrack.visibility = View.GONE
                     if (hasArtists) {
                         showSearchState(SearchState.RESULTS)
                     } else {
@@ -1751,6 +1818,9 @@ class MainActivity : AppCompatActivity() {
             layoutError.visibility = View.GONE
             layoutSearchResultsContent.visibility = View.GONE
             rvSearchResults.visibility = View.GONE
+            if (::cardSearchMovieSoundtrack.isInitialized) {
+                cardSearchMovieSoundtrack.visibility = View.GONE
+            }
         } else {
             layoutExploreDiscovery.visibility = View.GONE
             layoutSearchResultsContainer.visibility = View.VISIBLE
@@ -1759,6 +1829,9 @@ class MainActivity : AppCompatActivity() {
             layoutError.visibility = if (state == SearchState.ERROR) View.VISIBLE else View.GONE
             layoutSearchResultsContent.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
             rvSearchResults.visibility = if (state == SearchState.RESULTS) View.VISIBLE else View.GONE
+            if (state != SearchState.RESULTS && ::cardSearchMovieSoundtrack.isInitialized) {
+                cardSearchMovieSoundtrack.visibility = View.GONE
+            }
         }
     }
 

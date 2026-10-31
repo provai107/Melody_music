@@ -1089,6 +1089,101 @@
                             android:orientation="vertical"
                             android:visibility="gone">
 
+                            <!-- Dedicated Movie Soundtrack Playlist Card -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardSearchMovieSoundtrack"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:layout_marginEnd="16dp"
+                                android:layout_marginTop="10dp"
+                                android:layout_marginBottom="6dp"
+                                app:cardBackgroundColor="@color/surfaceCard"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="2dp"
+                                app:strokeColor="@color/borderSubtle"
+                                app:strokeWidth="1dp"
+                                android:visibility="gone">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical"
+                                    android:padding="12dp">
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="68dp"
+                                        android:layout_height="68dp"
+                                        app:cardCornerRadius="8dp"
+                                        app:cardElevation="0dp"
+                                        app:strokeWidth="0dp">
+
+                                        <ImageView
+                                            android:id="@+id/ivMovieSoundtrackPoster"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:scaleType="centerCrop"
+                                            android:src="@drawable/ic_music_note"
+                                            android:contentDescription="Movie Soundtrack Poster" />
+                                    </com.google.android.material.card.MaterialCardView>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:layout_marginStart="14dp"
+                                        android:layout_marginEnd="10dp"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:id="@+id/tvMovieSoundtrackBadge"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="MOVIE SOUNDTRACK"
+                                            android:textAllCaps="true"
+                                            android:textSize="11sp"
+                                            android:fontFamily="sans-serif-bold"
+                                            android:textColor="@color/accentPrimary"
+                                            android:letterSpacing="0.06" />
+
+                                        <TextView
+                                            android:id="@+id/tvMovieSoundtrackTitle"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="2dp"
+                                            android:text="Soundtrack Title"
+                                            android:textSize="16sp"
+                                            android:maxLines="1"
+                                            android:ellipsize="end"
+                                            android:fontFamily="@font/youtube_sans_bold_font"
+                                            android:textColor="@color/textPrimary" />
+
+                                        <TextView
+                                            android:id="@+id/tvMovieSoundtrackSubtitle"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="2dp"
+                                            android:text="Official Movie Soundtrack"
+                                            android:textSize="12sp"
+                                            android:maxLines="1"
+                                            android:ellipsize="end"
+                                            android:fontFamily="sans-serif"
+                                            android:textColor="@color/textSecondary" />
+                                    </LinearLayout>
+
+                                    <ImageView
+                                        android:id="@+id/btnPlayMovieSoundtrack"
+                                        android:layout_width="42dp"
+                                        android:layout_height="42dp"
+                                        android:background="@drawable/bg_play_circle_red"
+                                        android:src="@drawable/ic_play_arrow"
+                                        app:tint="@color/textPrimary"
+                                        android:padding="8dp"
+                                        android:contentDescription="Play Movie Soundtrack" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
                             <!-- Dedicated Artists Section -->
                             <LinearLayout
                                 android:id="@+id/layoutSearchArtistsSection"
