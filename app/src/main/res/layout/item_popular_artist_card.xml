@@ -16,7 +16,9 @@
         android:layout_height="84dp"
         app:cardBackgroundColor="@color/surfaceCard"
         app:cardCornerRadius="42dp"
-        app:cardElevation="0dp">
+        app:cardElevation="0dp"
+        app:cardPreventCornerOverlap="false"
+        app:cardUseCompatPadding="false">
 
         <ImageView
             android:id="@+id/ivArtistImage"

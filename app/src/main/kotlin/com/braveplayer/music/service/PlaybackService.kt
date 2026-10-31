@@ -544,6 +544,23 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        player?.let { exo ->
+            persistCurrentQueueState(exo)
+            recordCurrentTrackHistory(isPlaybackEnded = false)
+            exo.stop()
+            exo.clearMediaItems()
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
     override fun onDestroy() {
         playbackController.detachPlayer()
         recordCurrentTrackHistory(isPlaybackEnded = false)

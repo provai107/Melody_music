@@ -98,7 +98,9 @@
                         android:layout_height="120dp"
                         app:cardBackgroundColor="@color/surfaceCard"
                         app:cardCornerRadius="60dp"
-                        app:cardElevation="6dp">
+                        app:cardElevation="6dp"
+                        app:cardPreventCornerOverlap="false"
+                        app:cardUseCompatPadding="false">
 
                         <ImageView
                             android:id="@+id/ivArtistPortrait"

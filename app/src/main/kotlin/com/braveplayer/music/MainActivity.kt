@@ -3233,6 +3233,16 @@ class MainActivity : AppCompatActivity() {
             singerDialog.show()
         }
 
+        val btnApplyMusicPreferences: View? = view.findViewById(R.id.btnApplyMusicPreferences)
+        btnApplyMusicPreferences?.setOnClickListener {
+            recommendationEngine.clearCache()
+            latestReleasesRepository = LatestReleasesRepository(metadataService, playlistDbHelper, appSettings)
+            cachedTrendingSongs = emptyList()
+            refreshHomeData()
+            Toast.makeText(this@MainActivity, "Preferences applied! Refreshing home feed...", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
         // Enforce dynamic white-to-red thumb and track color state lists for all settings switches
         val switchThumbColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_thumb_selector)
         val switchTrackColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_track_selector)
@@ -3496,10 +3506,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openArtistTracks(artist: PopularArtistItem) {
-        openArtistPage(artist.id.ifBlank { null }, artist.name)
+        openArtistPage(artist.id.ifBlank { null }, artist.name, artist.imageUrl)
     }
 
-    private fun openArtistPage(artistId: String?, artistName: String) {
+    private fun openArtistPage(artistId: String?, artistName: String, initialImageUrl: String? = null) {
         if (artistName.isBlank()) return
         val dialog = BottomSheetDialog(this)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_artist_detail, null)
@@ -3517,6 +3527,14 @@ class MainActivity : AppCompatActivity() {
         val scrollArtistContent: NestedScrollView = view.findViewById(R.id.scrollArtistContent)
 
         val ivArtistPortrait: ImageView = view.findViewById(R.id.ivArtistPortrait)
+
+        // Immediately resolve and load consistent artist portrait to prevent flicker/mismatch
+        val resolvedInitialImage = initialImageUrl
+            ?: com.braveplayer.music.discovery.GenrePersonalizationEngine.getCanonicalArtistImage(artistName)
+        if (!resolvedInitialImage.isNullOrBlank()) {
+            loadArtwork(resolvedInitialImage, ivArtistPortrait)
+        }
+
         val layoutArtistVerifiedBadge: LinearLayout = view.findViewById(R.id.layoutArtistVerifiedBadge)
         val tvArtistName: TextView = view.findViewById(R.id.tvArtistName)
         val tvArtistMetrics: TextView = view.findViewById(R.id.tvArtistMetrics)
@@ -3699,7 +3717,7 @@ class MainActivity : AppCompatActivity() {
             scope = lifecycleScope,
             httpClient = metadataService.httpClient,
             onArtistClicked = { related ->
-                openArtistPage(related.id.ifBlank { null }, related.name)
+                openArtistPage(related.id.ifBlank { null }, related.name, related.imageUrl)
             }
         )
         rvArtistRelated.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -3796,8 +3814,9 @@ class MainActivity : AppCompatActivity() {
 
                     // Populate Profile info
                     if (profile != null) {
-                        if (!profile.imageUrl.isNullOrBlank()) {
-                            loadArtwork(profile.imageUrl, ivArtistPortrait)
+                        val finalImage = profile.imageUrl?.takeIf { it.isNotBlank() } ?: resolvedInitialImage
+                        if (!finalImage.isNullOrBlank()) {
+                            loadArtwork(finalImage, ivArtistPortrait)
                         }
                         layoutArtistVerifiedBadge.visibility = if (profile.isVerified) View.VISIBLE else View.GONE
 

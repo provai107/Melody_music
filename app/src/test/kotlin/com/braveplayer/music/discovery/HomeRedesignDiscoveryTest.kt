@@ -225,6 +225,10 @@ class HomeRedesignDiscoveryTest {
         assertThat(topNames).contains("Darshan Raval", "Atif Aslam", "Taylor Swift")
         val favItem = artists.first { it.name == "Darshan Raval" }
         assertThat(favItem.role).isEqualTo("Favourite Artist")
+        assertThat(favItem.imageUrl).isEqualTo("https://c.saavncdn.com/artists/Darshan_Raval_006_20250807060352_500x500.jpg")
+
+        val atifItem = artists.first { it.name == "Atif Aslam" }
+        assertThat(atifItem.imageUrl).isEqualTo("https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg")
     }
 
     @Test
@@ -234,11 +238,13 @@ class HomeRedesignDiscoveryTest {
         val song2024 = Song("s3", "Old Title", "Artist", "Album", null, 200, "https://a.com/3.mp3", null, null, year = "2024")
         val song2019 = Song("s4", "Evergreen Hit 2019", "Artist", "Album 2019", null, 200, "https://a.com/4.mp3", null, null, year = "2019")
         val songNoYearOld = Song("s5", "Old Hit 2018", "Artist", "Album", null, 200, "https://a.com/5.mp3", null, null)
+        val songCompilationWith2026 = Song("s6", "Hit Song", "Artist", "Hits 2026 Compilation", null, 200, "https://a.com/6.mp3", null, null, year = "2022")
 
         assertThat(LatestReleasesRepository.isRecentRelease(song2026)).isTrue()
         assertThat(LatestReleasesRepository.isRecentRelease(song2025)).isTrue()
         assertThat(LatestReleasesRepository.isRecentRelease(song2024)).isFalse()
         assertThat(LatestReleasesRepository.isRecentRelease(song2019)).isFalse()
         assertThat(LatestReleasesRepository.isRecentRelease(songNoYearOld)).isFalse()
+        assertThat(LatestReleasesRepository.isRecentRelease(songCompilationWith2026)).isFalse()
     }
 }

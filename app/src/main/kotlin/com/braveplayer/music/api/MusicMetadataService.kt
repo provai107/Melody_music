@@ -721,41 +721,77 @@ class MusicMetadataService(
             "hindi,english,punjabi"
         }
 
-        val url = "$JIOSAAVN_API_BASE&__call=content.getAlbums&languages=$langs&p=1&n=12"
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Player-Request-Type", RequestType.METADATA_API.name)
-            .header("User-Agent", "Mozilla/5.0")
-            .build()
-
+        val collected = mutableListOf<Song>()
+        val seenIds = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
         val albumIds = mutableListOf<String>()
-        try {
-            val response = httpClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.string() ?: ""
-                val root = org.json.JSONObject(body)
-                val data = root.optJSONArray("data")
-                if (data != null) {
-                    for (i in 0 until data.length()) {
-                        val albumObj = data.optJSONObject(i)
-                        val id = albumObj?.optString("id")
-                        val year = albumObj?.optString("year")
-                        if (!id.isNullOrBlank()) {
-                            // Prioritize 2026/2025 releases
-                            if (year.isNullOrBlank() || year == "2026" || year == "2025") {
-                                albumIds.add(id)
+
+        fun addSong(song: Song) {
+            if (song.durationSec in 1..30) return
+            if (song.getBestPlaybackUrl() == null) return
+            val cleanTitle = song.title.lowercase().trim()
+            if (seenIds.add(song.id) && seenTitles.add(cleanTitle)) {
+                collected.add(song)
+            }
+        }
+
+        // Fetch pages 1 and 2 to collect genuine recent releases
+        for (page in 1..2) {
+            val url = "$JIOSAAVN_API_BASE&__call=content.getAlbums&languages=$langs&p=$page&n=30"
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+                .header("User-Agent", "Mozilla/5.0")
+                .build()
+
+            try {
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string()?.trim() ?: ""
+                    val array = try {
+                        if (body.startsWith("[")) {
+                            org.json.JSONArray(body)
+                        } else if (body.startsWith("{")) {
+                            val obj = org.json.JSONObject(body)
+                            obj.optJSONArray("data") ?: obj.optJSONArray("results")
+                        } else {
+                            null
+                        }
+                    } catch (_: Exception) {
+                        null
+                    }
+
+                    if (array != null) {
+                        for (i in 0 until array.length()) {
+                            val item = array.optJSONObject(i) ?: continue
+                            val type = item.optString("type", "")
+                            val id = item.optString("id", "")
+                            val year = item.optString("year", "")
+
+                            // If this is a direct song item (single or featured track)
+                            if (type == "song" || item.has("more_info") && item.optJSONObject("more_info")?.has("encrypted_media_url") == true) {
+                                val parsedSongs = SearchResponseParser.parseSearchResponse("[${item}]")
+                                for (song in parsedSongs) {
+                                    addSong(song)
+                                }
+                            } else if ((type == "album" || id.all { it.isDigit() }) && id.isNotBlank()) {
+                                if (year.isBlank() || year == "2026" || year == "2025") {
+                                    if (!albumIds.contains(id)) {
+                                        albumIds.add(id)
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
-        } catch (_: Exception) {}
+            } catch (_: Exception) {}
 
-        val collected = mutableListOf<Song>()
-        val seenIds = mutableSetOf<String>()
-        val seenTitles = mutableSetOf<String>()
+            if (collected.size >= limit * 2) break
+        }
 
-        for (albId in albumIds.take(8)) {
+        // Fetch tracks from genuine recent albums
+        for (albId in albumIds.take(10)) {
+            if (collected.size >= limit * 2) break
             val albUrl = "$JIOSAAVN_API_BASE&__call=content.getAlbumDetails&albumid=$albId"
             val albReq = Request.Builder()
                 .url(albUrl)
@@ -768,17 +804,10 @@ class MusicMetadataService(
                     val aBody = resp.body?.string() ?: ""
                     val songs = SearchResponseParser.parseSearchResponse(aBody)
                     for (song in songs) {
-                        if (song.durationSec in 1..30) continue
-                        if (song.getBestPlaybackUrl() == null) continue
-                        val cleanTitle = song.title.lowercase().trim()
-                        if (seenIds.add(song.id) && seenTitles.add(cleanTitle)) {
-                            collected.add(song)
-                        }
+                        addSong(song)
                     }
                 }
             } catch (_: Exception) {}
-
-            if (collected.size >= limit) break
         }
 
         collected.take(limit)

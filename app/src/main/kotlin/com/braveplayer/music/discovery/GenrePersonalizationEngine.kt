@@ -37,17 +37,50 @@ class GenrePersonalizationEngine(
             "party" to listOf("party", "club", "celebration", "fest", "banger", "nightclub", "bass")
         )
 
+        val CANONICAL_ARTIST_IMAGES = mapOf(
+            "arijit singh" to "https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_500x500.jpg",
+            "diljit dosanjh" to "https://c.saavncdn.com/artists/Diljit_Dosanjh_005_20231025073054_500x500.jpg",
+            "the weeknd" to "https://c.saavncdn.com/artists/The_Weeknd_002_20241003071400_500x500.jpg",
+            "taylor swift" to "https://c.saavncdn.com/artists/Taylor_Swift_003_20200226074119_500x500.jpg",
+            "shreya ghoshal" to "https://c.saavncdn.com/artists/Shreya_Ghoshal_007_20241101074144_500x500.jpg",
+            "billie eilish" to "https://c.saavncdn.com/artists/Billie_Eilish_20190211151539_500x500.jpg",
+            "badshah" to "https://c.saavncdn.com/artists/Badshah_006_20241118064015_500x500.jpg",
+            "ap dhillon" to "https://c.saavncdn.com/artists/AP_Dhillon_004_20251023102150_500x500.jpg",
+            "ed sheeran" to "https://c.saavncdn.com/artists/Ed_Sheeran_002_20250625073038_500x500.jpg",
+            "anirudh" to "https://c.saavncdn.com/artists/Anirudh_Ravichander_003_20260121134149_500x500.jpg",
+            "anirudh ravichander" to "https://c.saavncdn.com/artists/Anirudh_Ravichander_003_20260121134149_500x500.jpg",
+            "darshan raval" to "https://c.saavncdn.com/artists/Darshan_Raval_006_20250807060352_500x500.jpg",
+            "atif aslam" to "https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg",
+            "neha kakkar" to "https://c.saavncdn.com/artists/Neha_Kakkar_007_20241212115832_500x500.jpg",
+            "pritam" to "https://c.saavncdn.com/artists/Pritam_Chakraborty-20170711073326_500x500.jpg",
+            "justin bieber" to "https://c.saavncdn.com/artists/Justin_Bieber_005_20201127112218_500x500.jpg"
+        )
+
+        fun getCanonicalArtistImage(artistName: String): String? {
+            val lower = artistName.lowercase().trim()
+            CANONICAL_ARTIST_IMAGES[lower]?.let { return it }
+            for ((key, url) in CANONICAL_ARTIST_IMAGES) {
+                if (lower.contains(key) || key.contains(lower)) {
+                    return url
+                }
+            }
+            return null
+        }
+
         val CURATED_POPULAR_ARTISTS = listOf(
-            PopularArtistItem("art_arijit", "Arijit Singh", "Top Artist", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=200&q=80", "Arijit Singh Hits"),
-            PopularArtistItem("art_diljit", "Diljit Dosanjh", "Top Artist", "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&q=80", "Diljit Dosanjh"),
-            PopularArtistItem("art_weeknd", "The Weeknd", "Top Artist", "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=200&q=80", "The Weeknd"),
-            PopularArtistItem("art_taylor", "Taylor Swift", "Top Artist", "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80", "Taylor Swift"),
-            PopularArtistItem("art_shreya", "Shreya Ghoshal", "Top Artist", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80", "Shreya Ghoshal"),
-            PopularArtistItem("art_billie", "Billie Eilish", "Top Artist", "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200&q=80", "Billie Eilish"),
-            PopularArtistItem("art_badshah", "Badshah", "Top Artist", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=200&q=80", "Badshah"),
-            PopularArtistItem("art_apdhillon", "AP Dhillon", "Top Artist", "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80", "AP Dhillon"),
-            PopularArtistItem("art_edsheeran", "Ed Sheeran", "Top Artist", "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=200&q=80", "Ed Sheeran"),
-            PopularArtistItem("art_anirudh", "Anirudh", "Top Artist", "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=200&q=80", "Anirudh Ravichander")
+            PopularArtistItem("art_arijit", "Arijit Singh", "Top Artist", "https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_500x500.jpg", "Arijit Singh Hits"),
+            PopularArtistItem("art_diljit", "Diljit Dosanjh", "Top Artist", "https://c.saavncdn.com/artists/Diljit_Dosanjh_005_20231025073054_500x500.jpg", "Diljit Dosanjh"),
+            PopularArtistItem("art_darshan", "Darshan Raval", "Top Artist", "https://c.saavncdn.com/artists/Darshan_Raval_006_20250807060352_500x500.jpg", "Darshan Raval"),
+            PopularArtistItem("art_atif", "Atif Aslam", "Top Artist", "https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg", "Atif Aslam"),
+            PopularArtistItem("art_weeknd", "The Weeknd", "Top Artist", "https://c.saavncdn.com/artists/The_Weeknd_002_20241003071400_500x500.jpg", "The Weeknd"),
+            PopularArtistItem("art_taylor", "Taylor Swift", "Top Artist", "https://c.saavncdn.com/artists/Taylor_Swift_003_20200226074119_500x500.jpg", "Taylor Swift"),
+            PopularArtistItem("art_shreya", "Shreya Ghoshal", "Top Artist", "https://c.saavncdn.com/artists/Shreya_Ghoshal_007_20241101074144_500x500.jpg", "Shreya Ghoshal"),
+            PopularArtistItem("art_billie", "Billie Eilish", "Top Artist", "https://c.saavncdn.com/artists/Billie_Eilish_20190211151539_500x500.jpg", "Billie Eilish"),
+            PopularArtistItem("art_badshah", "Badshah", "Top Artist", "https://c.saavncdn.com/artists/Badshah_006_20241118064015_500x500.jpg", "Badshah"),
+            PopularArtistItem("art_apdhillon", "AP Dhillon", "Top Artist", "https://c.saavncdn.com/artists/AP_Dhillon_004_20251023102150_500x500.jpg", "AP Dhillon"),
+            PopularArtistItem("art_edsheeran", "Ed Sheeran", "Top Artist", "https://c.saavncdn.com/artists/Ed_Sheeran_002_20250625073038_500x500.jpg", "Ed Sheeran"),
+            PopularArtistItem("art_anirudh", "Anirudh", "Top Artist", "https://c.saavncdn.com/artists/Anirudh_Ravichander_003_20260121134149_500x500.jpg", "Anirudh Ravichander"),
+            PopularArtistItem("art_neha", "Neha Kakkar", "Top Artist", "https://c.saavncdn.com/artists/Neha_Kakkar_007_20241212115832_500x500.jpg", "Neha Kakkar")
         )
     }
 
@@ -212,8 +245,7 @@ class GenrePersonalizationEngine(
                 val cleanName = singer.trim()
                 if (cleanName.isNotBlank() && seenNames.add(cleanName.lowercase())) {
                     val matchingCurated = CURATED_POPULAR_ARTISTS.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
-                    val imageUrl = matchingCurated?.imageUrl
-                        ?: if (cleanName.contains("Atif", ignoreCase = true)) "https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg" else null
+                    val imageUrl = getCanonicalArtistImage(cleanName) ?: matchingCurated?.imageUrl
                     result.add(
                         PopularArtistItem(
                             id = "fav_${cleanName.hashCode()}",
@@ -239,12 +271,13 @@ class GenrePersonalizationEngine(
             val artistName = entry.key.trim()
             val cleanName = artistName.split(",", "&", "feat.", "ft.")[0].trim()
             if (cleanName.isNotBlank() && seenNames.add(cleanName.lowercase())) {
+                val imageUrl = getCanonicalArtistImage(cleanName)
                 result.add(
                     PopularArtistItem(
                         id = "user_${cleanName.hashCode()}",
                         name = cleanName,
                         role = "Your Top Artist",
-                        imageUrl = null, // Will fall back to avatar with letter
+                        imageUrl = imageUrl,
                         query = "$cleanName Songs",
                         playCount = entry.value
                     )

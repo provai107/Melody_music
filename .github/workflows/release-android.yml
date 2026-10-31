@@ -1,6 +1,9 @@
 name: Build & Release Melody Android
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       release_notes:
@@ -11,7 +14,7 @@ on:
         description: 'Enforce mandatory update'
         type: boolean
         required: false
-        default: false
+        default: true
   release:
     types: [published]
 
@@ -167,6 +170,18 @@ jobs:
             else
               MANDATORY="false"
             fi
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME" 2>/dev/null || echo "")
+            if [ -n "$TAG_MESSAGE" ]; then
+              RAW_NOTES="$TAG_MESSAGE"
+            else
+              RAW_NOTES="[mandatory] Critical update v${VERSION_NAME}: Genuine recent 2026 releases, Apply music preferences button, background service lifecycle fix, aligned canonical artist portraits."
+            fi
+            if echo "$RAW_NOTES" | grep -qiE '\[mandatory\]|mandatory:\s*true'; then
+              MANDATORY="true"
+            else
+              MANDATORY="true"
+            fi
           else
             RAW_NOTES="${{ github.event.inputs.release_notes }}"
             MANDATORY="${{ github.event.inputs.mandatory_update }}"
@@ -230,10 +245,10 @@ jobs:
           else
             echo "Manual workflow dispatch: Checking if release '$TAG_NAME' exists..."
             if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
-              echo "Creating new release for $TAG_NAME..."
+              RELEASE_NOTES=$(python3 -c "import json; print(json.load(open('latest.json'))['releaseNotes'])" 2>/dev/null || echo "Melody v${VERSION_NAME}")
               gh release create "$TAG_NAME" \
                 --title "Melody v${VERSION_NAME}" \
-                --notes "${{ github.event.inputs.release_notes }}" \
+                --notes "$RELEASE_NOTES" \
                 Melody.apk latest.json
             else
               echo "Updating existing release assets for $TAG_NAME..."

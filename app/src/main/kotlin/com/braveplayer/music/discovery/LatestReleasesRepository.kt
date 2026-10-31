@@ -32,7 +32,8 @@ class LatestReleasesRepository(
         )
 
         /**
-         * Parses the release year from metadata or title/album text.
+         * Parses the release year strictly from metadata year or releaseDate.
+         * Never guesses year from album/playlist compilation titles.
          */
         fun parseReleaseYear(song: Song): Int? {
             val y = song.year?.trim()?.toIntOrNull()
@@ -42,13 +43,11 @@ class LatestReleasesRepository(
             val match = Regex("\\b(19\\d\\d|20\\d\\d)\\b").find(dateStr)
             if (match != null) return match.value.toIntOrNull()
 
-            val text = "${song.title} ${song.album}"
-            val textMatch = Regex("\\b(19\\d\\d|20\\d\\d)\\b").find(text)
-            return textMatch?.value?.toIntOrNull()
+            return null
         }
 
         /**
-         * Strictly validates that a track belongs to current/recent releases (2025 or 2026).
+         * Strictly validates that a track belongs to genuine current/recent releases (2025 or 2026).
          * Discards older catalog tracks (<= 2024).
          */
         fun isRecentRelease(song: Song): Boolean {
@@ -57,14 +56,9 @@ class LatestReleasesRepository(
                 return year >= 2025
             }
 
-            val text = "${song.title} ${song.album}".lowercase()
-            if (text.contains("2026") || text.contains("2025")) {
+            val dateStr = song.releaseDate ?: ""
+            if (dateStr.startsWith("2026") || dateStr.startsWith("2025")) {
                 return true
-            }
-
-            val oldYears = listOf("2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013", "2012", "2011", "2010")
-            if (oldYears.any { text.contains(it) }) {
-                return false
             }
 
             return false
@@ -105,52 +99,74 @@ class LatestReleasesRepository(
             }
         }
 
-        // 1. Query targeted search queries matching preferred languages
-        val dynamicQueries = mutableListOf<String>()
-        if (langs.isNotEmpty()) {
-            for (lang in langs) {
-                dynamicQueries.add("Latest $lang Songs 2026")
-                dynamicQueries.add("New $lang Releases 2026")
-            }
-        }
-        dynamicQueries.addAll(DEFAULT_RELEASE_QUERIES)
-
+        val isCustomBackend = baseUrl.isNotBlank() && baseUrl != AppSettings.DEFAULT_BASE_URL
         var backendError = false
-        for (query in dynamicQueries.distinct()) {
+
+        if (isCustomBackend) {
+            // Verify custom backend connectivity
             try {
-                when (val result = metadataService.searchSongs(baseUrl, query)) {
+                when (val result = metadataService.searchSongs(baseUrl, "New Releases 2026")) {
                     is SearchResult.Success -> {
-                        for (song in result.songs) {
-                            addSong(song)
-                        }
+                        for (song in result.songs) addSong(song)
                     }
                     is SearchResult.Error -> {
-                        if (collectedSongs.isEmpty() && baseUrl.isNotBlank() && baseUrl != AppSettings.DEFAULT_BASE_URL) {
-                            backendError = true
-                            break
-                        }
+                        backendError = true
                     }
                     else -> Unit
                 }
-            } catch (_: Exception) {}
-
-            if (collectedSongs.size >= limit * 2) break
+            } catch (_: Exception) {
+                backendError = true
+            }
         }
 
-        // 2. Direct JioSaavn new albums endpoint for selected languages (skip if offline/invalid test backend)
-        if (!backendError && collectedSongs.size < limit) {
+        // If not a failing custom backend, fetch genuine JioSaavn new releases/albums
+        if (!backendError) {
             try {
                 val albumSongs = metadataService.fetchLatestAlbumSongs(langs, limit = limit)
                 for (song in albumSongs) {
-                    addSong(song, forceAccept = true)
+                    if (isRecentRelease(song)) {
+                        addSong(song, forceAccept = true)
+                    }
                 }
             } catch (_: Exception) {}
+
+            // Secondary Source: Query targeted release queries if more songs needed
+            if (collectedSongs.size < limit) {
+                val dynamicQueries = mutableListOf<String>()
+                if (langs.isNotEmpty()) {
+                    for (lang in langs) {
+                        dynamicQueries.add("Latest $lang Songs 2026")
+                        dynamicQueries.add("New $lang Releases 2026")
+                    }
+                }
+                dynamicQueries.addAll(DEFAULT_RELEASE_QUERIES)
+
+                for (query in dynamicQueries.distinct()) {
+                    try {
+                        when (val result = metadataService.searchSongs(baseUrl, query)) {
+                            is SearchResult.Success -> {
+                                for (song in result.songs) {
+                                    addSong(song)
+                                }
+                            }
+                            is SearchResult.Error -> {
+                                if (collectedSongs.isEmpty() && isCustomBackend) {
+                                    break
+                                }
+                            }
+                            else -> Unit
+                        }
+                    } catch (_: Exception) {}
+
+                    if (collectedSongs.size >= limit * 2) break
+                }
+            }
         }
 
-        // 3. Sort releases: 2026 tracks first, then 2025
+        // 3. Sort releases: newest release dates and 2026 tracks first
         val sortedSongs = collectedSongs.sortedWith(
-            compareByDescending<Song> { parseReleaseYear(it) ?: 0 }
-                .thenByDescending { it.releaseDate ?: "" }
+            compareByDescending<Song> { it.releaseDate ?: "" }
+                .thenByDescending { parseReleaseYear(it) ?: 0 }
         )
 
         val releaseItems = if (sortedSongs.isNotEmpty()) {

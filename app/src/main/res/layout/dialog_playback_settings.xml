@@ -203,8 +203,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:layout_marginBottom="22dp"
+                android:layout_marginBottom="14dp"
                 app:chipSpacing="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApplyMusicPreferences"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="22dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Apply Preferences"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                app:backgroundTint="@color/accentPrimary"
+                app:cornerRadius="24dp"
+                app:icon="@drawable/ic_ytm_chevron_down"
+                app:iconGravity="textStart"
+                app:iconTint="@android:color/white" />
 
             <View
                 android:layout_width="match_parent"
@@ -783,7 +799,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif"
-                        android:text="Version 1.1.8 (Build 11)"
+                        android:text="Version 1.1.9 (Build 12)"
                         android:textColor="@color/textSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>
