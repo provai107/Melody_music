@@ -176,8 +176,23 @@ class LatestReleasesRepository(
             createFallbackReleases()
         }
 
-        if (releaseItems.isNotEmpty()) {
-            cachedReleases = releaseItems.take(limit)
+        // Apply dynamic remote feed curation overrides (pins, custom tracks, exclusions)
+        val finalReleases = if (!backendError) {
+            try {
+                RemoteFeedManager.applyReleaseOverrides(
+                    releaseItems,
+                    metadataService.httpClient,
+                    metadataService
+                ) { song -> createReleaseItem(song) }
+            } catch (_: Exception) {
+                releaseItems
+            }
+        } else {
+            releaseItems
+        }
+
+        if (finalReleases.isNotEmpty()) {
+            cachedReleases = finalReleases.take(limit)
             lastFetchTimestamp = now
         }
 

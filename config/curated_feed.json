@@ -1,0 +1,35 @@
+{
+  "_comment": "Melody Dynamic Remote Feed Curation. Edit directly on GitHub to pin, add, or exclude songs without releasing an app update.",
+  "pinned_trending": [
+    {
+      "id": "Hp1NEhHy",
+      "position": 0,
+      "note": "Example: Pinned Judi Jodi from Ramayana"
+    }
+  ],
+  "pinned_releases": [
+    {
+      "search_query": "Mangal Rang Ramayana",
+      "position": 0,
+      "note": "Example: Pinned Mangal Rang to top of latest releases"
+    }
+  ],
+  "custom_tracks": [
+    {
+      "id": "custom_sample_01",
+      "title": "Acoustic Melody Special (Sample Direct Track)",
+      "artists": "Melody Originals",
+      "album": "Melody Spotlight",
+      "imageUrl": "https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_500x500.jpg",
+      "mediaUrl": "https://aac.saavncdn.com/750/d5cf73c61899e893b1e25a9ebb8edb51_320.mp4",
+      "duration": 234,
+      "year": "2026"
+    }
+  ],
+  "excluded_song_ids": [],
+  "excluded_titles": [],
+  "trending_queries": [
+    "Latest Hindi Songs 2026",
+    "Trending Singles 2026"
+  ]
+}

@@ -55,6 +55,7 @@ import com.braveplayer.music.discovery.MoodCategory
 import com.braveplayer.music.discovery.MusicCatalog
 import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.discovery.PersonalizedMix
+import com.braveplayer.music.discovery.RemoteFeedManager
 import com.braveplayer.music.download.SongDownloadHelper
 import com.braveplayer.music.lyrics.LyricsResult
 import com.braveplayer.music.lyrics.LyricsService
@@ -1844,13 +1845,18 @@ class MainActivity : AppCompatActivity() {
         val allGenres = genrePersonalizationEngine.getAllGenres()
         browseAllGenresAdapter.submitData(allGenres)
 
-        // 8. Section 8: Trending Songs (Real Backend Data)
+        // 8. Section 8: Trending Songs (Real Backend Data + Dynamic Remote Overrides)
         pbTrendingLoading.visibility = View.VISIBLE
         lifecycleScope.launch {
-            val trendingSongs = try {
+            val baseTrending = try {
                 metadataService.fetchTrendingSongs(appSettings.getPreferredLanguages(), limit = 30)
             } catch (_: Exception) {
                 emptyList()
+            }
+            val trendingSongs = try {
+                RemoteFeedManager.applyTrendingOverrides(baseTrending, metadataService.httpClient, metadataService)
+            } catch (_: Exception) {
+                baseTrending
             }
             pbTrendingLoading.visibility = View.GONE
             if (trendingSongs.isNotEmpty()) {
@@ -2213,10 +2219,15 @@ class MainActivity : AppCompatActivity() {
 
         pbTrendingExploreLoading.visibility = View.VISIBLE
         lifecycleScope.launch {
-            val songs = try {
+            val base = try {
                 metadataService.fetchTrendingSongs(appSettings.getPreferredLanguages(), limit = 30)
             } catch (_: Exception) {
                 emptyList()
+            }
+            val songs = try {
+                RemoteFeedManager.applyTrendingOverrides(base, metadataService.httpClient, metadataService)
+            } catch (_: Exception) {
+                base
             }
             pbTrendingExploreLoading.visibility = View.GONE
             if (songs.isNotEmpty()) {

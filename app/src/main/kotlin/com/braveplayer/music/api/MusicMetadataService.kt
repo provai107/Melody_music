@@ -48,7 +48,7 @@ class MusicMetadataService(
         const val ATIF_ASLAM_IMAGE = "https://c.saavncdn.com/180/Atif-Aslam-Hindi-2019-20190401163644-500x500.jpg"
     }
 
-    private fun fetchDirectJioSaavnSongs(query: String, limit: Int = 30): List<Song> {
+    fun fetchDirectJioSaavnSongs(query: String, limit: Int = 30): List<Song> {
         val encoded = try {
             URLEncoder.encode(query, "UTF-8")
         } catch (_: Exception) {
@@ -70,6 +70,35 @@ class MusicMetadataService(
             }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    fun fetchSongById(songId: String): Song? {
+        val trimmed = songId.trim()
+        if (trimmed.isEmpty()) return null
+        val url = "$JIOSAAVN_API_BASE&__call=song.getDetails&pids=$trimmed"
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Player-Request-Type", RequestType.METADATA_API.name)
+            .header("User-Agent", "Mozilla/5.0")
+            .build()
+        return try {
+            val response = httpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: ""
+                val root = org.json.JSONObject(body)
+                val songObj = root.optJSONObject(trimmed)
+                if (songObj != null) {
+                    val wrapped = "{\"songs\": [$songObj]}"
+                    SearchResponseParser.parseSearchResponse(wrapped).firstOrNull()
+                } else {
+                    SearchResponseParser.parseSearchResponse(body).firstOrNull()
+                }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
