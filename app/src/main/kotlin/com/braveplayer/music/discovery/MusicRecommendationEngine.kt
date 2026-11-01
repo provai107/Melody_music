@@ -7,6 +7,9 @@ import com.braveplayer.music.model.Song
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
 import com.braveplayer.music.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 /**
@@ -88,6 +91,8 @@ class MusicRecommendationEngine(
                 "acoustic" to listOf("acoustic", "unplugged", "guitar", "piano", "stripped", "fingerstyle", "ukulele"),
                 "classical" to listOf("classical", "orchestra", "symphony", "mozart", "beethoven", "bach", "chopin", "instrumental", "concerto"),
                 "romantic" to listOf("love", "romantic", "romance", "ballad", "heart", "dil", "pyaar", "ishq", "tum", "mohabbat", "humsafar"),
+                "pakistani" to listOf("pakistani", "coke studio", "atif aslam", "rahat", "ali zafar", "qawwali", "ghazal", "nusrat", "kaifi khalil", "urdu", "pakistan", "nescafe"),
+                "sufi" to listOf("sufi", "qawwali", "ghazal", "nusrat", "rahat", "bulleya", "maula", "ali maula", "khwaja", "damadam"),
                 "chill" to listOf("chill", "relax", "peace", "calm", "meditation", "ambient", "zen", "breathe"),
                 "workout" to listOf("workout", "gym", "energy", "fitness", "motivation", "power", "pump", "training", "beast"),
                 "focus" to listOf("focus", "study", "flow", "coding", "work", "concentration", "brain", "reading"),
@@ -129,9 +134,11 @@ class MusicRecommendationEngine(
         limit: Int = 10,
         personalizationEnabled: Boolean = true,
         avoidRecentlyPlayed: Boolean = true,
-        diversityMode: String = AppSettings.DIVERSITY_BALANCED
+        diversityMode: String = AppSettings.DIVERSITY_BALANCED,
+        additionalCandidates: List<Song> = emptyList()
     ): List<Song> = withContext(Dispatchers.IO) {
         val candidates = mutableListOf<Song>()
+        candidates.addAll(additionalCandidates)
         val hiddenIds = dbHelper.getHiddenSongIds()
         val notInterestedIds = dbHelper.getNotInterestedSongIds()
         val notInterestedArtists = dbHelper.getNotInterestedArtists()
@@ -142,15 +149,29 @@ class MusicRecommendationEngine(
         val recentIds = if (personalizationEnabled && avoidRecentlyPlayed) dbHelper.getRecentSongIds(25) else emptySet()
         val recentSearches = if (personalizationEnabled) dbHelper.getRecentSearches(10).map { it.queryText.lowercase().trim() } else emptyList()
 
-        // Construct bounded queries based on same singer, same genre, and release era
+        // Construct bounded queries based on same movie/album, same singer, same genre, and release era
         // IMPORTANT: Never query seedSong.title directly to avoid loops of the exact same song
         val queries = mutableListOf<String>()
         val primaryArtist = extractPrimaryArtist(seedSong.artists)
         val coArtist = extractSecondaryArtist(seedSong.artists)
         val inferredGenres = inferGenres(seedSong)
         val seedYear = parseSongYear(seedSong)
+        val seedAlbum = seedSong.album.trim()
+        val seedAlbumLower = seedAlbum.lowercase()
 
-        // 1. Same Singer / Collaborator queries
+        // 1. Same Movie / Soundtrack / Album queries (prioritize full album tracks if album exists)
+        if (seedAlbum.isNotBlank() &&
+            seedAlbumLower != "unknown album" &&
+            seedAlbumLower != "unknown" &&
+            seedAlbumLower != "single" &&
+            seedAlbumLower != "ep" &&
+            !areTitlesTooSimilar(seedAlbum, seedSong.title)
+        ) {
+            queries.add("$seedAlbum Songs")
+            queries.add(seedAlbum)
+        }
+
+        // 2. Same Singer / Collaborator queries
         if (primaryArtist.isNotBlank() && primaryArtist.lowercase() !in notInterestedArtists) {
             queries.add("$primaryArtist Hits")
             queries.add(primaryArtist)
@@ -159,13 +180,13 @@ class MusicRecommendationEngine(
             queries.add(coArtist)
         }
 
-        // 2. Same Genre / Style queries
+        // 3. Same Genre / Style queries
         for (genre in inferredGenres.take(2)) {
             val capGenre = genre.replaceFirstChar { it.uppercase() }
             queries.add("$capGenre Hits")
         }
 
-        // 3. Release Time / Era queries
+        // 4. Release Time / Era queries
         if (seedYear != null) {
             val eraQuery = when {
                 seedYear >= 2020 -> "2020s Hits"
@@ -177,7 +198,7 @@ class MusicRecommendationEngine(
             queries.add(eraQuery)
         }
 
-        // 4. Contextual discovery queries based on diversity mode
+        // 5. Contextual discovery queries based on diversity mode
         when (diversityMode) {
             AppSettings.DIVERSITY_FAMILIAR -> {
                 val topArtist = artistPlayCounts.keys.firstOrNull { it.isNotBlank() && it != primaryArtist }
@@ -199,9 +220,14 @@ class MusicRecommendationEngine(
             }
         }
 
-        for (query in queries.distinct().take(4)) {
-            val songs = fetchCandidateSongs(baseUrl, query)
-            candidates.addAll(songs)
+        val distinctQueries = queries.distinct().take(6)
+        coroutineScope {
+            val deferredList = distinctQueries.map { q ->
+                async { fetchCandidateSongs(baseUrl, q) }
+            }
+            deferredList.awaitAll().forEach { songs ->
+                candidates.addAll(songs)
+            }
         }
 
         rankCandidates(
@@ -326,9 +352,14 @@ class MusicRecommendationEngine(
                 }
             }
 
-            // 4. Album context affinity (only if different track!)
-            if (seedAlbum.isNotEmpty() && seedAlbum != "unknown album" && candidateAlbum == seedAlbum) {
-                score += 15.0
+            // 4. Same Movie / Soundtrack / Album context affinity (only if different track!)
+            if (seedAlbum.isNotEmpty() &&
+                seedAlbum != "unknown album" &&
+                seedAlbum != "unknown" &&
+                seedAlbum != "single" &&
+                seedAlbum != "ep" &&
+                candidateAlbum == seedAlbum) {
+                score += 50.0 // Strong boost: prioritize tracks from the same movie/soundtrack album!
             }
 
             // 5. Not interested artist penalty
@@ -386,16 +417,27 @@ class MusicRecommendationEngine(
 
         scoredList.sortByDescending { it.second }
 
-        // Apply artist diversity cap: prevent excessive tracks from the same artist in the output batch
+        // Apply artist diversity cap: prevent excessive tracks from the same artist in the output batch,
+        // while allowing multiple tracks if they belong to the same movie / soundtrack album!
         val finalResult = mutableListOf<Song>()
         val artistCount = mutableMapOf<String, Int>()
-        val maxPerArtist = if (diversityMode == AppSettings.DIVERSITY_FAMILIAR) 3 else 2
+        val maxPerArtist = when {
+            limit > 10 -> if (diversityMode == AppSettings.DIVERSITY_FAMILIAR) 5 else 4
+            diversityMode == AppSettings.DIVERSITY_FAMILIAR -> 3
+            else -> 2
+        }
 
         for ((song, _) in scoredList) {
             if (finalResult.size >= limit) break
             val artist = extractPrimaryArtist(song.artists).lowercase()
             val count = artistCount[artist] ?: 0
-            if (count < maxPerArtist) {
+            val isSameAlbum = seedAlbum.isNotEmpty() &&
+                seedAlbum != "unknown album" &&
+                seedAlbum != "unknown" &&
+                seedAlbum != "single" &&
+                seedAlbum != "ep" &&
+                song.album.trim().lowercase() == seedAlbum
+            if (count < maxPerArtist || isSameAlbum) {
                 finalResult.add(song)
                 artistCount[artist] = count + 1
             }

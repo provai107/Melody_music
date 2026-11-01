@@ -661,13 +661,32 @@ class MainActivity : AppCompatActivity() {
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(etSearchQuery.windowToken, 0)
                 playlistDbHelper.recordSongSearch(song)
+
+                val isDownloaded = playlistDbHelper.isSongDownloaded(song.id)
+                val isOnline = com.braveplayer.music.util.NetworkUtils.isOnline(this)
+
+                if (!isOnline && !isDownloaded) {
+                    Toast.makeText(
+                        this,
+                        "You're offline. Only downloaded tracks can be played without internet.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@SongAdapter
+                }
+
+                val effectiveSong = if (isDownloaded) {
+                    playlistDbHelper.getDownloadedSong(song.id) ?: song
+                } else {
+                    song
+                }
+
                 val currentResults = searchAdapter.currentList
                 val query = etSearchQuery.text.toString().trim()
-                val context = com.braveplayer.music.player.PlaybackContext.search(query, currentResults)
-                playbackController.playTrack(
-                    song = song,
-                    context = context,
-                    contextSongs = currentResults
+                playbackController.playSearchTrack(
+                    song = effectiveSong,
+                    query = query,
+                    initialCandidates = currentResults,
+                    recommendationsLimit = 15
                 )
             },
             onSongAddToQueue = { song -> addSongToQueue(song) },
@@ -1614,7 +1633,13 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Cannot start radio: No valid stream for '${song.title}'", Toast.LENGTH_SHORT).show()
             return
         }
-        Toast.makeText(this, "Starting Radio for '${song.title}'...", Toast.LENGTH_SHORT).show()
+        val isAlreadyPlaying = playbackController.getCurrentSong()?.id == song.id
+        val message = if (isAlreadyPlaying) {
+            "Finding related tracks for '${song.title}'..."
+        } else {
+            "Starting Radio for '${song.title}'..."
+        }
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val recs = try {
                 recommendationEngine.getRecommendations(
@@ -1626,13 +1651,29 @@ class MainActivity : AppCompatActivity() {
             } catch (_: Exception) {
                 emptyList()
             }
-            val queue = listOf(song) + recs
-            playbackController.playTrack(
-                song = song,
-                context = com.braveplayer.music.player.PlaybackContext.radio(song, queue),
-                contextSongs = queue
-            )
-            Toast.makeText(this@MainActivity, "Radio: ${queue.size} tracks playing", Toast.LENGTH_SHORT).show()
+            if (recs.isEmpty()) {
+                Toast.makeText(this@MainActivity, "No related tracks found", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val currentSongId = playbackController.getCurrentSong()?.id
+            if (currentSongId == song.id) {
+                // Song is already playing: keep it playing smoothly from its current position
+                val radioContext = com.braveplayer.music.player.PlaybackContext.radio(song, listOf(song) + recs)
+                playbackController.updateUpcomingContextTracks(
+                    songs = recs,
+                    newContext = radioContext
+                )
+                Toast.makeText(this@MainActivity, "Related queue ready (${recs.size} tracks)", Toast.LENGTH_SHORT).show()
+                showQueueDialog()
+            } else {
+                val queue = listOf(song) + recs
+                playbackController.playTrack(
+                    song = song,
+                    context = com.braveplayer.music.player.PlaybackContext.radio(song, queue),
+                    contextSongs = queue
+                )
+                Toast.makeText(this@MainActivity, "Radio: ${queue.size} tracks playing", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

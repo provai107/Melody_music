@@ -126,6 +126,9 @@ class CentralizedPlaybackController(
         listeners.remove(listener)
     }
 
+    fun getCurrentSong(): Song? = currentItem?.song
+    fun getCurrentItem(): QueueItem? = currentItem
+
     /**
      * Binds the underlying ExoPlayer or MediaController to this centralized controller.
      */
@@ -243,6 +246,177 @@ class CentralizedPlaybackController(
             contextSongs = listOf(song),
             playImmediately = playImmediately
         )
+    }
+
+    /**
+     * Plays a track selected from search results.
+     * Immediately starts playback of the chosen song, and dynamically populates
+     * the Up Next queue with closely related songs (same movie/soundtrack album,
+     * same singer, and same genre) instead of raw search result hits.
+     */
+    fun playSearchTrack(
+        song: Song,
+        query: String = "",
+        initialCandidates: List<Song> = emptyList(),
+        recommendationsLimit: Int = 15,
+        playImmediately: Boolean = true
+    ) {
+        val searchContext = PlaybackContext(
+            type = PlaybackContextType.SEARCH_RESULTS,
+            id = "search_${song.id}",
+            title = if (query.isNotBlank()) "Related to ${song.title}" else "Similar to ${song.title}",
+            songs = listOf(song)
+        )
+
+        val isAlreadyPlayingThisSong = (currentItem?.song?.id == song.id)
+        if (!isAlreadyPlayingThisSong) {
+            // 1. Play the selected track immediately
+            playTrack(
+                song = song,
+                context = searchContext,
+                contextSongs = listOf(song),
+                playImmediately = playImmediately
+            )
+        } else {
+            activeContext = searchContext
+            emitState()
+        }
+
+        val contextTitle = "Related to ${song.title}"
+
+        // 2. Immediately populate Up Next with related tracks from initialCandidates (if available)
+        if (initialCandidates.isNotEmpty()) {
+            val instantRelated = recommendationEngine?.rankCandidates(
+                seedSong = song,
+                candidates = initialCandidates,
+                excludeSongIds = setOf(song.id),
+                excludeTitles = setOf(song.title),
+                limit = recommendationsLimit
+            ) ?: emptyList()
+
+            if (instantRelated.isNotEmpty()) {
+                activeContextTracks.clear()
+                autoplayQueue.clear()
+                for (rec in instantRelated) {
+                    activeContextTracks.add(
+                        QueueItem(
+                            song = rec,
+                            origin = QueueOrigin.CONTEXT,
+                            contextTitle = contextTitle
+                        )
+                    )
+                }
+                originalContextTracks.clear()
+                originalContextTracks.add(
+                    QueueItem(
+                        song = song,
+                        origin = QueueOrigin.CONTEXT,
+                        contextTitle = contextTitle
+                    )
+                )
+                originalContextTracks.addAll(activeContextTracks)
+                syncUpcomingToPlayer()
+                emitState()
+            }
+        }
+
+        // 3. Asynchronously compute and expand Up Next with catalog related songs
+        coroutineScope.launch {
+            try {
+                val baseUrl = appSettings.getBaseUrl()
+                val currentQueueSongIds = buildSet {
+                    currentItem?.let { add(it.song.id) }
+                    playNextQueue.forEach { add(it.song.id) }
+                    manualQueue.forEach { add(it.song.id) }
+                    activeContextTracks.forEach { add(it.song.id) }
+                    autoplayQueue.forEach { add(it.song.id) }
+                    playbackHistory.forEach { add(it.song.id) }
+                    addAll(failedSongIdsInSession)
+                }
+                val currentQueueTitles = buildSet {
+                    currentItem?.let { add(it.song.title) }
+                    playNextQueue.forEach { add(it.song.title) }
+                    manualQueue.forEach { add(it.song.title) }
+                    activeContextTracks.forEach { add(it.song.title) }
+                    autoplayQueue.forEach { add(it.song.title) }
+                    playbackHistory.forEach { add(it.song.title) }
+                }
+
+                val recs = withContext(Dispatchers.IO) {
+                    recommendationEngine?.getRecommendations(
+                        baseUrl = baseUrl,
+                        seedSong = song,
+                        excludeSongIds = currentQueueSongIds,
+                        excludeTitles = currentQueueTitles,
+                        limit = recommendationsLimit,
+                        personalizationEnabled = appSettings.isPersonalizationEnabled(),
+                        avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
+                        diversityMode = appSettings.getRecommendationDiversity(),
+                        additionalCandidates = initialCandidates
+                    ) ?: emptyList()
+                }
+
+                if (recs.isNotEmpty() && currentItem?.song?.id == song.id) {
+                    val existingIds = activeContextTracks.map { it.song.id }.toSet()
+                    val newUniqueRecs = recs.filter { it.id !in existingIds }
+                    if (newUniqueRecs.isNotEmpty()) {
+                        for (rec in newUniqueRecs) {
+                            activeContextTracks.add(
+                                QueueItem(
+                                    song = rec,
+                                    origin = QueueOrigin.CONTEXT,
+                                    contextTitle = contextTitle
+                                )
+                            )
+                        }
+                        originalContextTracks.clear()
+                        originalContextTracks.add(
+                            QueueItem(
+                                song = song,
+                                origin = QueueOrigin.CONTEXT,
+                                contextTitle = contextTitle
+                            )
+                        )
+                        originalContextTracks.addAll(activeContextTracks)
+                        syncUpcomingToPlayer()
+                        emitState()
+                    }
+                }
+            } catch (_: Exception) {
+                // Silently fallback; track continues playing smoothly
+            }
+        }
+    }
+
+    /**
+     * Updates upcoming context tracks for the currently playing item
+     * without interrupting ongoing playback.
+     */
+    fun updateUpcomingContextTracks(songs: List<Song>, newContext: PlaybackContext? = null) {
+        if (newContext != null) {
+            activeContext = newContext
+        }
+        activeContextTracks.clear()
+        autoplayQueue.clear()
+        val contextTitle = activeContext?.title ?: currentItem?.song?.title?.let { "Related to $it" } ?: "Upcoming"
+        for (song in songs) {
+            if (song.id == currentItem?.song?.id) continue
+            activeContextTracks.add(
+                QueueItem(
+                    song = song,
+                    origin = QueueOrigin.CONTEXT,
+                    contextTitle = contextTitle
+                )
+            )
+        }
+        if (isShuffleEnabled) {
+            activeContextTracks.shuffle()
+        }
+        originalContextTracks.clear()
+        currentItem?.let { originalContextTracks.add(it) }
+        originalContextTracks.addAll(activeContextTracks)
+        syncUpcomingToPlayer()
+        emitState()
     }
 
     // =========================================================================

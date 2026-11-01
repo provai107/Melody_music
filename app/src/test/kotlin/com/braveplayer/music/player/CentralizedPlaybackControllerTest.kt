@@ -446,4 +446,52 @@ class CentralizedPlaybackControllerTest {
         assertThat(next).isNull()
         assertThat(controller.queueSnapshot.value.isEmpty).isTrue()
     }
+
+    // -------------------------------------------------------------------------
+    // Scenario 16: Play Search Track Populates Related Songs Rather Than Raw Search Dump
+    // -------------------------------------------------------------------------
+    @Test
+    fun test16_playSearchTrackPopulatesRelatedSongsInQueue() {
+        val clicked = createSong("seed_id", "Kesariya", artist = "Arijit Singh", album = "Brahmastra")
+        val candRelated = createSong("rel_1", "Deva Deva", artist = "Arijit Singh", album = "Brahmastra")
+        val candUnrelated = createSong("unrelated_search", "Random Speech", artist = "Voice Over", album = "Unknown")
+
+        controller.playSearchTrack(
+            song = clicked,
+            query = "kesariya",
+            initialCandidates = listOf(clicked, candRelated, candUnrelated),
+            recommendationsLimit = 5,
+            playImmediately = false
+        )
+
+        val snapshot = controller.queueSnapshot.value
+        assertThat(snapshot.current?.song?.id).isEqualTo("seed_id")
+        assertThat(snapshot.contextTracks.map { it.song.id }).contains("rel_1")
+        assertThat(snapshot.playbackContext?.title).contains("Kesariya")
+    }
+
+    // -------------------------------------------------------------------------
+    // Scenario 17: Re-selecting or Updating Related Context Preserves Active Playback
+    // -------------------------------------------------------------------------
+    @Test
+    fun test17_updateUpcomingContextTracksPreservesActivePlayback() {
+        val currentSong = createSong("playing_now", "Tum Hi Ho", artist = "Arijit Singh")
+        controller.playSingleSong(currentSong, playImmediately = false)
+        val initialCurrentEntryId = controller.queueSnapshot.value.current?.queueEntryId
+
+        val related1 = createSong("rel_1", "Channa Mereya", artist = "Arijit Singh")
+        val related2 = createSong("rel_2", "Ae Dil Hai Mushkil", artist = "Arijit Singh")
+
+        controller.updateUpcomingContextTracks(
+            songs = listOf(related1, related2),
+            newContext = PlaybackContext.radio(currentSong, listOf(currentSong, related1, related2))
+        )
+
+        val updatedSnapshot = controller.queueSnapshot.value
+        // Current song must remain identical (not restarted or re-instantiated)
+        assertThat(updatedSnapshot.current?.queueEntryId).isEqualTo(initialCurrentEntryId)
+        assertThat(updatedSnapshot.current?.song?.id).isEqualTo("playing_now")
+        // Context tracks updated with related songs
+        assertThat(updatedSnapshot.contextTracks.map { it.song.id }).containsExactly("rel_1", "rel_2")
+    }
 }

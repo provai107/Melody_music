@@ -310,4 +310,76 @@ class MusicRecommendationEngineTest {
 
         assertThat(ranked.first().id).isEqualTo("cand_close")
     }
+
+    @Test
+    fun testSameMovieSoundtrackAlbumAffinityBoost() {
+        // Seed song from movie Brahmastra
+        val seed = Song(
+            id = "seed_brahmastra",
+            title = "Kesariya",
+            artists = "Arijit Singh, Pritam",
+            album = "Brahmastra",
+            imageUrl = null,
+            durationSec = 268,
+            mediaUrl = "https://aac.saavncdn.com/kes.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "2022"
+        )
+
+        // Same movie soundtrack candidate (different track, different singer)
+        val candSameMovie = Song(
+            id = "cand_movie",
+            title = "Deva Deva",
+            artists = "Arijit Singh, Jonita Gandhi",
+            album = "Brahmastra",
+            imageUrl = null,
+            durationSec = 280,
+            mediaUrl = "https://aac.saavncdn.com/deva.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "2022"
+        )
+
+        // Different movie candidate by the same singer
+        val candDiffMovie = Song(
+            id = "cand_diff_movie",
+            title = "Tum Hi Ho",
+            artists = "Arijit Singh",
+            album = "Aashiqui 2",
+            imageUrl = null,
+            durationSec = 262,
+            mediaUrl = "https://aac.saavncdn.com/tum.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null,
+            year = "2013"
+        )
+
+        val ranked = engine.rankCandidates(
+            seedSong = seed,
+            candidates = listOf(candDiffMovie, candSameMovie),
+            excludeSongIds = emptySet()
+        )
+
+        // Candidate from the same movie soundtrack must rank first due to album affinity boost (+50.0)
+        assertThat(ranked.first().id).isEqualTo("cand_movie")
+    }
+
+    @Test
+    fun testPakistaniAndSufiGenreInference() {
+        val pakistaniSong = Song(
+            id = "pak_1",
+            title = "Tajdar-e-Haram",
+            artists = "Atif Aslam",
+            album = "Coke Studio Season 8",
+            imageUrl = null,
+            durationSec = 618,
+            mediaUrl = "https://aac.saavncdn.com/tajdar.mp3",
+            mediaUrlDefault = null,
+            previewUrl = null
+        )
+
+        val genres = MusicRecommendationEngine.inferGenres(pakistaniSong)
+        assertThat(genres).contains("pakistani")
+    }
 }
