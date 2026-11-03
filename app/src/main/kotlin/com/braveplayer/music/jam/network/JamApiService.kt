@@ -20,7 +20,7 @@ class JamApiService(
         .build()
 ) {
     companion object {
-        const val DEFAULT_JAM_HOST = "10.0.2.2" // Android emulator loopback or configurable LAN IP
+        const val DEFAULT_JAM_HOST = "127.0.0.1" // Local loopback (USB adb reverse or local test)
         const val DEFAULT_JAM_PORT = 8080
     }
 

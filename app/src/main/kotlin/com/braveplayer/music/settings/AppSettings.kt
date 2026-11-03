@@ -202,7 +202,7 @@ class AppSettings(context: Context) {
     }
 
     fun getJamServerHost(): String {
-        return prefs.getString(KEY_JAM_SERVER_HOST, "10.0.2.2") ?: "10.0.2.2"
+        return prefs.getString(KEY_JAM_SERVER_HOST, "127.0.0.1") ?: "127.0.0.1"
     }
 
     fun setJamServerHost(host: String) {

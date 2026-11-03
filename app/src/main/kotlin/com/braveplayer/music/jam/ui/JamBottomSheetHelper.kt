@@ -63,6 +63,11 @@ class JamBottomSheetHelper(
             }
         }
 
+        tvUserLabel.setOnLongClickListener {
+            showServerConfigDialog()
+            true
+        }
+
         btnClose.setOnClickListener { dialog.dismiss() }
 
         btnStart.setOnClickListener {
@@ -335,6 +340,42 @@ class JamBottomSheetHelper(
                 if (newName.isNotBlank()) {
                     jamSessionManager.updateDisplayName(newName)
                     onSaved()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showServerConfigDialog() {
+        val appSettings = com.braveplayer.music.settings.AppSettings(activity)
+        val currentHost = appSettings.getJamServerHost()
+        val currentPort = appSettings.getJamServerPort()
+
+        val layout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 20, 50, 20)
+        }
+        val hostInput = EditText(activity).apply {
+            hint = "Server Host IP (e.g. 127.0.0.1 or LAN IP)"
+            setText(currentHost)
+        }
+        val portInput = EditText(activity).apply {
+            hint = "Server Port (e.g. 8080)"
+            setText(currentPort.toString())
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        }
+        layout.addView(hostInput)
+        layout.addView(portInput)
+
+        AlertDialog.Builder(activity)
+            .setTitle("Jam Server Settings")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                val newHost = hostInput.text.toString().trim()
+                val newPort = portInput.text.toString().trim().toIntOrNull() ?: 8080
+                if (newHost.isNotBlank()) {
+                    jamSessionManager.setServerEndpoint(newHost, newPort)
+                    Toast.makeText(activity, "Server set to $newHost:$newPort", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)
