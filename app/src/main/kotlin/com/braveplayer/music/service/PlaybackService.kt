@@ -215,6 +215,7 @@ class PlaybackService : MediaSessionService() {
             queuePersistenceManager = queuePersistenceManager
         )
         playbackController.attachPlayer(exoPlayer)
+        com.braveplayer.music.jam.service.JamSessionManager.getInstance(this).attachPlayer(exoPlayer)
 
         // Restore persisted queue state without auto-playing loudly
         restorePersistedQueue(exoPlayer)
@@ -563,6 +564,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         playbackController.detachPlayer()
+        com.braveplayer.music.jam.service.JamSessionManager.getInstance(this).detachPlayer()
         recordCurrentTrackHistory(isPlaybackEnded = false)
         autoplayWatchdogJob?.cancel()
         autoplayWatchdogJob = null

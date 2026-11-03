@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical">
+
+    <!-- Top App Bar in Jam Room -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:id="@+id/btnJamRoomCollapse"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:src="@drawable/ic_ytm_chevron_down"
+            app:tint="@color/textPrimary" />
+
+        <!-- Room Code Pill (1-Tap Copy) -->
+        <LinearLayout
+            android:id="@+id/layoutJamCodePill"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/bg_jam_code_pill"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:id="@+id/tvJamRoomCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.05"
+                android:text="JAM-XXXX"
+                android:textColor="@color/textPrimary"
+                android:textSize="14sp" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="6dp"
+                android:src="@drawable/ic_jam_copy"
+                app:tint="@color/accentPrimary" />
+        </LinearLayout>
+
+        <!-- Share & Overflow Actions -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/btnJamShare"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:padding="9dp"
+                android:src="@drawable/ic_jam_share"
+                app:tint="@color/textPrimary" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Scrollable Jam Room Body -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="24dp">
+
+            <!-- Sync & Host Status Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvJamSyncStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_jam_code_pill"
+                    android:drawableStart="@drawable/ic_sync_24"
+                    android:drawablePadding="6dp"
+                    android:drawableTint="@color/accentPrimary"
+                    android:fontFamily="sans-serif-medium"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="Connected • In Sync"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="11sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/tvJamHostIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Host: Atif"
+                    android:textColor="@color/accentPrimary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Now Playing Jam Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_jam_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <ImageView
+                    android:id="@+id/ivJamTrackArtwork"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@color/surfaceElevated"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_melody_logo" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvJamTrackTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/youtube_sans_bold_font"
+                        android:maxLines="1"
+                        android:text="Woh Lamhe Woh Baatein"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/tvJamTrackArtists"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif"
+                        android:maxLines="1"
+                        android:text="Atif Aslam • Zeher"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/btnJamPlayPause"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_play_arrow"
+                    app:tint="@color/textPrimary" />
+            </LinearLayout>
+
+            <!-- Floating Emoji Reactions Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_jam_code_pill"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingVertical="6dp">
+
+                <TextView
+                    android:id="@+id/btnReactionHeart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="❤️"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/btnReactionFire"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="🔥"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/btnReactionMusic"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="🎵"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/btnReactionClap"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="👏"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/btnReactionRocket"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="🚀"
+                    android:textSize="22sp" />
+            </LinearLayout>
+
+            <!-- Reactions Visual Overlay Toast -->
+            <TextView
+                android:id="@+id/tvJamActiveReaction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_jam_code_pill"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/textPrimary"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <!-- Section 1: Active Participants -->
+            <TextView
+                android:id="@+id/tvJamParticipantsHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:fontFamily="@font/youtube_sans_bold_font"
+                android:text="Participants (1)"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvJamParticipants"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <!-- Section 2: Collaborative Queue -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvJamQueueHeader"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/youtube_sans_bold_font"
+                    android:text="Collaborative Queue"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/btnJamAddTrack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:fontFamily="sans-serif-bold"
+                    android:padding="6dp"
+                    android:text="+ Add Song"
+                    android:textColor="@color/accentPrimary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Empty queue placeholder -->
+            <TextView
+                android:id="@+id/tvJamQueueEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:padding="20dp"
+                android:text="The shared queue is empty.\nTap '+ Add Song' to queue upcoming tracks!"
+                android:textColor="@color/textDisabled"
+                android:textSize="13sp" />
+
+            <!-- Queue RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvJamQueue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:nestedScrollingEnabled="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <!-- Leave / End Jam Button -->
+            <Button
+                android:id="@+id/btnLeaveJam"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="28dp"
+                android:backgroundTint="@color/surfaceElevated"
+                android:fontFamily="sans-serif-bold"
+                android:text="Leave Jam"
+                android:textColor="@color/accentPrimary"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/borderSubtle"
+                app:strokeWidth="1dp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

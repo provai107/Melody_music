@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_now_playing_sheet"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Header Drag Handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_jam_code_pill"
+        android:backgroundTint="@color/progressTrack" />
+
+    <!-- Brand Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_jam_group"
+            app:tint="@color/accentPrimary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/youtube_sans_bold_font"
+                android:text="Melody Jam"
+                android:textColor="@color/textPrimary"
+                android:textSize="20sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="Listen together with near real-time sync"
+                android:textColor="@color/textSecondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnJamClose"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:src="@drawable/ic_ytm_chevron_down"
+            app:tint="@color/textSecondary" />
+    </LinearLayout>
+
+    <!-- User Display Name Customizer -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_jam_code_pill"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp">
+
+        <TextView
+            android:id="@+id/tvJamUserLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:text="Listening as: Melody User"
+            android:textColor="@color/textPrimary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/btnJamEditName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:fontFamily="sans-serif-bold"
+            android:padding="4dp"
+            android:text="Edit"
+            android:textColor="@color/accentPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Option 1: Start a Jam Room -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_jam_card"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:text="Start a Jam"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif"
+            android:text="You will be the host. Control music and invite friends via room code or link."
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnStartJam"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="14dp"
+            android:backgroundTint="@color/accentPrimary"
+            android:fontFamily="sans-serif-bold"
+            android:text="Start Jam Room"
+            android:textColor="@color/textPrimary"
+            app:cornerRadius="24dp" />
+    </LinearLayout>
+
+    <!-- Option 2: Join a Jam Room -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_jam_card"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/youtube_sans_bold_font"
+            android:text="Join an Existing Jam"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif"
+            android:text="Enter the 6-character room code shared by your friend (e.g. JAM-4821)."
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etJamRoomCode"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_jam_code_pill"
+                android:fontFamily="sans-serif-medium"
+                android:hint="JAM-XXXX"
+                android:inputType="textCapCharacters|textNoSuggestions"
+                android:maxLength="10"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/textPrimary"
+                android:textColorHint="@color/textDisabled"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/btnJoinJam"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/surfaceElevated"
+                android:fontFamily="sans-serif-bold"
+                android:text="Join"
+                android:textColor="@color/textPrimary"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/borderSubtle"
+                app:strokeWidth="1dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Progress indicator -->
+    <ProgressBar
+        android:id="@+id/pbJamLoading"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:indeterminateTint="@color/accentPrimary"
+        android:visibility="gone" />
+
+</LinearLayout>

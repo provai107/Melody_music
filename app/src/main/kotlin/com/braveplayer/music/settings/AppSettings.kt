@@ -25,6 +25,8 @@ class AppSettings(context: Context) {
         private const val KEY_FAVOURITE_GENRES = "favourite_genres"
         private const val KEY_FAVOURITE_SINGERS = "favourite_singers"
         private const val KEY_PREFERRED_LANGUAGES = "preferred_languages"
+        const val KEY_JAM_SERVER_HOST = "jam_server_host"
+        const val KEY_JAM_SERVER_PORT = "jam_server_port"
 
         const val QUALITY_HIGH = "HIGH"
         const val QUALITY_STANDARD = "STANDARD"
@@ -197,6 +199,22 @@ class AppSettings(context: Context) {
     fun resetToDefault(): String {
         prefs.edit().putString(KEY_BASE_URL, DEFAULT_BASE_URL).apply()
         return DEFAULT_BASE_URL
+    }
+
+    fun getJamServerHost(): String {
+        return prefs.getString(KEY_JAM_SERVER_HOST, "10.0.2.2") ?: "10.0.2.2"
+    }
+
+    fun setJamServerHost(host: String) {
+        prefs.edit().putString(KEY_JAM_SERVER_HOST, host.trim()).apply()
+    }
+
+    fun getJamServerPort(): Int {
+        return prefs.getInt(KEY_JAM_SERVER_PORT, 8080)
+    }
+
+    fun setJamServerPort(port: Int) {
+        prefs.edit().putInt(KEY_JAM_SERVER_PORT, port).apply()
     }
 
     fun sanitizeUrl(input: String): String {
