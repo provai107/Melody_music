@@ -1,0 +1,17 @@
+{
+  "name": "melody-jam-server",
+  "version": "1.0.0",
+  "description": "High-performance real-time synchronization backend for Melody Jam group listening",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

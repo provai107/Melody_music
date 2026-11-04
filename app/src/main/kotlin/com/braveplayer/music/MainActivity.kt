@@ -122,6 +122,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import com.braveplayer.music.jam.service.JamSessionManager
+import com.braveplayer.music.jam.ui.JamBottomSheetHelper
 
 /**
  * Main Activity providing a premium TIDAL-inspired dark user interface with:
@@ -317,6 +319,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNowPlayingAddPlaylistAction: View
     private lateinit var btnNowPlayingDownloadAction: View
     private lateinit var btnTopCast: ImageView
+    private lateinit var jamSessionManager: JamSessionManager
+    private lateinit var jamBottomSheetHelper: JamBottomSheetHelper
     private lateinit var btnNowPlayingCast: ImageView
     private lateinit var btnNowPlayingDislike: ImageView
     private lateinit var btnNowPlayingShareAction: View
@@ -405,6 +409,11 @@ class MainActivity : AppCompatActivity() {
 
         requestNotificationPermissionIfNeeded()
         connectToPlaybackService()
+
+        // Initialize Melody Jam
+        jamSessionManager = JamSessionManager.getInstance(this)
+        jamBottomSheetHelper = JamBottomSheetHelper(this, jamSessionManager)
+        jamBottomSheetHelper.handleDeepLink(intent)
 
         refreshHomeData()
         refreshCollectionData()
@@ -1055,6 +1064,10 @@ class MainActivity : AppCompatActivity() {
 
         // Mini Player Controls
         btnMiniPlayPause.setOnClickListener {
+            if (::jamSessionManager.isInitialized && jamSessionManager.isInJam() && !jamSessionManager.isHost()) {
+                Toast.makeText(this, "Only the Jam Host controls playback in this Jam", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             mediaController?.let { c ->
                 if (c.isPlaying) {
                     c.pause()
@@ -1073,7 +1086,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        btnMiniNext.setOnClickListener { playbackController.skipToNext() }
+        btnMiniNext.setOnClickListener {
+            if (::jamSessionManager.isInitialized && jamSessionManager.isInJam() && !jamSessionManager.isHost()) {
+                Toast.makeText(this, "Only the Jam Host can skip tracks in this Jam", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            playbackController.skipToNext()
+        }
         btnMiniLike.setOnClickListener {
             val item = mediaController?.currentMediaItem ?: return@setOnClickListener
             val song = SongMediaItemMapper.fromMediaItem(item)
@@ -1082,6 +1101,10 @@ class MainActivity : AppCompatActivity() {
 
         // Now Playing Controls
         layoutNowPlayingPlayPause.setOnClickListener {
+            if (::jamSessionManager.isInitialized && jamSessionManager.isInJam() && !jamSessionManager.isHost()) {
+                Toast.makeText(this, "Only the Jam Host controls playback in this Jam", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             mediaController?.let { c ->
                 if (c.isPlaying) {
                     c.pause()
@@ -1101,7 +1124,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
         btnNowPlayingPrev.setOnClickListener { playbackController.skipToPrevious() }
-        btnNowPlayingNext.setOnClickListener { playbackController.skipToNext() }
+        btnNowPlayingNext.setOnClickListener {
+            if (::jamSessionManager.isInitialized && jamSessionManager.isInJam() && !jamSessionManager.isHost()) {
+                Toast.makeText(this, "Only the Jam Host can skip tracks in this Jam", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            playbackController.skipToNext()
+        }
         btnNowPlayingShuffle.setOnClickListener { toggleShuffle() }
         btnNowPlayingRepeat.setOnClickListener { cycleRepeatMode() }
 
@@ -1164,10 +1193,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnTopCast.setOnClickListener {
-            Toast.makeText(this, "Connect to a device (Cast)", Toast.LENGTH_SHORT).show()
+            jamBottomSheetHelper.showJamSheet(onAddSongToJamQueue = {
+                bottomNavigation.selectedItemId = R.id.nav_search
+                Toast.makeText(this, "Search a song and choose 'Add to Jam Queue'", Toast.LENGTH_SHORT).show()
+            })
         }
         btnNowPlayingCast.setOnClickListener {
-            Toast.makeText(this, "Connect to a device (Cast)", Toast.LENGTH_SHORT).show()
+            jamBottomSheetHelper.showJamSheet(onAddSongToJamQueue = {
+                bottomNavigation.selectedItemId = R.id.nav_search
+                Toast.makeText(this, "Search a song and choose 'Add to Jam Queue'", Toast.LENGTH_SHORT).show()
+            })
         }
         btnNowPlayingDislike.setOnClickListener {
             val item = mediaController?.currentMediaItem
@@ -1230,6 +1265,7 @@ class MainActivity : AppCompatActivity() {
                 val controller = future.get()
                 mediaController = controller
                 playbackController.attachPlayer(controller)
+                jamSessionManager.attachPlayer(controller)
                 setupControllerListener(controller)
                 syncUiWithPlayer()
             } catch (_: Exception) {
@@ -1623,6 +1659,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
+            jamSessionManager.addToQueue(effectiveSong)
+            Toast.makeText(this, "Added to Melody Jam queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
+            return
+        }
         playbackController.addToQueue(effectiveSong)
         Toast.makeText(this, "Added to queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
     }
@@ -4454,6 +4495,14 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         mainHandler.post(positionUpdateRunnable)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (::jamBottomSheetHelper.isInitialized) {
+            jamBottomSheetHelper.handleDeepLink(intent)
+        }
     }
 
     override fun onStop() {
