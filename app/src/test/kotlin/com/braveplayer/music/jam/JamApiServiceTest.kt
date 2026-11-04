@@ -36,6 +36,15 @@ class JamApiServiceTest {
     }
 
     @Test
+    fun testDefaultProductionUrlConstruction() {
+        val httpUrl = apiService.getBaseHttpUrl()
+        val wsUrl = apiService.getBaseWsUrl()
+
+        assertThat(httpUrl).isEqualTo("https://melody-music-szk2.onrender.com")
+        assertThat(wsUrl).isEqualTo("wss://melody-music-szk2.onrender.com/ws/jam")
+    }
+
+    @Test
     fun testCustomPortUrlConstruction() {
         val httpUrl = apiService.getBaseHttpUrl("192.168.1.50", 9000)
         val wsUrl = apiService.getBaseWsUrl("192.168.1.50", 9000)

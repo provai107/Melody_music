@@ -20,8 +20,8 @@ class JamApiService(
         .build()
 ) {
     companion object {
-        const val DEFAULT_JAM_HOST = "127.0.0.1" // Local loopback (USB adb reverse or local test)
-        const val DEFAULT_JAM_PORT = 8080
+        const val DEFAULT_JAM_HOST = "melody-music-szk2.onrender.com"
+        const val DEFAULT_JAM_PORT = 443
     }
 
     fun getBaseHttpUrl(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): String {

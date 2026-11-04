@@ -202,7 +202,7 @@ class AppSettings(context: Context) {
     }
 
     fun getJamServerHost(): String {
-        return prefs.getString(KEY_JAM_SERVER_HOST, "127.0.0.1") ?: "127.0.0.1"
+        return prefs.getString(KEY_JAM_SERVER_HOST, "melody-music-szk2.onrender.com") ?: "melody-music-szk2.onrender.com"
     }
 
     fun setJamServerHost(host: String) {
@@ -210,7 +210,7 @@ class AppSettings(context: Context) {
     }
 
     fun getJamServerPort(): Int {
-        return prefs.getInt(KEY_JAM_SERVER_PORT, 8080)
+        return prefs.getInt(KEY_JAM_SERVER_PORT, 443)
     }
 
     fun setJamServerPort(port: Int) {
