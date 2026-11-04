@@ -12,8 +12,8 @@ android {
         applicationId = "com.braveplayer.music"
         minSdk = 24
         targetSdk = 34
-        versionCode = 16
-        versionName = "1.3.0"
+        versionCode = 17
+        versionName = "1.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
