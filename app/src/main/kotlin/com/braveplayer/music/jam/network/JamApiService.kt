@@ -24,12 +24,52 @@ class JamApiService(
         const val DEFAULT_JAM_PORT = 8080
     }
 
-    private fun getBaseHttpUrl(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): String {
-        return "http://$host:$port"
+    fun getBaseHttpUrl(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): String {
+        val trimmed = host.trim()
+        val isExplicitHttps = trimmed.startsWith("https://", ignoreCase = true)
+        val isExplicitWss = trimmed.startsWith("wss://", ignoreCase = true)
+
+        val cleanHost = trimmed
+            .removePrefix("https://").removePrefix("HTTPS://")
+            .removePrefix("http://").removePrefix("HTTP://")
+            .removePrefix("wss://").removePrefix("WSS://")
+            .removePrefix("ws://").removePrefix("WS://")
+            .trimEnd('/')
+
+        val isSecure = isExplicitHttps || isExplicitWss || port == 443 || (!cleanHost.startsWith("127.") && !cleanHost.startsWith("10.") && !cleanHost.startsWith("192.168.") && !cleanHost.equals("localhost", ignoreCase = true) && cleanHost.contains("."))
+        val scheme = if (isSecure) "https" else "http"
+
+        return if (cleanHost.contains(":")) {
+            "$scheme://$cleanHost"
+        } else if ((isSecure && port == 443) || (!isSecure && port == 80)) {
+            "$scheme://$cleanHost"
+        } else {
+            "$scheme://$cleanHost:$port"
+        }
     }
 
     fun getBaseWsUrl(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): String {
-        return "ws://$host:$port/ws/jam"
+        val trimmed = host.trim()
+        val isExplicitHttps = trimmed.startsWith("https://", ignoreCase = true)
+        val isExplicitWss = trimmed.startsWith("wss://", ignoreCase = true)
+
+        val cleanHost = trimmed
+            .removePrefix("https://").removePrefix("HTTPS://")
+            .removePrefix("http://").removePrefix("HTTP://")
+            .removePrefix("wss://").removePrefix("WSS://")
+            .removePrefix("ws://").removePrefix("WS://")
+            .trimEnd('/')
+
+        val isSecure = isExplicitHttps || isExplicitWss || port == 443 || (!cleanHost.startsWith("127.") && !cleanHost.startsWith("10.") && !cleanHost.startsWith("192.168.") && !cleanHost.equals("localhost", ignoreCase = true) && cleanHost.contains("."))
+        val scheme = if (isSecure) "wss" else "ws"
+
+        return if (cleanHost.contains(":")) {
+            "$scheme://$cleanHost/ws/jam"
+        } else if ((isSecure && port == 443) || (!isSecure && port == 80)) {
+            "$scheme://$cleanHost/ws/jam"
+        } else {
+            "$scheme://$cleanHost:$port/ws/jam"
+        }
     }
 
     suspend fun createOrRenewGuestSession(

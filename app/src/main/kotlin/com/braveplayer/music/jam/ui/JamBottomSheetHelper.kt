@@ -147,7 +147,6 @@ class JamBottomSheetHelper(
         val tvReactionOverlay = view.findViewById<TextView>(R.id.tvJamActiveReaction)
         val tvParticipantsHeader = view.findViewById<TextView>(R.id.tvJamParticipantsHeader)
         val rvParticipants = view.findViewById<RecyclerView>(R.id.rvJamParticipants)
-        val tvQueueHeader = view.findViewById<TextView>(R.id.tvJamQueueHeader)
         val tvQueueEmpty = view.findViewById<TextView>(R.id.tvJamQueueEmpty)
         val rvQueue = view.findViewById<RecyclerView>(R.id.rvJamQueue)
         val btnAddTrack = view.findViewById<TextView>(R.id.btnJamAddTrack)
@@ -356,11 +355,11 @@ class JamBottomSheetHelper(
             setPadding(50, 20, 50, 20)
         }
         val hostInput = EditText(activity).apply {
-            hint = "Server Host IP (e.g. 127.0.0.1 or LAN IP)"
+            hint = "Server Host / Domain (e.g. jam.example.com or 127.0.0.1)"
             setText(currentHost)
         }
         val portInput = EditText(activity).apply {
-            hint = "Server Port (e.g. 8080)"
+            hint = "Port (443 for Cloud / HTTPS, 8080 for Local)"
             setText(currentPort.toString())
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
         }
@@ -371,11 +370,21 @@ class JamBottomSheetHelper(
             .setTitle("Jam Server Settings")
             .setView(layout)
             .setPositiveButton("Save") { _, _ ->
-                val newHost = hostInput.text.toString().trim()
-                val newPort = portInput.text.toString().trim().toIntOrNull() ?: 8080
+                var newHost = hostInput.text.toString().trim()
+                val isHttps = newHost.startsWith("https://", ignoreCase = true)
+                var newPort = portInput.text.toString().trim().toIntOrNull()
+                    ?: if (isHttps || newHost.contains(".onrender.com") || newHost.contains(".railway.app") || newHost.contains(".fly.dev")) 443 else 8080
+
+                if (newHost.contains(":")) {
+                    val parts = newHost.removePrefix("https://").removePrefix("http://").split(":")
+                    if (parts.size == 2 && parts[1].toIntOrNull() != null) {
+                        newHost = parts[0]
+                        newPort = parts[1].toInt()
+                    }
+                }
                 if (newHost.isNotBlank()) {
                     jamSessionManager.setServerEndpoint(newHost, newPort)
-                    Toast.makeText(activity, "Server set to $newHost:$newPort", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Jam server set to $newHost:$newPort", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)

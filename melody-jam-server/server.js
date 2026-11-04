@@ -5,8 +5,8 @@ const AuthManager = require('./auth-manager');
 const RoomManager = require('./room-manager');
 const { Events, ErrorCodes, createMessage, createError } = require('./jam-protocol');
 
-const PORT = parseInt(process.env.JAM_PORT || '8080', 10);
-const HOST = process.env.JAM_HOST || '0.0.0.0';
+const PORT = parseInt(process.env.PORT || process.env.JAM_PORT || '8080', 10);
+const HOST = process.env.HOST || process.env.JAM_HOST || '0.0.0.0';
 
 const roomManager = new RoomManager();
 
@@ -287,5 +287,22 @@ server.listen(PORT, HOST, () => {
   console.log(`[Melody Jam Server] Running on http://${HOST}:${PORT}`);
   console.log(`[Melody Jam Server] WebSocket endpoint ws://${HOST}:${PORT}/ws/jam`);
 });
+
+function gracefulShutdown(signal) {
+  console.log(`[Melody Jam Server] Received ${signal}, closing server...`);
+  wss.clients.forEach((client) => {
+    try {
+      client.close(1001, 'Server shutting down');
+    } catch (_) {}
+  });
+  server.close(() => {
+    console.log('[Melody Jam Server] Closed all connections.');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 5000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = { server, roomManager };
