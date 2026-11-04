@@ -4,7 +4,7 @@
 
 You are working on an existing Android music streaming application named **Melody**, developed primarily using Kotlin.
 
-Your task is to introduce a new feature called **Melody Jam**, inspired by Spotify Jam.
+Your task is to introduce a new feature called **Melody Jam**, bringing real-time collaborative group listening.
 
 Melody Jam will allow multiple users on different Android devices to listen to the same song together with near-real-time synchronized playback.
 
