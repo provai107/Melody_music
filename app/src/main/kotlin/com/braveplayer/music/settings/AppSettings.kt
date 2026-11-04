@@ -22,6 +22,12 @@ class AppSettings(context: Context) {
         private const val KEY_EXCLUDE_DISLIKED = "exclude_disliked_tracks"
         private const val KEY_REDUCED_INTENSITY = "reduced_accent_intensity"
         private const val KEY_AUDIO_QUALITY = "audio_quality"
+        private const val KEY_SPATIAL_AUDIO_ENABLED = "spatial_audio_enabled"
+        private const val KEY_SPATIAL_AUDIO_MODE = "spatial_audio_mode"
+        private const val KEY_EQUALIZER_ENABLED = "equalizer_enabled"
+        private const val KEY_EQUALIZER_PRESET = "equalizer_preset"
+        private const val KEY_VOLUME_NORMALIZATION = "volume_normalization_enabled"
+        private const val KEY_CROSSFADE_SECONDS = "crossfade_seconds"
         private const val KEY_GAPLESS_PLAYBACK = "gapless_playback"
         private const val KEY_CLEAR_QUEUE_ON_PLAY = "clear_queue_on_play"
         private const val KEY_FAVOURITE_GENRES = "favourite_genres"
@@ -30,9 +36,14 @@ class AppSettings(context: Context) {
         const val KEY_JAM_SERVER_HOST = "jam_server_host"
         const val KEY_JAM_SERVER_PORT = "jam_server_port"
 
+        const val QUALITY_LOSSLESS = "LOSSLESS"
         const val QUALITY_HIGH = "HIGH"
         const val QUALITY_STANDARD = "STANDARD"
         const val QUALITY_SAVER = "SAVER"
+
+        const val SPATIAL_MODE_STEREO = "STEREO"
+        const val SPATIAL_MODE_SPATIAL = "SPATIAL"
+        const val SPATIAL_MODE_IMMERSIVE = "IMMERSIVE"
 
         const val DIVERSITY_BALANCED = "BALANCED"
         const val DIVERSITY_FAMILIAR = "FAMILIAR"
@@ -165,6 +176,54 @@ class AppSettings(context: Context) {
 
     fun setAudioQuality(quality: String) {
         prefs.edit().putString(KEY_AUDIO_QUALITY, quality).apply()
+    }
+
+    fun isSpatialAudioEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SPATIAL_AUDIO_ENABLED, false)
+    }
+
+    fun setSpatialAudioEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SPATIAL_AUDIO_ENABLED, enabled).apply()
+    }
+
+    fun getSpatialAudioMode(): String {
+        return prefs.getString(KEY_SPATIAL_AUDIO_MODE, SPATIAL_MODE_STEREO) ?: SPATIAL_MODE_STEREO
+    }
+
+    fun setSpatialAudioMode(mode: String) {
+        prefs.edit().putString(KEY_SPATIAL_AUDIO_MODE, mode).apply()
+    }
+
+    fun isEqualizerEnabled(): Boolean {
+        return prefs.getBoolean(KEY_EQUALIZER_ENABLED, false)
+    }
+
+    fun setEqualizerEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_EQUALIZER_ENABLED, enabled).apply()
+    }
+
+    fun getEqualizerPreset(): String {
+        return prefs.getString(KEY_EQUALIZER_PRESET, "Flat") ?: "Flat"
+    }
+
+    fun setEqualizerPreset(preset: String) {
+        prefs.edit().putString(KEY_EQUALIZER_PRESET, preset).apply()
+    }
+
+    fun isVolumeNormalizationEnabled(): Boolean {
+        return prefs.getBoolean(KEY_VOLUME_NORMALIZATION, true)
+    }
+
+    fun setVolumeNormalizationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_VOLUME_NORMALIZATION, enabled).apply()
+    }
+
+    fun getCrossfadeDurationSeconds(): Int {
+        return prefs.getInt(KEY_CROSSFADE_SECONDS, 0)
+    }
+
+    fun setCrossfadeDurationSeconds(seconds: Int) {
+        prefs.edit().putInt(KEY_CROSSFADE_SECONDS, seconds).apply()
     }
 
     fun isGaplessPlaybackEnabled(): Boolean {

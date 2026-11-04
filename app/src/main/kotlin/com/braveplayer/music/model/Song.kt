@@ -30,6 +30,48 @@ data class Song(
     }
 
     /**
+     * Adaptively resolves the stream URL matching the requested audio quality preference:
+     * - LOSSLESS: Native FLAC/ALAC stream if available, otherwise graceful fallback to 320kbps High Quality
+     * - HIGH: 320 kbps high-fidelity stream
+     * - STANDARD: 160 kbps balanced stream
+     * - SAVER: 96 kbps data saver stream
+     */
+    fun getPlaybackUrl(quality: String = "HIGH"): String? {
+        val candidates = getCandidatePlaybackUrls()
+        if (candidates.isEmpty()) return null
+
+        val losslessCandidate = candidates.firstOrNull {
+            val lower = it.lowercase()
+            lower.contains(".flac") || lower.contains(".alac") || lower.contains(".wav")
+        }
+
+        return when (quality) {
+            "LOSSLESS" -> {
+                losslessCandidate ?: getPlaybackUrl("HIGH")
+            }
+            "HIGH" -> {
+                candidates.firstOrNull { it.contains("_320") }
+                    ?: candidates.firstOrNull { it.contains("_160") }?.replace("_160", "_320")
+                    ?: candidates.firstOrNull { it.contains("_96") }?.replace("_96", "_320")
+                    ?: candidates.first()
+            }
+            "STANDARD" -> {
+                candidates.firstOrNull { it.contains("_160") }
+                    ?: candidates.firstOrNull { it.contains("_320") }?.replace("_320", "_160")
+                    ?: candidates.firstOrNull { it.contains("_96") }?.replace("_96", "_160")
+                    ?: candidates.first()
+            }
+            "SAVER" -> {
+                candidates.firstOrNull { it.contains("_96") }
+                    ?: candidates.firstOrNull { it.contains("_160") }?.replace("_160", "_96")
+                    ?: candidates.firstOrNull { it.contains("_320") }?.replace("_320", "_96")
+                    ?: candidates.first()
+            }
+            else -> getBestPlaybackUrl()
+        }
+    }
+
+    /**
      * Returns all candidate playback URLs in order of preference:
      * 1. mediaUrlDefault
      * 2. mediaUrl

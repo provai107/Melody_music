@@ -57,9 +57,13 @@ class SongMediaItemMapperTest {
             previewUrl = "https://jiotunepreview.jio.com/sample.mp3"
         )
 
+        // Default HIGH quality preference resolves to 320 kbps stream
         val mediaItem = SongMediaItemMapper.toMediaItem(song)
-        // Primary URI should be mediaUrlDefault (index 0)
-        assertThat(mediaItem.localConfiguration?.uri.toString()).isEqualTo("https://aac.saavncdn.com/stream_96.mp4")
+        assertThat(mediaItem.localConfiguration?.uri.toString()).isEqualTo("https://aac.saavncdn.com/stream_320.mp3")
+
+        // SAVER quality preference resolves to 96 kbps stream
+        val mediaItemSaver = SongMediaItemMapper.toMediaItem(song, qualityPreference = "SAVER")
+        assertThat(mediaItemSaver.localConfiguration?.uri.toString()).isEqualTo("https://aac.saavncdn.com/stream_96.mp4")
 
         // Candidate fallback at index 1: mediaUrl
         val fallback1 = SongMediaItemMapper.createFallbackMediaItem(mediaItem, 1)

@@ -109,6 +109,10 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.common.util.concurrent.ListenableFuture
 import android.content.Context
+import com.braveplayer.music.audio.AudioFormatInfo
+import com.braveplayer.music.audio.EqualizerPreset
+import com.braveplayer.music.audio.PremiumAudioEngine
+import com.braveplayer.music.audio.SpatialMode
 import com.braveplayer.music.ui.RecentSearchAdapter
 import com.braveplayer.music.ui.TrendingRowAdapter
 import com.braveplayer.music.ui.CategoryChannelAdapter
@@ -326,6 +330,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnNowPlayingDislike: ImageView
     private lateinit var btnNowPlayingShareAction: View
     private lateinit var btnNowPlayingLyricsActionBottom: View
+    private lateinit var premiumAudioEngine: PremiumAudioEngine
+    private var tvNowPlayingHiFiBadge: TextView? = null
 
     // MediaController connection
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -372,6 +378,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         appSettings = AppSettings(this)
+        premiumAudioEngine = PremiumAudioEngine.getInstance(this, appSettings)
         filterListManager = FilterEngineProvider.filterListManager
         metadataService = MusicMetadataService(filterListManager)
         playlistDbHelper = PlaylistDatabaseHelper(this)
@@ -428,6 +435,20 @@ class MainActivity : AppCompatActivity() {
         refreshCollectionData()
         refreshSearchRecommendations()
         checkAppUpdateOnLaunch()
+
+        lifecycleScope.launch {
+            premiumAudioEngine.formatInfo.collect { info ->
+                tvNowPlayingHiFiBadge?.apply {
+                    text = if (info.isLossless) "LOSSLESS" else if (info.isSpatialActive) "SPATIAL" else if (info.bitrateKbps > 0) "${info.bitrateKbps}K" else "HIFI"
+                    setTextColor(
+                        ContextCompat.getColor(
+                            this@MainActivity,
+                            if (info.isLossless || info.isSpatialActive) R.color.accentPrimary else R.color.textSecondary
+                        )
+                    )
+                }
+            }
+        }
     }
 
     private fun checkAppUpdateOnLaunch() {
@@ -589,6 +610,8 @@ class MainActivity : AppCompatActivity() {
         ivNowPlayingCover = findViewById(R.id.ivNowPlayingCover)
         tvNowPlayingTitle = findViewById(R.id.tvNowPlayingTitle)
         tvNowPlayingArtist = findViewById(R.id.tvNowPlayingArtist)
+        tvNowPlayingHiFiBadge = findViewById(R.id.tvNowPlayingHiFiBadge)
+        tvNowPlayingHiFiBadge?.setOnClickListener { showPlaybackSettingsDialog() }
         btnNowPlayingLike = findViewById(R.id.btnNowPlayingLike)
         sbNowPlayingProgress = findViewById(R.id.sbNowPlayingProgress)
         tvNowPlayingPosition = findViewById(R.id.tvNowPlayingPosition)
@@ -3505,6 +3528,11 @@ class MainActivity : AppCompatActivity() {
         // Enforce dynamic white-to-red thumb and track color state lists for all settings switches
         val switchThumbColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_thumb_selector)
         val switchTrackColor = androidx.core.content.ContextCompat.getColorStateList(this, R.color.switch_track_selector)
+
+        val switchSpatialAudio: SwitchCompat? = view.findViewById(R.id.switchSpatialAudio)
+        val switchEqualizer: SwitchCompat? = view.findViewById(R.id.switchEqualizer)
+        val switchVolumeNormalization: SwitchCompat? = view.findViewById(R.id.switchVolumeNormalization)
+
         listOfNotNull(
             switchAutoplay,
             switchSmartShuffle,
@@ -3513,7 +3541,10 @@ class MainActivity : AppCompatActivity() {
             switchReducedIntensity,
             switchExcludeDisliked,
             switchGaplessPlayback,
-            switchClearQueueOnPlay
+            switchClearQueueOnPlay,
+            switchSpatialAudio,
+            switchEqualizer,
+            switchVolumeNormalization
         ).forEach { sw ->
             sw.thumbTintList = switchThumbColor
             sw.trackTintList = switchTrackColor
@@ -3556,19 +3587,148 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, if (isChecked) "Clear queue on new play enabled" else "Clear queue on new play disabled", Toast.LENGTH_SHORT).show()
         }
 
+        val rbQualityLossless: RadioButton? = view.findViewById(R.id.rbQualityLossless)
         when (appSettings.getAudioQuality()) {
+            AppSettings.QUALITY_LOSSLESS -> rbQualityLossless?.isChecked = true
             AppSettings.QUALITY_HIGH -> rbQualityHigh?.isChecked = true
             AppSettings.QUALITY_SAVER -> rbQualitySaver?.isChecked = true
             else -> rbQualityStandard?.isChecked = true
         }
         rgAudioQuality?.setOnCheckedChangeListener { _, checkedId ->
             val quality = when (checkedId) {
+                R.id.rbQualityLossless -> AppSettings.QUALITY_LOSSLESS
                 R.id.rbQualityHigh -> AppSettings.QUALITY_HIGH
                 R.id.rbQualitySaver -> AppSettings.QUALITY_SAVER
                 else -> AppSettings.QUALITY_STANDARD
             }
             appSettings.setAudioQuality(quality)
             Toast.makeText(this, "Streaming quality set to $quality", Toast.LENGTH_SHORT).show()
+        }
+
+        // Real-time Audio Stream & Codec Information Card
+        val tvAudioFidelityBadge: TextView? = view.findViewById(R.id.tvAudioFidelityBadge)
+        val tvAudioCodec: TextView? = view.findViewById(R.id.tvAudioCodec)
+        val tvAudioBitrate: TextView? = view.findViewById(R.id.tvAudioBitrate)
+        val tvAudioSampleRate: TextView? = view.findViewById(R.id.tvAudioSampleRate)
+        val tvAudioBitDepth: TextView? = view.findViewById(R.id.tvAudioBitDepth)
+        val tvAudioChannels: TextView? = view.findViewById(R.id.tvAudioChannels)
+        val tvAudioSpatialStatus: TextView? = view.findViewById(R.id.tvAudioSpatialStatus)
+
+        val streamInfoJob = lifecycleScope.launch {
+            premiumAudioEngine.formatInfo.collect { info ->
+                tvAudioCodec?.text = info.codec.uppercase()
+                tvAudioBitrate?.text = if (info.bitrateKbps > 0) "${info.bitrateKbps} kbps" else "320 kbps"
+                tvAudioSampleRate?.text = if (info.sampleRateHz > 0) String.format("%.1f kHz", info.sampleRateHz / 1000.0) else "44.1 kHz"
+                tvAudioBitDepth?.text = "${info.bitDepth}-bit"
+                tvAudioChannels?.text = "Channels: ${info.channelsDescription}"
+                tvAudioSpatialStatus?.text = "Spatial: ${if (info.isSpatialActive) "Active" else "Stereo"}"
+                tvAudioFidelityBadge?.text = info.fidelityLabel
+                tvAudioFidelityBadge?.setTextColor(ContextCompat.getColor(this@MainActivity, if (info.isLossless) R.color.accentPrimary else R.color.textSecondary))
+            }
+        }
+        dialog.setOnDismissListener {
+            streamInfoJob.cancel()
+        }
+
+        // Spatial Audio Engine
+        val tvSpatialHardwareStatus: TextView? = view.findViewById(R.id.tvSpatialHardwareStatus)
+        val rgSpatialMode: RadioGroup? = view.findViewById(R.id.rgSpatialMode)
+        val rbSpatialStereo: RadioButton? = view.findViewById(R.id.rbSpatialStereo)
+        val rbSpatialSoundstage: RadioButton? = view.findViewById(R.id.rbSpatialSoundstage)
+        val rbSpatialImmersive: RadioButton? = view.findViewById(R.id.rbSpatialImmersive)
+
+        switchSpatialAudio?.isChecked = premiumAudioEngine.spatialController.isSpatialEnabled.value
+        val hasPlatformSpatializer = premiumAudioEngine.spatialController.isPlatformSpatializerSupported.value
+        val hasDolbyAtmos = premiumAudioEngine.spatialController.isDolbyAtmosSupported.value
+        tvSpatialHardwareStatus?.text = "Platform Spatializer: ${if (hasPlatformSpatializer) "Hardware Ready" else "Headphone HRTF Virtualizer"} • Dolby Atmos: ${if (hasDolbyAtmos) "Hardware Passthrough Ready" else "Stereo / Binaural"}"
+
+        when (premiumAudioEngine.spatialController.spatialMode.value) {
+            SpatialMode.SOUNDSTAGE -> rbSpatialSoundstage?.isChecked = true
+            SpatialMode.IMMERSIVE -> rbSpatialImmersive?.isChecked = true
+            else -> rbSpatialStereo?.isChecked = true
+        }
+
+        switchSpatialAudio?.setOnCheckedChangeListener { _, isChecked ->
+            premiumAudioEngine.spatialController.setSpatialEnabled(isChecked)
+            Toast.makeText(this, if (isChecked) "Spatial audio enabled" else "Spatial audio disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        rgSpatialMode?.setOnCheckedChangeListener { _, checkedId ->
+            val mode = when (checkedId) {
+                R.id.rbSpatialSoundstage -> SpatialMode.SOUNDSTAGE
+                R.id.rbSpatialImmersive -> SpatialMode.IMMERSIVE
+                else -> SpatialMode.STEREO
+            }
+            premiumAudioEngine.spatialController.setSpatialMode(mode)
+        }
+
+        // Equalizer Section
+        val chipGroupEqualizerPresets: ChipGroup? = view.findViewById(R.id.chipGroupEqualizerPresets)
+        switchEqualizer?.isChecked = premiumAudioEngine.equalizerController.isEnabled.value
+        switchEqualizer?.setOnCheckedChangeListener { _, isChecked ->
+            premiumAudioEngine.equalizerController.setEnabled(isChecked)
+            Toast.makeText(this, if (isChecked) "Equalizer enabled" else "Equalizer disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        fun renderEqualizerPresetChips() {
+            chipGroupEqualizerPresets?.removeAllViews()
+            val currentPreset = premiumAudioEngine.equalizerController.activePreset.value
+            for (preset in EqualizerPreset.values()) {
+                val isSelected = (preset == currentPreset)
+                val chip = Chip(this)
+                chip.text = preset.displayName
+                chip.isCheckable = true
+                chip.isChecked = isSelected
+                chip.setTextColor(ContextCompat.getColor(this, if (isSelected) R.color.textPrimary else R.color.textSecondary))
+                chip.chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(this, if (isSelected) R.color.accentPrimary else R.color.surfaceElevated))
+                chip.chipStrokeWidth = if (isSelected) 0f else 2f
+                chip.setChipStrokeColorResource(R.color.borderSubtle)
+                chip.chipCornerRadius = 24f
+                chip.setOnClickListener {
+                    premiumAudioEngine.equalizerController.applyPreset(preset)
+                    renderEqualizerPresetChips()
+                }
+                chipGroupEqualizerPresets?.addView(chip)
+            }
+        }
+        renderEqualizerPresetChips()
+
+        // Volume Normalization
+        switchVolumeNormalization?.isChecked = premiumAudioEngine.volumeNormalizationController.isEnabled.value
+        switchVolumeNormalization?.setOnCheckedChangeListener { _, isChecked ->
+            premiumAudioEngine.volumeNormalizationController.setEnabled(isChecked)
+            Toast.makeText(this, if (isChecked) "Volume normalization enabled" else "Volume normalization disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        // Crossfade
+        val rgCrossfade: RadioGroup? = view.findViewById(R.id.rgCrossfade)
+        val rbCrossfade0s: RadioButton? = view.findViewById(R.id.rbCrossfade0s)
+        val rbCrossfade2s: RadioButton? = view.findViewById(R.id.rbCrossfade2s)
+        val rbCrossfade4s: RadioButton? = view.findViewById(R.id.rbCrossfade4s)
+        val rbCrossfade6s: RadioButton? = view.findViewById(R.id.rbCrossfade6s)
+        val rbCrossfade8s: RadioButton? = view.findViewById(R.id.rbCrossfade8s)
+        val rbCrossfade10s: RadioButton? = view.findViewById(R.id.rbCrossfade10s)
+
+        when (premiumAudioEngine.crossfadeController.crossfadeDurationSeconds.value) {
+            2 -> rbCrossfade2s?.isChecked = true
+            4 -> rbCrossfade4s?.isChecked = true
+            6 -> rbCrossfade6s?.isChecked = true
+            8 -> rbCrossfade8s?.isChecked = true
+            10 -> rbCrossfade10s?.isChecked = true
+            else -> rbCrossfade0s?.isChecked = true
+        }
+
+        rgCrossfade?.setOnCheckedChangeListener { _, checkedId ->
+            val seconds = when (checkedId) {
+                R.id.rbCrossfade2s -> 2
+                R.id.rbCrossfade4s -> 4
+                R.id.rbCrossfade6s -> 6
+                R.id.rbCrossfade8s -> 8
+                R.id.rbCrossfade10s -> 10
+                else -> 0
+            }
+            premiumAudioEngine.crossfadeController.setCrossfadeDuration(seconds)
+            Toast.makeText(this, if (seconds == 0) "Crossfade turned off" else "Crossfade set to ${seconds}s", Toast.LENGTH_SHORT).show()
         }
 
         // Section 3: Followed Artists

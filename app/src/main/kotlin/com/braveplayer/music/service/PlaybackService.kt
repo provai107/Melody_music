@@ -13,6 +13,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -21,6 +22,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.braveplayer.music.MainActivity
+import com.braveplayer.music.audio.PremiumAudioEngine
 import com.braveplayer.music.discovery.MusicRecommendationEngine
 import com.braveplayer.music.media.BraveMedia3HttpDataSource
 import com.braveplayer.music.media.SongMediaItemMapper
@@ -61,6 +63,7 @@ class PlaybackService : MediaSessionService() {
     private lateinit var playlistDbHelper: PlaylistDatabaseHelper
     private lateinit var recommendationEngine: MusicRecommendationEngine
     private lateinit var playbackController: com.braveplayer.music.player.CentralizedPlaybackController
+    private lateinit var premiumAudioEngine: PremiumAudioEngine
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -81,6 +84,7 @@ class PlaybackService : MediaSessionService() {
         appSettings = AppSettings(this)
         playlistDbHelper = PlaylistDatabaseHelper(this)
         queuePersistenceManager = QueuePersistenceManager(this)
+        premiumAudioEngine = PremiumAudioEngine.getInstance(this, appSettings)
 
         val filterManager = FilterEngineProvider.filterListManager
         val metadataService = com.braveplayer.music.api.MusicMetadataService(filterManager)
@@ -114,15 +118,24 @@ class PlaybackService : MediaSessionService() {
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setSpatializationBehavior(C.SPATIALIZATION_BEHAVIOR_AUTO)
             .build()
 
-        val exoPlayer = ExoPlayer.Builder(this)
+        val renderersFactory = DefaultRenderersFactory(this)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            .setEnableAudioTrackPlaybackParams(true)
+
+        val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
             .setAudioAttributes(audioAttributes, true) // Automatic audio focus handling
             .setHandleAudioBecomingNoisy(true) // Automatic pause on headphone disconnect
             .build()
 
         exoPlayer.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                premiumAudioEngine.onAudioSessionIdChanged(audioSessionId)
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     hasEverStartedPlayback = true
@@ -174,6 +187,10 @@ class PlaybackService : MediaSessionService() {
                 currentPlayingSong = mediaItem?.let { SongMediaItemMapper.fromMediaItem(it) }
                 currentTrackStartTimeMs = if (exoPlayer.isPlaying) System.currentTimeMillis() else 0L
 
+                premiumAudioEngine.updateCurrentMediaUrl(
+                    mediaItem?.requestMetadata?.mediaUri?.toString() ?: currentPlayingSong?.getPlaybackUrl(appSettings.getAudioQuality())
+                )
+
                 if (exoPlayer.playWhenReady || exoPlayer.isPlaying) {
                     hasEverStartedPlayback = true
                 }
@@ -216,6 +233,7 @@ class PlaybackService : MediaSessionService() {
         )
         playbackController.attachPlayer(exoPlayer)
         com.braveplayer.music.jam.service.JamSessionManager.getInstance(this).attachPlayer(exoPlayer)
+        premiumAudioEngine.attachPlayer(exoPlayer)
 
         // Restore persisted queue state without auto-playing loudly
         restorePersistedQueue(exoPlayer)
@@ -565,6 +583,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        premiumAudioEngine.detachPlayer()
         playbackController.detachPlayer()
         com.braveplayer.music.jam.service.JamSessionManager.getInstance(this).detachPlayer()
         recordCurrentTrackHistory(isPlaybackEnded = false)

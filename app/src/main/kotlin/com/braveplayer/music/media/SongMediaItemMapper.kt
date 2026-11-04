@@ -36,10 +36,11 @@ object SongMediaItemMapper {
         song: Song,
         origin: String = ORIGIN_CONTEXT,
         contextName: String? = null,
-        isRecommended: Boolean = false
+        isRecommended: Boolean = false,
+        qualityPreference: String = "HIGH"
     ): MediaItem {
         val candidateUrls = song.getCandidatePlaybackUrls()
-        val rawUri = song.getBestPlaybackUrl() ?: ""
+        val rawUri = song.getPlaybackUrl(qualityPreference) ?: song.getBestPlaybackUrl() ?: ""
         val primaryUri = if (rawUri.startsWith("/")) Uri.fromFile(java.io.File(rawUri)).toString() else rawUri
 
         val extras = Bundle().apply {

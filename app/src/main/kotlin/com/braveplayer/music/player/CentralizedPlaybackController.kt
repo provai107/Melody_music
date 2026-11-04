@@ -990,11 +990,13 @@ class CentralizedPlaybackController(
             QueueOrigin.AUTOPLAY -> SongMediaItemMapper.ORIGIN_AUTOPLAY
         }
 
+        val quality = appSettings.getAudioQuality()
         return SongMediaItemMapper.toMediaItem(
             song = queueItem.song,
             origin = originStr,
             contextName = queueItem.contextTitle,
-            isRecommended = (queueItem.origin == QueueOrigin.AUTOPLAY)
+            isRecommended = (queueItem.origin == QueueOrigin.AUTOPLAY),
+            qualityPreference = quality
         )
     }
 
