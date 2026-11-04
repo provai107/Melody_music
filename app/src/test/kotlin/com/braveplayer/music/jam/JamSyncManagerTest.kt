@@ -6,7 +6,10 @@ import com.braveplayer.music.jam.sync.JamSyncManager
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class JamSyncManagerTest {
 
     private lateinit var syncManager: JamSyncManager

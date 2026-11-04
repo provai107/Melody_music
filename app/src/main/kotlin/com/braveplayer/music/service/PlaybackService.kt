@@ -329,7 +329,9 @@ class PlaybackService : MediaSessionService() {
                             limit = 8,
                             personalizationEnabled = appSettings.isPersonalizationEnabled(),
                             avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
-                            diversityMode = appSettings.getRecommendationDiversity()
+                            diversityMode = appSettings.getRecommendationDiversity(),
+                            recommendationInfluence = appSettings.getRecommendationInfluence(),
+                            excludeDislikedTracks = appSettings.shouldExcludeDislikedTracks()
                         )
                         candidates.addAll(recs)
                     }

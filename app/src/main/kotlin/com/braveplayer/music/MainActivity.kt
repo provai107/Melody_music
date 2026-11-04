@@ -3259,6 +3259,11 @@ class MainActivity : AppCompatActivity() {
         val switchPersonalization: SwitchCompat = view.findViewById(R.id.switchPersonalization)
         val switchAvoidRecent: SwitchCompat = view.findViewById(R.id.switchAvoidRecent)
         val switchReducedIntensity: SwitchCompat? = view.findViewById(R.id.switchReducedIntensity)
+        val switchExcludeDisliked: SwitchCompat? = view.findViewById(R.id.switchExcludeDisliked)
+        val rgInfluence: RadioGroup? = view.findViewById(R.id.rgInfluence)
+        val rbInfluenceHigh: RadioButton? = view.findViewById(R.id.rbInfluenceHigh)
+        val rbInfluenceMedium: RadioButton? = view.findViewById(R.id.rbInfluenceMedium)
+        val rbInfluenceLow: RadioButton? = view.findViewById(R.id.rbInfluenceLow)
         val rgDiversity: RadioGroup = view.findViewById(R.id.rgDiversity)
         val rbBalanced: RadioButton = view.findViewById(R.id.rbBalanced)
         val rbFamiliar: RadioButton = view.findViewById(R.id.rbFamiliar)
@@ -3506,6 +3511,7 @@ class MainActivity : AppCompatActivity() {
             switchPersonalization,
             switchAvoidRecent,
             switchReducedIntensity,
+            switchExcludeDisliked,
             switchGaplessPlayback,
             switchClearQueueOnPlay
         ).forEach { sw ->
@@ -3518,6 +3524,7 @@ class MainActivity : AppCompatActivity() {
         switchSmartShuffle.isChecked = (smartShuffleState == SmartShuffleState.SMART_SHUFFLE || appSettings.isSmartShuffleEnabled())
         switchPersonalization.isChecked = appSettings.isPersonalizationEnabled()
         switchAvoidRecent.isChecked = appSettings.shouldAvoidRecentlyPlayed()
+        switchExcludeDisliked?.isChecked = appSettings.shouldExcludeDislikedTracks()
         switchReducedIntensity?.isChecked = appSettings.isReducedIntensityEnabled()
         switchReducedIntensity?.setOnCheckedChangeListener { _, isChecked ->
             appSettings.setReducedIntensityEnabled(isChecked)
@@ -3528,6 +3535,12 @@ class MainActivity : AppCompatActivity() {
             AppSettings.DIVERSITY_FAMILIAR -> rbFamiliar.isChecked = true
             AppSettings.DIVERSITY_DISCOVERY -> rbDiscovery.isChecked = true
             else -> rbBalanced.isChecked = true
+        }
+
+        when (appSettings.getRecommendationInfluence()) {
+            AppSettings.INFLUENCE_HIGH -> rbInfluenceHigh?.isChecked = true
+            AppSettings.INFLUENCE_LOW -> rbInfluenceLow?.isChecked = true
+            else -> rbInfluenceMedium?.isChecked = true
         }
 
         // Section 2: Audio playback & streaming
@@ -3619,6 +3632,21 @@ class MainActivity : AppCompatActivity() {
                 else -> AppSettings.DIVERSITY_BALANCED
             }
             appSettings.setRecommendationDiversity(mode)
+            recommendationEngine.clearCache()
+        }
+
+        switchExcludeDisliked?.setOnCheckedChangeListener { _, isChecked ->
+            appSettings.setExcludeDislikedTracks(isChecked)
+            recommendationEngine.clearCache()
+        }
+
+        rgInfluence?.setOnCheckedChangeListener { _, checkedId ->
+            val influence = when (checkedId) {
+                R.id.rbInfluenceHigh -> AppSettings.INFLUENCE_HIGH
+                R.id.rbInfluenceLow -> AppSettings.INFLUENCE_LOW
+                else -> AppSettings.INFLUENCE_MEDIUM
+            }
+            appSettings.setRecommendationInfluence(influence)
             recommendationEngine.clearCache()
         }
 

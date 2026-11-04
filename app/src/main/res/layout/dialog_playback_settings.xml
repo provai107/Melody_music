@@ -493,6 +493,103 @@
                     android:textSize="13sp" />
             </RadioGroup>
 
+            <!-- Switch: Exclude Disliked Tracks -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    android:layout_toStartOf="@+id/switchExcludeDisliked"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Exclude Disliked Tracks"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Never suggest or autoplay tracks you have skipped repeatedly or marked not interested"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchExcludeDisliked"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    app:thumbTint="@color/switch_thumb_selector"
+                    app:trackTint="@color/switch_track_selector" />
+            </RelativeLayout>
+
+            <!-- RadioGroup: Recommendation Influence -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Recommendation Influence"
+                android:textColor="@color/textPrimary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif"
+                android:text="Control how strongly past listening habits shape your upcoming suggestions"
+                android:textColor="@color/textSecondary"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rgInfluence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp">
+
+                <RadioButton
+                    android:id="@+id/rbInfluenceHigh"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif"
+                    android:text="High • Closely aligned with your taste profile and favorite genres"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rbInfluenceMedium"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif"
+                    android:text="Medium • Balanced mix of listening history and seed similarity"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rbInfluenceLow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:text="Low • Prioritize current song similarity with minimal historical bias"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="13sp" />
+            </RadioGroup>
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

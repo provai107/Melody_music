@@ -18,6 +18,8 @@ class AppSettings(context: Context) {
         private const val KEY_PERSONALIZATION = "personalization_enabled"
         private const val KEY_AVOID_RECENT = "avoid_recently_played"
         private const val KEY_DIVERSITY = "recommendation_diversity"
+        private const val KEY_RECOMMENDATION_INFLUENCE = "recommendation_influence"
+        private const val KEY_EXCLUDE_DISLIKED = "exclude_disliked_tracks"
         private const val KEY_REDUCED_INTENSITY = "reduced_accent_intensity"
         private const val KEY_AUDIO_QUALITY = "audio_quality"
         private const val KEY_GAPLESS_PLAYBACK = "gapless_playback"
@@ -35,6 +37,10 @@ class AppSettings(context: Context) {
         const val DIVERSITY_BALANCED = "BALANCED"
         const val DIVERSITY_FAMILIAR = "FAMILIAR"
         const val DIVERSITY_DISCOVERY = "DISCOVERY"
+
+        const val INFLUENCE_LOW = "LOW"
+        const val INFLUENCE_MEDIUM = "MEDIUM"
+        const val INFLUENCE_HIGH = "HIGH"
 
         const val SHUFFLE_MODE_NORMAL = "NORMAL"
         const val SHUFFLE_MODE_SHUFFLE = "SHUFFLE"
@@ -127,6 +133,22 @@ class AppSettings(context: Context) {
 
     fun setRecommendationDiversity(diversity: String) {
         prefs.edit().putString(KEY_DIVERSITY, diversity).apply()
+    }
+
+    fun getRecommendationInfluence(): String {
+        return prefs.getString(KEY_RECOMMENDATION_INFLUENCE, INFLUENCE_MEDIUM) ?: INFLUENCE_MEDIUM
+    }
+
+    fun setRecommendationInfluence(influence: String) {
+        prefs.edit().putString(KEY_RECOMMENDATION_INFLUENCE, influence).apply()
+    }
+
+    fun shouldExcludeDislikedTracks(): Boolean {
+        return prefs.getBoolean(KEY_EXCLUDE_DISLIKED, true)
+    }
+
+    fun setExcludeDislikedTracks(exclude: Boolean) {
+        prefs.edit().putBoolean(KEY_EXCLUDE_DISLIKED, exclude).apply()
     }
 
     fun isReducedIntensityEnabled(): Boolean {

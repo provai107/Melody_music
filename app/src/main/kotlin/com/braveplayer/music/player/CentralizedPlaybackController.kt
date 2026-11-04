@@ -7,6 +7,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import com.braveplayer.music.discovery.MusicRecommendationEngine
+import com.braveplayer.music.discovery.MusicSimilarityService
+import com.braveplayer.music.discovery.SessionContext
 import com.braveplayer.music.media.SongMediaItemMapper
 import com.braveplayer.music.model.Song
 import com.braveplayer.music.playlist.PlaylistDatabaseHelper
@@ -90,6 +92,7 @@ class CentralizedPlaybackController(
     private var currentRepeatMode: RepeatMode = RepeatMode.OFF
     private var isAutoplayEnabled: Boolean = appSettings.isAutoplayEnabled()
     private var currentPlaybackState: PlaybackState = PlaybackState.IDLE
+    private var sessionContext: SessionContext = SessionContext()
 
     // Resilience & Error Recovery
     private var consecutiveErrorCount: Int = 0
@@ -201,6 +204,15 @@ class CentralizedPlaybackController(
             song = effectiveSelectedSong,
             origin = QueueOrigin.CONTEXT,
             contextTitle = resolvedContext.title
+        )
+
+        val isAlbum = (resolvedContext.type == PlaybackContextType.ALBUM)
+        sessionContext = SessionContext(
+            currentSong = effectiveSelectedSong,
+            sessionArtists = listOf(MusicSimilarityService.extractPrimaryArtist(effectiveSelectedSong.artists).lowercase()),
+            sessionSongIds = setOf(effectiveSelectedSong.id),
+            isAlbumContext = isAlbum,
+            albumTitle = effectiveSelectedSong.album.takeIf { it.isNotBlank() }
         )
 
         // Store complete original context for Repeat All and Shuffle restore
@@ -342,6 +354,8 @@ class CentralizedPlaybackController(
                     playbackHistory.forEach { add(it.song.title) }
                 }
 
+                val influence = appSettings.getRecommendationInfluence()
+                val excludeDisliked = appSettings.shouldExcludeDislikedTracks()
                 val recs = withContext(Dispatchers.IO) {
                     recommendationEngine?.getRecommendations(
                         baseUrl = baseUrl,
@@ -352,6 +366,9 @@ class CentralizedPlaybackController(
                         personalizationEnabled = appSettings.isPersonalizationEnabled(),
                         avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
                         diversityMode = appSettings.getRecommendationDiversity(),
+                        recommendationInfluence = influence,
+                        excludeDislikedTracks = excludeDisliked,
+                        sessionContext = sessionContext,
                         additionalCandidates = initialCandidates
                     ) ?: emptyList()
                 }
@@ -628,6 +645,7 @@ class CentralizedPlaybackController(
         }
 
         currentItem = nextItem
+        sessionContext = sessionContext.withNextSong(nextItem.song)
         consecutiveErrorCount = 0
 
         syncTimelineToPlayer(startPlaying = true)
@@ -742,6 +760,8 @@ class CentralizedPlaybackController(
                     playbackHistory.forEach { add(it.song.title) }
                 }
 
+                val influence = appSettings.getRecommendationInfluence()
+                val excludeDisliked = appSettings.shouldExcludeDislikedTracks()
                 val recs = withContext(Dispatchers.IO) {
                     recommendationEngine?.getRecommendations(
                         baseUrl = baseUrl,
@@ -751,7 +771,10 @@ class CentralizedPlaybackController(
                         limit = 6,
                         personalizationEnabled = appSettings.isPersonalizationEnabled(),
                         avoidRecentlyPlayed = appSettings.shouldAvoidRecentlyPlayed(),
-                        diversityMode = appSettings.getRecommendationDiversity()
+                        diversityMode = appSettings.getRecommendationDiversity(),
+                        recommendationInfluence = influence,
+                        excludeDislikedTracks = excludeDisliked,
+                        sessionContext = sessionContext
                     ) ?: emptyList()
                 }
 
