@@ -278,6 +278,53 @@
                 android:orientation="horizontal"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
+            <!-- Host Permission Controls (Allow Guests to Add Songs) -->
+            <LinearLayout
+                android:id="@+id/layoutJamHostPermissions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_jam_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="Guest Contributions"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvJamPermissionDesc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Allow other listeners to add songs to queue"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchJamAllowGuestQueue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:thumbTint="@color/accentPrimary"
+                    app:trackTint="@color/surfaceElevated" />
+            </LinearLayout>
+
             <!-- Section 2: Collaborative Queue -->
             <LinearLayout
                 android:layout_width="match_parent"

@@ -208,4 +208,18 @@
         android:indeterminateTint="@color/accentPrimary"
         android:visibility="gone" />
 
+    <TextView
+        android:id="@+id/tvJamLoadingStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:text="Connecting to Jam cloud..."
+        android:textColor="@color/textSecondary"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
 </LinearLayout>

@@ -12,6 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class JamSocketManager(
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(45, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(45, TimeUnit.SECONDS)
         .pingInterval(15, TimeUnit.SECONDS)
         .build(),
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -30,6 +33,7 @@ class JamSocketManager(
         fun onHostChanged(newHostGuestId: String, newHostName: String) {}
         fun onJamEnded(reason: String) {}
         fun onSyncResponse(response: JamSyncResponse) {}
+        fun onRoomSettingsUpdated(settings: JamRoomSettings) {}
         fun onError(code: String, message: String) {}
     }
 
@@ -265,6 +269,16 @@ class JamSocketManager(
         })
     }
 
+    fun sendUpdateRoomSettings(settings: JamRoomSettings) {
+        sendJson("UPDATE_ROOM_SETTINGS", JSONObject().apply {
+            put("settings", JSONObject().apply {
+                put("allowGuestControl", settings.allowGuestControl)
+                put("allowGuestQueueAdd", settings.allowGuestQueueAdd)
+                put("allowGuestQueueRemoveOwn", settings.allowGuestQueueRemoveOwn)
+            })
+        })
+    }
+
     // =========================================================================
     // Incoming Message Parser
     // =========================================================================
@@ -348,6 +362,16 @@ class JamSocketManager(
                     val sVer = data.optLong("stateVersion", pbState.stateVersion)
                     val response = JamSyncResponse(cTime, sTime, pbState, calcPos, sVer)
                     listeners.forEach { it.onSyncResponse(response) }
+                }
+
+                "ROOM_SETTINGS_UPDATED" -> {
+                    val settingsObj = data.optJSONObject("settings")
+                    val settings = JamRoomSettings(
+                        allowGuestControl = settingsObj?.optBoolean("allowGuestControl", false) ?: false,
+                        allowGuestQueueAdd = settingsObj?.optBoolean("allowGuestQueueAdd", true) ?: true,
+                        allowGuestQueueRemoveOwn = settingsObj?.optBoolean("allowGuestQueueRemoveOwn", true) ?: true
+                    )
+                    listeners.forEach { it.onRoomSettingsUpdated(settings) }
                 }
 
                 "ERROR" -> {

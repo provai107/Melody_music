@@ -73,6 +73,7 @@ class JamSessionManager(
     // Track state to avoid feedback loops
     private var isApplyingRemoteUpdate = false
     private var attachedPlayer: Player? = null
+    private var lastSentSongId: String? = null
 
     init {
         socketManager.addListener(this)
@@ -92,9 +93,12 @@ class JamSessionManager(
         playbackController.addListener(object : CentralizedPlaybackController.Listener {
             override fun onSongChanged(song: Song?, queueItem: com.braveplayer.music.player.QueueItem?) {
                 if (isHost() && song != null && !isApplyingRemoteUpdate) {
-                    val pos = attachedPlayer?.currentPosition ?: 0L
-                    val isPlaying = attachedPlayer?.isPlaying == true
-                    sendTrackChanged(song, pos, isPlaying)
+                    if (song.id != lastSentSongId) {
+                        lastSentSongId = song.id
+                        val pos = attachedPlayer?.currentPosition ?: 0L
+                        val isPlaying = attachedPlayer?.isPlaying == true && attachedPlayer?.playWhenReady == true
+                        sendTrackChanged(song, pos, isPlaying)
+                    }
                 }
             }
 
@@ -217,13 +221,13 @@ class JamSessionManager(
             }
             socketManager.addListener(listener)
 
-            // Watchdog timeout after 12 seconds
+            // Watchdog timeout after 45 seconds for cloud cold-start tolerance
             coroutineScope.launch {
-                delay(12_000L)
+                delay(45_000L)
                 if (!isCompleted) {
                     isCompleted = true
                     socketManager.removeListener(listener)
-                    onResult?.invoke(Result.failure(Exception("Connection timed out. Check network or server status.")))
+                    onResult?.invoke(Result.failure(Exception("Connection timed out. The cloud server is waking up; please retry in a few seconds.")))
                 }
             }
 
@@ -284,11 +288,11 @@ class JamSessionManager(
             socketManager.addListener(listener)
 
             coroutineScope.launch {
-                delay(12_000L)
+                delay(45_000L)
                 if (!isCompleted) {
                     isCompleted = true
                     socketManager.removeListener(listener)
-                    onResult?.invoke(Result.failure(Exception("Connection timed out. Check room code and server status.")))
+                    onResult?.invoke(Result.failure(Exception("Connection timed out. Check room code or server status.")))
                 }
             }
 
@@ -320,6 +324,9 @@ class JamSessionManager(
     fun sendPlay(positionMs: Long) {
         if (!isInJam()) return
         if (isHost() || _currentRoom.value?.settings?.allowGuestControl == true) {
+            _currentRoom.value = _currentRoom.value?.let { room ->
+                room.copy(playbackState = room.playbackState.copy(isPlaying = true, positionMs = positionMs))
+            }
             socketManager.sendPlay(positionMs)
         }
     }
@@ -327,6 +334,9 @@ class JamSessionManager(
     fun sendPause(positionMs: Long) {
         if (!isInJam()) return
         if (isHost() || _currentRoom.value?.settings?.allowGuestControl == true) {
+            _currentRoom.value = _currentRoom.value?.let { room ->
+                room.copy(playbackState = room.playbackState.copy(isPlaying = false, positionMs = positionMs))
+            }
             socketManager.sendPause(positionMs)
         }
     }
@@ -334,6 +344,9 @@ class JamSessionManager(
     fun sendSeek(positionMs: Long) {
         if (!isInJam()) return
         if (isHost() || _currentRoom.value?.settings?.allowGuestControl == true) {
+            _currentRoom.value = _currentRoom.value?.let { room ->
+                room.copy(playbackState = room.playbackState.copy(positionMs = positionMs))
+            }
             socketManager.sendSeek(positionMs)
         }
     }
@@ -342,9 +355,23 @@ class JamSessionManager(
         if (!isInJam()) return
         if (isApplyingRemoteUpdate) return
         if (isHost() || _currentRoom.value?.settings?.allowGuestControl == true) {
+            lastSentSongId = song.id
             val summary = JamSongSummary.fromSong(song)
             socketManager.sendTrackChanged(song.id, summary, positionMs, isPlaying)
         }
+    }
+
+    fun updateRoomSettings(allowGuestQueueAdd: Boolean? = null, allowGuestControl: Boolean? = null) {
+        val room = _currentRoom.value ?: return
+        if (!isHost()) return
+
+        val current = room.settings
+        val updated = current.copy(
+            allowGuestQueueAdd = allowGuestQueueAdd ?: current.allowGuestQueueAdd,
+            allowGuestControl = allowGuestControl ?: current.allowGuestControl
+        )
+        _currentRoom.value = room.copy(settings = updated)
+        socketManager.sendUpdateRoomSettings(updated)
     }
 
     fun addToQueue(song: Song) {
@@ -414,11 +441,17 @@ class JamSessionManager(
         if (!isHost()) {
             syncManager.onPlaybackStateUpdated(playbackState)
 
-            // If track changed remotely
-            if (action == "TRACK_CHANGED" && playbackState.trackId != null) {
+            // If track changed remotely to a different track
+            if (action == "TRACK_CHANGED" && playbackState.trackId != null && playbackState.trackId != lastSentSongId) {
+                lastSentSongId = playbackState.trackId
                 synchronizeGuestToRoomPlayback(playbackState)
             }
         }
+    }
+
+    override fun onRoomSettingsUpdated(settings: JamRoomSettings) {
+        val room = _currentRoom.value ?: return
+        _currentRoom.value = room.copy(settings = settings)
     }
 
     override fun onQueueUpdated(queue: List<JamQueueItem>) {

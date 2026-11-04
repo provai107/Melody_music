@@ -404,6 +404,32 @@ class RoomManager {
     return { success: true };
   }
 
+  updateRoomSettings(roomId, guestId, newSettings = {}) {
+    const room = this.roomsById.get(roomId);
+    if (!room) return { error: { code: ErrorCodes.ROOM_NOT_FOUND, message: 'Room not found' } };
+
+    if (room.hostGuestId !== guestId) {
+      return { error: { code: ErrorCodes.HOST_PERMISSION_REQUIRED, message: 'Only host can update room settings' } };
+    }
+
+    if (typeof newSettings.allowGuestControl === 'boolean') {
+      room.settings.allowGuestControl = newSettings.allowGuestControl;
+    }
+    if (typeof newSettings.allowGuestQueueAdd === 'boolean') {
+      room.settings.allowGuestQueueAdd = newSettings.allowGuestQueueAdd;
+    }
+    if (typeof newSettings.allowGuestQueueRemoveOwn === 'boolean') {
+      room.settings.allowGuestQueueRemoveOwn = newSettings.allowGuestQueueRemoveOwn;
+    }
+
+    room.updatedAt = Date.now();
+    this.broadcast(room, Events.ROOM_SETTINGS_UPDATED, {
+      settings: room.settings
+    });
+
+    return { success: true, settings: room.settings };
+  }
+
   getSyncResponse(roomId, clientTimestamp) {
     const room = this.roomsById.get(roomId);
     if (!room) return null;

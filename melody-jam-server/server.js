@@ -273,6 +273,14 @@ wss.on('connection', ws => {
         break;
       }
 
+      case Events.UPDATE_ROOM_SETTINGS: {
+        const binding = roomManager.socketToParticipant.get(ws);
+        if (!binding) return ws.send(createError(ErrorCodes.UNAUTHORIZED, 'Not in a room', requestId));
+        const res = roomManager.updateRoomSettings(binding.roomId, session.guestId, data.settings);
+        if (res.error) ws.send(createError(res.error.code, res.error.message, requestId));
+        break;
+      }
+
       default:
         ws.send(createError(ErrorCodes.INVALID_PAYLOAD, `Unrecognized event: ${event}`, requestId));
     }

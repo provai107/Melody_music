@@ -119,57 +119,61 @@ class JamSyncManager(
      * Applies appropriate micro-adjustments or seek commands.
      */
     fun evaluateDriftAndCorrect() {
-        val player = attachedPlayer ?: return
         if (isHost) return // Host is authoritative timeline; never correct host
 
-        val state = lastAuthoritativeState ?: return
-        val targetPos = calculateCurrentTargetPositionMs()
-        val localPos = player.currentPosition
-        val driftMs = localPos - targetPos // positive = local is ahead, negative = local is behind
-        val absDrift = abs(driftMs)
+        coroutineScope.launch(Dispatchers.Main) {
+            val currentPlayer = attachedPlayer ?: return@launch
+            val state = lastAuthoritativeState ?: return@launch
+            val targetPos = calculateCurrentTargetPositionMs()
+            val localPos = currentPlayer.currentPosition
+            val driftMs = localPos - targetPos // positive = local is ahead, negative = local is behind
+            val absDrift = abs(driftMs)
 
-        if (!state.isPlaying) {
-            // Paused: snap immediately to target position if difference is noticeable (> 200ms)
-            if (absDrift > 200L) {
-                player.seekTo(targetPos)
-            }
-            if (player.isPlaying) {
-                player.pause()
-            }
-            player.playbackParameters = PlaybackParameters(SPEED_NORMAL)
-            onDriftReported?.invoke(absDrift, false)
-            return
-        }
-
-        // Playing: ensure local player is playing
-        if (!player.isPlaying && player.playbackState != Player.STATE_ENDED) {
-            player.play()
-        }
-
-        // Apply 3-tier correction strategy
-        when {
-            absDrift < THRESHOLD_IN_SYNC_MS -> {
-                // Tier 1: Perfect sync (< 150ms). Restore normal 1.0x playback speed.
-                if (player.playbackParameters.speed != SPEED_NORMAL) {
-                    player.playbackParameters = PlaybackParameters(SPEED_NORMAL)
+            if (!state.isPlaying) {
+                // Paused: halt playback completely on guest so music does not play in background
+                if (currentPlayer.isPlaying || currentPlayer.playWhenReady) {
+                    currentPlayer.playWhenReady = false
+                    currentPlayer.pause()
                 }
+                if (absDrift > 200L) {
+                    currentPlayer.seekTo(targetPos.coerceAtLeast(0L))
+                }
+                currentPlayer.playbackParameters = PlaybackParameters(SPEED_NORMAL)
                 onDriftReported?.invoke(absDrift, false)
+                return@launch
             }
 
-            absDrift in THRESHOLD_IN_SYNC_MS..THRESHOLD_SEEK_CORRECTION_MS -> {
-                // Tier 2: Minor drift (150ms - 1200ms). Apply gentle speed trim.
-                val targetSpeed = if (driftMs > 0) SPEED_SLOWER else SPEED_FASTER
-                if (player.playbackParameters.speed != targetSpeed) {
-                    player.playbackParameters = PlaybackParameters(targetSpeed)
+            // Playing: ensure local player is playing
+            if (!currentPlayer.isPlaying && currentPlayer.playbackState != Player.STATE_ENDED) {
+                currentPlayer.playWhenReady = true
+                currentPlayer.play()
+            }
+
+            // Apply 3-tier correction strategy
+            when {
+                absDrift < THRESHOLD_IN_SYNC_MS -> {
+                    // Tier 1: Perfect sync (< 150ms). Restore normal 1.0x playback speed.
+                    if (currentPlayer.playbackParameters.speed != SPEED_NORMAL) {
+                        currentPlayer.playbackParameters = PlaybackParameters(SPEED_NORMAL)
+                    }
+                    onDriftReported?.invoke(absDrift, false)
                 }
-                onDriftReported?.invoke(absDrift, true)
-            }
 
-            else -> {
-                // Tier 3: Significant drift (> 1200ms). Hard seek directly to target position.
-                player.seekTo(targetPos.coerceAtLeast(0L))
-                player.playbackParameters = PlaybackParameters(SPEED_NORMAL)
-                onDriftReported?.invoke(0L, false)
+                absDrift in THRESHOLD_IN_SYNC_MS..THRESHOLD_SEEK_CORRECTION_MS -> {
+                    // Tier 2: Minor drift (150ms - 1200ms). Apply gentle speed trim.
+                    val targetSpeed = if (driftMs > 0) SPEED_SLOWER else SPEED_FASTER
+                    if (currentPlayer.playbackParameters.speed != targetSpeed) {
+                        currentPlayer.playbackParameters = PlaybackParameters(targetSpeed)
+                    }
+                    onDriftReported?.invoke(absDrift, true)
+                }
+
+                else -> {
+                    // Tier 3: Significant drift (> 1200ms). Hard seek directly to target position.
+                    currentPlayer.seekTo(targetPos.coerceAtLeast(0L))
+                    currentPlayer.playbackParameters = PlaybackParameters(SPEED_NORMAL)
+                    onDriftReported?.invoke(0L, false)
+                }
             }
         }
     }

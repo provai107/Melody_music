@@ -331,6 +331,14 @@ class MainActivity : AppCompatActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
+    fun getActiveMedia3Controller(): MediaController? = mediaController
+
+    fun togglePlayPause() {
+        mediaController?.let { c ->
+            if (c.isPlaying) c.pause() else c.play()
+        }
+    }
+
     // Modern 3-mode Shuffle
     enum class SmartShuffleState {
         NORMAL,
@@ -1667,6 +1675,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
+            val room = jamSessionManager.currentRoom.value
+            val isHost = jamSessionManager.isHost()
+            if (!isHost && room?.settings?.allowGuestQueueAdd == false) {
+                Toast.makeText(this, "The Jam host has restricted song additions", Toast.LENGTH_SHORT).show()
+                return
+            }
             jamSessionManager.addToQueue(effectiveSong)
             Toast.makeText(this, "Added to Melody Jam queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
             return

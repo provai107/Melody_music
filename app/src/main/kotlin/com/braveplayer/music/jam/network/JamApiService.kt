@@ -15,13 +15,25 @@ import java.util.concurrent.TimeUnit
 
 class JamApiService(
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .connectTimeout(45, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(45, TimeUnit.SECONDS)
         .build()
 ) {
     companion object {
         const val DEFAULT_JAM_HOST = "melody-music-szk2.onrender.com"
         const val DEFAULT_JAM_PORT = 443
+    }
+
+    suspend fun wakeUpServer(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val url = "${getBaseHttpUrl(host, port)}/api/v1/jam/health"
+            val request = Request.Builder().url(url).get().build()
+            val response = httpClient.newCall(request).execute()
+            response.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun getBaseHttpUrl(host: String = DEFAULT_JAM_HOST, port: Int = DEFAULT_JAM_PORT): String {

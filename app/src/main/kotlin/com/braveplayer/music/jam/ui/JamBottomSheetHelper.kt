@@ -50,6 +50,7 @@ class JamBottomSheetHelper(
         val etRoomCode = view.findViewById<EditText>(R.id.etJamRoomCode)
         val btnJoin = view.findViewById<Button>(R.id.btnJoinJam)
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbJamLoading)
+        val tvLoadingStatus = view.findViewById<TextView>(R.id.tvJamLoadingStatus)
         val btnClose = view.findViewById<ImageView>(R.id.btnJamClose)
 
         fun refreshName() {
@@ -70,16 +71,40 @@ class JamBottomSheetHelper(
 
         btnClose.setOnClickListener { dialog.dismiss() }
 
-        btnStart.setOnClickListener {
+        var loadingScope: CoroutineScope? = null
+
+        fun startLoading(initialText: String) {
             pbLoading.visibility = View.VISIBLE
+            tvLoadingStatus?.visibility = View.VISIBLE
+            tvLoadingStatus?.text = initialText
             btnStart.isEnabled = false
             btnJoin.isEnabled = false
 
+            loadingScope?.cancel()
+            loadingScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            loadingScope?.launch {
+                delay(5000L)
+                tvLoadingStatus?.text = "Waking up cloud server (Render spin-up)..."
+                delay(12000L)
+                tvLoadingStatus?.text = "Server spinning up, establishing connection..."
+            }
+        }
+
+        fun stopLoading() {
+            loadingScope?.cancel()
+            loadingScope = null
+            pbLoading.visibility = View.GONE
+            tvLoadingStatus?.visibility = View.GONE
+            btnStart.isEnabled = true
+            btnJoin.isEnabled = true
+        }
+
+        btnStart.setOnClickListener {
+            startLoading("Connecting to Jam server...")
+
             jamSessionManager.createJam { result ->
                 activity.runOnUiThread {
-                    pbLoading.visibility = View.GONE
-                    btnStart.isEnabled = true
-                    btnJoin.isEnabled = true
+                    stopLoading()
                     if (result.isSuccess) {
                         dialog.dismiss()
                         showActiveJamRoomSheet(onAddSongToJamQueue)
@@ -99,15 +124,11 @@ class JamBottomSheetHelper(
                 return@setOnClickListener
             }
 
-            pbLoading.visibility = View.VISIBLE
-            btnStart.isEnabled = false
-            btnJoin.isEnabled = false
+            startLoading("Connecting to Jam room $code...")
 
             jamSessionManager.joinJam(code) { result ->
                 activity.runOnUiThread {
-                    pbLoading.visibility = View.GONE
-                    btnStart.isEnabled = true
-                    btnJoin.isEnabled = true
+                    stopLoading()
                     if (result.isSuccess) {
                         dialog.dismiss()
                         showActiveJamRoomSheet(onAddSongToJamQueue)
@@ -117,6 +138,11 @@ class JamBottomSheetHelper(
                     }
                 }
             }
+        }
+
+        dialog.setOnDismissListener {
+            loadingScope?.cancel()
+            loadingScope = null
         }
 
         dialog.show()
@@ -210,7 +236,37 @@ class JamBottomSheetHelper(
             }
         }
 
+        val layoutHostPermissions = view.findViewById<View>(R.id.layoutJamHostPermissions)
+        val switchAllowGuestQueue = view.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.switchJamAllowGuestQueue)
+
+        btnPlayPause.setOnClickListener {
+            val room = jamSessionManager.currentRoom.value ?: return@setOnClickListener
+            val isHost = jamSessionManager.isHost()
+            if (!isHost && !room.settings.allowGuestControl) {
+                Toast.makeText(activity, "Only the Jam Host controls playback", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            (activity as? com.braveplayer.music.MainActivity)?.togglePlayPause()
+        }
+
+        switchAllowGuestQueue?.setOnCheckedChangeListener { _, isChecked ->
+            if (jamSessionManager.isHost() && jamSessionManager.currentRoom.value?.settings?.allowGuestQueueAdd != isChecked) {
+                jamSessionManager.updateRoomSettings(allowGuestQueueAdd = isChecked)
+                Toast.makeText(
+                    activity,
+                    if (isChecked) "Guest queue contributions enabled" else "Guest queue contributions restricted to host",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
         btnAddTrack.setOnClickListener {
+            val room = jamSessionManager.currentRoom.value
+            val isHost = jamSessionManager.isHost()
+            if (!isHost && room?.settings?.allowGuestQueueAdd == false) {
+                Toast.makeText(activity, "The Jam host has restricted adding songs", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             dialog.dismiss()
             onAddSongToJamQueue?.invoke()
         }
@@ -284,6 +340,20 @@ class JamBottomSheetHelper(
                 // Participants
                 tvParticipantsHeader.text = "Participants (${room.participants.size})"
                 participantAdapter.submitList(room.participants)
+
+                // Host Permissions Setting UI
+                layoutHostPermissions?.visibility = if (isHost) View.VISIBLE else View.GONE
+                if (switchAllowGuestQueue != null && switchAllowGuestQueue.isChecked != room.settings.allowGuestQueueAdd) {
+                    switchAllowGuestQueue.isChecked = room.settings.allowGuestQueueAdd
+                }
+
+                if (!isHost && !room.settings.allowGuestQueueAdd) {
+                    btnAddTrack.text = "🔒 Host Only"
+                    btnAddTrack.alpha = 0.6f
+                } else {
+                    btnAddTrack.text = "+ Add Song"
+                    btnAddTrack.alpha = 1.0f
+                }
 
                 // Collaborative Queue
                 queueAdapter.submitList(room.queue)
