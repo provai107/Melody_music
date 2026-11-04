@@ -18,6 +18,7 @@ import java.net.URL
 class JamQueueAdapter(
     private val currentGuestId: String?,
     private val isHost: Boolean,
+    private val onItemClick: ((JamQueueItem) -> Unit)? = null,
     private val onRemoveClick: (JamQueueItem) -> Unit
 ) : RecyclerView.Adapter<JamQueueAdapter.ViewHolder>() {
 
@@ -52,6 +53,8 @@ class JamQueueAdapter(
             tvTitle.text = item.songSummary.title
             tvArtists.text = item.songSummary.artists
             tvAddedBy.text = "Added by ${item.addedByName}"
+
+            itemView.setOnClickListener { onItemClick?.invoke(item) }
 
             val canRemove = isHost || (currentGuestId != null && item.addedByGuestId == currentGuestId)
             btnRemove.visibility = if (canRemove) View.VISIBLE else View.GONE

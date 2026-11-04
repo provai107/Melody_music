@@ -92,7 +92,8 @@ class JamBottomSheetHelper(
         }
 
         btnJoin.setOnClickListener {
-            val code = etRoomCode.text.toString().trim()
+            val raw = etRoomCode.text.toString().trim().uppercase()
+            val code = if (raw.length == 4 && !raw.startsWith("JAM-")) "JAM-$raw" else raw
             if (code.length < 4) {
                 Toast.makeText(activity, "Please enter a valid room code (e.g. JAM-4821)", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -138,12 +139,10 @@ class JamBottomSheetHelper(
         val btnCollapse = view.findViewById<ImageView>(R.id.btnJamRoomCollapse)
         val tvSyncStatus = view.findViewById<TextView>(R.id.tvJamSyncStatus)
         val tvHostIndicator = view.findViewById<TextView>(R.id.tvJamHostIndicator)
-
         val ivArtwork = view.findViewById<ImageView>(R.id.ivJamTrackArtwork)
         val tvTrackTitle = view.findViewById<TextView>(R.id.tvJamTrackTitle)
         val tvTrackArtists = view.findViewById<TextView>(R.id.tvJamTrackArtists)
         val btnPlayPause = view.findViewById<ImageView>(R.id.btnJamPlayPause)
-
         val tvReactionOverlay = view.findViewById<TextView>(R.id.tvJamActiveReaction)
         val tvParticipantsHeader = view.findViewById<TextView>(R.id.tvJamParticipantsHeader)
         val rvParticipants = view.findViewById<RecyclerView>(R.id.rvJamParticipants)
@@ -156,8 +155,16 @@ class JamBottomSheetHelper(
         rvParticipants.adapter = participantAdapter
 
         val queueAdapter = JamQueueAdapter(
-            currentGuestId = null,
+            currentGuestId = jamSessionManager.getMyGuestId(),
             isHost = jamSessionManager.isHost(),
+            onItemClick = { item ->
+                if (jamSessionManager.isHost()) {
+                    jamSessionManager.playTrackFromQueue(item)
+                    Toast.makeText(activity, "Playing: ${item.songSummary.title}", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(activity, "Queued by ${item.addedByName}", Toast.LENGTH_SHORT).show()
+                }
+            },
             onRemoveClick = { item ->
                 jamSessionManager.removeFromQueue(item.queueItemId)
             }

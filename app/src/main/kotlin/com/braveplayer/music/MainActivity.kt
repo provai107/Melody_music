@@ -321,6 +321,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnTopCast: ImageView
     private lateinit var jamSessionManager: JamSessionManager
     private lateinit var jamBottomSheetHelper: JamBottomSheetHelper
+    private var isSelectingSongForJam = false
     private lateinit var btnNowPlayingCast: ImageView
     private lateinit var btnNowPlayingDislike: ImageView
     private lateinit var btnNowPlayingShareAction: View
@@ -687,6 +688,16 @@ class MainActivity : AppCompatActivity() {
                     playlistDbHelper.getDownloadedSong(song.id) ?: song
                 } else {
                     song
+                }
+
+                if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
+                    if (isSelectingSongForJam || !jamSessionManager.isHost()) {
+                        isSelectingSongForJam = false
+                        jamSessionManager.addToQueue(effectiveSong)
+                        Toast.makeText(this, "Added to Melody Jam queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
+                        jamBottomSheetHelper.showJamSheet()
+                        return@SongAdapter
+                    }
                 }
 
                 val currentResults = searchAdapter.currentList
@@ -1194,14 +1205,16 @@ class MainActivity : AppCompatActivity() {
 
         btnTopCast.setOnClickListener {
             jamBottomSheetHelper.showJamSheet(onAddSongToJamQueue = {
+                isSelectingSongForJam = true
                 bottomNavigation.selectedItemId = R.id.nav_search
-                Toast.makeText(this, "Search a song and choose 'Add to Jam Queue'", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Tap any song to add it to your Melody Jam queue!", Toast.LENGTH_LONG).show()
             })
         }
         btnNowPlayingCast.setOnClickListener {
             jamBottomSheetHelper.showJamSheet(onAddSongToJamQueue = {
+                isSelectingSongForJam = true
                 bottomNavigation.selectedItemId = R.id.nav_search
-                Toast.makeText(this, "Search a song and choose 'Add to Jam Queue'", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Tap any song to add it to your Melody Jam queue!", Toast.LENGTH_LONG).show()
             })
         }
         btnNowPlayingDislike.setOnClickListener {
@@ -1653,17 +1666,18 @@ class MainActivity : AppCompatActivity() {
             song
         }
 
+        if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
+            jamSessionManager.addToQueue(effectiveSong)
+            Toast.makeText(this, "Added to Melody Jam queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val playbackUrl = effectiveSong.getBestPlaybackUrl()
         if (playbackUrl == null) {
             Toast.makeText(this, "Cannot queue '${effectiveSong.title}': No stream URL", Toast.LENGTH_SHORT).show()
             return
         }
 
-        if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
-            jamSessionManager.addToQueue(effectiveSong)
-            Toast.makeText(this, "Added to Melody Jam queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
-            return
-        }
         playbackController.addToQueue(effectiveSong)
         Toast.makeText(this, "Added to queue: ${effectiveSong.title}", Toast.LENGTH_SHORT).show()
     }
@@ -3100,7 +3114,12 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss()
             playNext(song)
         }
-        view.findViewById<View>(R.id.optAddToQueue).setOnClickListener {
+        val optAddToQueue = view.findViewById<LinearLayout>(R.id.optAddToQueue)
+        if (::jamSessionManager.isInitialized && jamSessionManager.isInJam()) {
+            val tvText = optAddToQueue?.getChildAt(1) as? TextView
+            tvText?.text = "Add to Melody Jam Queue"
+        }
+        optAddToQueue?.setOnClickListener {
             dialog.dismiss()
             addSongToQueue(song)
         }

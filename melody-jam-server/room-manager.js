@@ -84,7 +84,10 @@ class RoomManager {
   findRoom(codeOrId) {
     if (!codeOrId) return null;
     const clean = codeOrId.trim().toUpperCase();
-    return this.roomsByCode.get(clean) || this.roomsById.get(codeOrId);
+    return this.roomsByCode.get(clean) ||
+           this.roomsByCode.get('JAM-' + clean) ||
+           (clean.startsWith('JAM-') ? this.roomsByCode.get(clean.substring(4)) : null) ||
+           this.roomsById.get(codeOrId);
   }
 
   joinRoom(codeOrId, guest, socket = null) {

@@ -104,6 +104,12 @@ class JamSessionManager(
                     when (state) {
                         com.braveplayer.music.player.PlaybackState.PLAYING -> sendPlay(pos)
                         com.braveplayer.music.player.PlaybackState.PAUSED -> sendPause(pos)
+                        com.braveplayer.music.player.PlaybackState.ENDED -> {
+                            val nextQueued = _currentRoom.value?.queue?.firstOrNull()
+                            if (nextQueued != null) {
+                                playTrackFromQueue(nextQueued)
+                            }
+                        }
                         else -> {}
                     }
                 }
@@ -125,6 +131,8 @@ class JamSessionManager(
     }
 
     fun getDisplayName(): String = keyStoreManager.getDisplayName()
+
+    fun getMyGuestId(): String? = keyStoreManager.getGuestId()
 
     fun updateDisplayName(name: String) {
         keyStoreManager.setDisplayName(name)
@@ -179,28 +187,52 @@ class JamSessionManager(
 
             val token = tokenResult.getOrThrow()
             val wsUrl = apiService.getBaseWsUrl(hostServerIp, hostServerPort)
-            socketManager.connect(wsUrl, token)
 
-            // When socket opens, send create jam command
+            var isCompleted = false
             val listener = object : JamSocketManager.Listener {
                 override fun onJamCreated(room: JamRoom, role: JamRole) {
+                    if (isCompleted) return
+                    isCompleted = true
                     socketManager.removeListener(this)
                     onResult?.invoke(Result.success(room))
                 }
 
                 override fun onError(code: String, message: String) {
+                    if (isCompleted) return
+                    isCompleted = true
                     socketManager.removeListener(this)
                     onResult?.invoke(Result.failure(Exception("$code: $message")))
                 }
+
+                override fun onDisconnected(reason: String) {
+                    if (reason.contains("401") || reason.contains("Unauthorized", ignoreCase = true)) {
+                        keyStoreManager.clearSession()
+                    }
+                    if (!isCompleted && _currentRoom.value == null) {
+                        isCompleted = true
+                        socketManager.removeListener(this)
+                        onResult?.invoke(Result.failure(Exception("Connection failed: $reason")))
+                    }
+                }
             }
             socketManager.addListener(listener)
+
+            // Watchdog timeout after 12 seconds
+            coroutineScope.launch {
+                delay(12_000L)
+                if (!isCompleted) {
+                    isCompleted = true
+                    socketManager.removeListener(listener)
+                    onResult?.invoke(Result.failure(Exception("Connection timed out. Check network or server status.")))
+                }
+            }
+
+            socketManager.connect(wsUrl, token)
 
             // Song summary
             val summary = initialSong?.let { JamSongSummary.fromSong(it) }
                 ?: playbackController.getCurrentSong()?.let { JamSongSummary.fromSong(it) }
 
-            // Small delay to ensure onConnected fired
-            delay(150)
             socketManager.sendCreateJam(summary)
         }
     }
@@ -216,26 +248,60 @@ class JamSessionManager(
                 return@launch
             }
 
+            val rawTrimmed = roomCodeOrId.trim().uppercase()
+            val cleanCode = if (rawTrimmed.length == 4 && !rawTrimmed.startsWith("JAM-")) "JAM-$rawTrimmed" else rawTrimmed
+
             val token = tokenResult.getOrThrow()
             val wsUrl = apiService.getBaseWsUrl(hostServerIp, hostServerPort)
-            socketManager.connect(wsUrl, token)
 
+            var isCompleted = false
             val listener = object : JamSocketManager.Listener {
                 override fun onJamJoined(room: JamRoom, role: JamRole, isReconnecting: Boolean) {
+                    if (isCompleted) return
+                    isCompleted = true
                     socketManager.removeListener(this)
                     onResult?.invoke(Result.success(room))
                 }
 
                 override fun onError(code: String, message: String) {
+                    if (isCompleted) return
+                    isCompleted = true
                     socketManager.removeListener(this)
                     onResult?.invoke(Result.failure(Exception("$code: $message")))
+                }
+
+                override fun onDisconnected(reason: String) {
+                    if (reason.contains("401") || reason.contains("Unauthorized", ignoreCase = true)) {
+                        keyStoreManager.clearSession()
+                    }
+                    if (!isCompleted && _currentRoom.value == null) {
+                        isCompleted = true
+                        socketManager.removeListener(this)
+                        onResult?.invoke(Result.failure(Exception("Connection failed: $reason")))
+                    }
                 }
             }
             socketManager.addListener(listener)
 
-            delay(150)
-            socketManager.sendJoinJam(roomCodeOrId)
+            coroutineScope.launch {
+                delay(12_000L)
+                if (!isCompleted) {
+                    isCompleted = true
+                    socketManager.removeListener(listener)
+                    onResult?.invoke(Result.failure(Exception("Connection timed out. Check room code and server status.")))
+                }
+            }
+
+            socketManager.connect(wsUrl, token)
+            socketManager.sendJoinJam(cleanCode)
         }
+    }
+
+    fun playTrackFromQueue(queueItem: JamQueueItem) {
+        if (!isInJam() || !isHost()) return
+        val song = queueItem.songSummary.toSong()
+        removeFromQueue(queueItem.queueItemId)
+        playbackController.playSingleSong(song, playImmediately = true)
     }
 
     fun leaveJam() {
@@ -415,14 +481,19 @@ class JamSessionManager(
         val currentSong = playbackController.getCurrentSong()
 
         coroutineScope.launch(Dispatchers.Main) {
-            val songToPlay: Song? = if (currentSong?.id == trackId) {
+            val candidateSong = playbackState.songSummary?.toSong()
+            val songToPlay: Song? = if (currentSong?.id == trackId && currentSong.getBestPlaybackUrl() != null) {
                 currentSong
+            } else if (candidateSong?.getBestPlaybackUrl() != null) {
+                candidateSong
             } else {
-                // 1. Try from songSummary
-                playbackState.songSummary?.toSong() ?: withContext(Dispatchers.IO) {
-                    // 2. Fetch via JioSaavn Metadata API
-                    metadataService.fetchSongById(trackId)
-                }
+                withContext(Dispatchers.IO) {
+                    try {
+                        metadataService.fetchSongById(trackId)
+                    } catch (_: Exception) {
+                        null
+                    }
+                } ?: candidateSong
             }
 
             if (songToPlay != null) {
@@ -432,7 +503,7 @@ class JamSessionManager(
                     playbackController.playSingleSong(songToPlay, playImmediately = playbackState.isPlaying)
                 }
 
-                delay(100)
+                delay(150)
                 syncManager.evaluateDriftAndCorrect()
                 isApplyingRemoteUpdate = false
             }

@@ -38,11 +38,15 @@ class JamSocketManager(
     private var currentWsUrl: String? = null
     private var currentToken: String? = null
     private val isConnecting = AtomicBoolean(false)
+    private val isConnected = AtomicBoolean(false)
     private val isManuallyClosed = AtomicBoolean(false)
+    private val pendingQueue = java.util.concurrent.ConcurrentLinkedQueue<String>()
 
     private var reconnectAttempts = 0
     private var reconnectJob: Job? = null
     private var heartbeatJob: Job? = null
+
+    fun isConnected(): Boolean = isConnected.get()
 
     fun addListener(listener: Listener) {
         if (!listeners.contains(listener)) {
@@ -64,6 +68,7 @@ class JamSocketManager(
     private fun establishConnection() {
         val url = currentWsUrl ?: return
         val token = currentToken ?: return
+        if (isConnected.get()) return
         if (isConnecting.getAndSet(true)) return
 
         val fullUrl = if (url.contains("?")) "$url&token=$token" else "$url?token=$token"
@@ -72,8 +77,10 @@ class JamSocketManager(
         webSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 isConnecting.set(false)
+                isConnected.set(true)
                 reconnectAttempts = 0
                 startHeartbeat()
+                flushPendingQueue()
                 listeners.forEach { it.onConnected() }
             }
 
@@ -87,6 +94,7 @@ class JamSocketManager(
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 isConnecting.set(false)
+                isConnected.set(false)
                 stopHeartbeat()
                 listeners.forEach { it.onDisconnected(reason) }
                 if (!isManuallyClosed.get()) {
@@ -96,6 +104,7 @@ class JamSocketManager(
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 isConnecting.set(false)
+                isConnected.set(false)
                 stopHeartbeat()
                 listeners.forEach { it.onDisconnected(t.message ?: "Connection error") }
                 if (!isManuallyClosed.get()) {
@@ -105,13 +114,21 @@ class JamSocketManager(
         })
     }
 
+    private fun flushPendingQueue() {
+        val ws = webSocket ?: return
+        while (isConnected.get() && !pendingQueue.isEmpty()) {
+            val msg = pendingQueue.poll() ?: break
+            ws.send(msg)
+        }
+    }
+
     private fun scheduleReconnect() {
         reconnectJob?.cancel()
         reconnectJob = coroutineScope.launch {
             reconnectAttempts++
             val backoffMs = (1000L * (1L shl (reconnectAttempts.coerceAtMost(4)))).coerceAtMost(15000L)
             delay(backoffMs)
-            if (!isManuallyClosed.get()) {
+            if (!isManuallyClosed.get() && !isConnected.get()) {
                 establishConnection()
             }
         }
@@ -134,6 +151,8 @@ class JamSocketManager(
 
     fun disconnect() {
         isManuallyClosed.set(true)
+        isConnected.set(false)
+        pendingQueue.clear()
         reconnectJob?.cancel()
         stopHeartbeat()
         webSocket?.close(1000, "Normal closure")
@@ -152,7 +171,13 @@ class JamSocketManager(
             put("requestId", "req_" + UUID.randomUUID().toString().take(8))
             put("clientTimestamp", System.currentTimeMillis())
         }
-        webSocket?.send(payload.toString())
+        val text = payload.toString()
+        val ws = webSocket
+        if (isConnected.get() && ws != null) {
+            ws.send(text)
+        } else {
+            pendingQueue.add(text)
+        }
     }
 
     fun sendHeartbeat() {

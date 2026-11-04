@@ -141,7 +141,12 @@ class JamSyncManager(
             return
         }
 
-        // Playing: apply 3-tier correction strategy
+        // Playing: ensure local player is playing
+        if (!player.isPlaying && player.playbackState != Player.STATE_ENDED) {
+            player.play()
+        }
+
+        // Apply 3-tier correction strategy
         when {
             absDrift < THRESHOLD_IN_SYNC_MS -> {
                 // Tier 1: Perfect sync (< 150ms). Restore normal 1.0x playback speed.
